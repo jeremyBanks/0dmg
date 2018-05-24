@@ -39,12 +39,12 @@ impl GameBoy {
                 0x20 => {
                     // relative jump if Z flag is unset
 
-                    let delta = self.boot_rom[i + 1] as usize;
+                    let delta = self.boot_rom[i + 1] as i8;
                     i += 1;
 
                     println!("  relative jump of {} if Z flag is false (it is {})", delta, self.z_flag());
                     if !self.z_flag() {
-                        i += delta - 1;
+                        i = (i as i64 + delta as i64) as usize;
                     }
                 }
 
