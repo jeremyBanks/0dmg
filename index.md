@@ -1,5 +1,4 @@
 ---
-layout: default
 ---
 
 # 0dmg
