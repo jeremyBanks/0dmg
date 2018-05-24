@@ -1,3 +1,7 @@
+---
+layout: default
+---
+
 # 0dmg
 
 Learning Rust by trying to build a partial Game Boy emulator.
@@ -20,3 +24,9 @@ Learning Rust by trying to build a partial Game Boy emulator.
 - Why did I spend 1.5 months creating a Gameboy emulator?  
   http://blog.rekawek.eu/2017/02/09/coffee-gb/  
   https://news.ycombinator.com/item?id=17134668
+  
+## Blog Posts
+  
+<ul>{% for post in site.posts %}   
+  <li><a href="{{ post.url }}">{{ post.date | date: "%Y-%m-%d" }} {{ post.title }}</a></li>
+{% endfor %}</ul>
