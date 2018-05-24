@@ -8,7 +8,7 @@ Learning Rust by trying to build a partial Game Boy emulator.
 ## Posts
   
 <ul>{% for post in site.posts %}   
-  <li><a href="./{{ post.url }}">{{ post.date | date: "%Y-%m-%d" }} {{ post.title }}</a></li>
+  <li><a href="{{ site.baseurl }}{{ post.url }}">{{ post.date | date: "%Y-%m-%d" }} {{ post.title }}</a></li>
 {% endfor %}</ul>
 
 ## Resources
