@@ -1,11 +1,20 @@
 # 0dmg
 
-## resources  
+Learning Rust by trying to build a partial Game Boy emulator.
 
-- [Why did I spend 1.5 months creating a Gameboy emulator?](http://blog.rekawek.eu/2017/02/09/coffee-gb/)
-  ([HN Comments](https://news.ycombinator.com/item?id=17134668))
-- [Game Boy CPU Manual](http://marc.rawer.de/Gameboy/Docs/GBCPUman.pdf) 
-- [Game Boy Bootstrap ROM](http://gbdev.gg8.se/wiki/articles/Gameboy_Bootstrap_ROM)
-- [Ultimate Game Boy Talk](https://www.youtube.com/watch?v=HyzD8pNlpwI&t=29m12s)
-  ([HN Comments](https://news.ycombinator.com/item?id=13290362))
-- http://gameboy.mongenel.com/dmg/asmmemmap.html
+## Game Boy Emulation Resources  
+
+- CPU Manual  
+  http://marc.rawer.de/Gameboy/Docs/GBCPUman.pdf
+- Bootstrap ROM  
+  http://gbdev.gg8.se/wiki/articles/Gameboy_Bootstrap_ROM  
+- Memory Layout  
+  http://gameboy.mongenel.com/dmg/asmmemmap.html
+- Opcodes  
+  http://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html
+- Ultimate Game Boy Talk  
+  https://youtu.be/HyzD8pNlpwI  
+  https://news.ycombinator.com/item?id=13290362
+- Why did I spend 1.5 months creating a Gameboy emulator?  
+  http://blog.rekawek.eu/2017/02/09/coffee-gb/  
+  https://news.ycombinator.com/item?id=17134668
