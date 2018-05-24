@@ -63,6 +63,8 @@ I start implementing a `set_memory(address: u16, value: u8)` method that will `p
         memory[0xFF9F] = 0x0
           high_ram[0x1F] = 0x0
 
+Rusty aside: so far, I had implemented everything using local variables and closures. That was getting a bit messy, so I finished by shoving all of the data into a `struct` and moving all of my logic to methods in an associated `trait`. I don't know what a trait *really* is. It might be something like an interface with a default implementation. But it's working and the code's cleaner than it was, so I'm happy to leave that question for another time.
+
 XXXX last two instructions are what? re-run old code and copy the log here
 
 To help understand whether this was doing the right thing, I found [Ignacio Sánchez Ginés's disassembly of the boot ROM](https://gist.github.com/drhelius/6063288) and compared the section corresponding to the code I've run so far:
@@ -75,8 +77,14 @@ To help understand whether this was doing the right thing, I found [Ignacio Sán
       BIT 7,H          ; $0008
       JR NZ, Addr_0007 ; $000a
 
-Hmm. The comment says this is supposed to be zeroing out a range of memory, and I that's implemented by looping through these last three instructions until our `HL` address pointer is decremented far enough that it's 7th bit becomes set (FACT CHECK ??). There's a problem: this loop is implementing by a relative jump back from `0x000a` to `0x0007`, but I've interpreted the relative jump as a jump forward by 251 (FACT CHECK ???). That's simple enough: I interpreted the address offset as an unsigned byte (`u8`), but it should obviously be a signed byte instead (`i8`). Interpreting it as an signed value gives us a jump backwards by 5, matching the disassembly:
+Uh-oh. Looks like we've got a couple of mistakes.
 
-XXXX corrected output here
+The first address zeroed is supposed to be `0x9FFF`, not `0xFF9F`. I was interpreting the byte order as big-endian (most-significant first, like ordinary decimal digits), but a quick search confirms that 8080-family processors like the Game Boy has were actually **litte-endian**. I'll need to update my register accessors to swap those around. This also means that we're not using the "high-performance" RAM area after all, and I need to update `set_memory()` to support writes to the Video RAM address space. I had already added an unused
 
-So far, I had implemented everything using local variables and closures. That was getting a bit messy, so I finished by shoving all of the data into a `struct` and moving all of my logic to methods in an associated `trait`. I don't know what a trait *really* is. It might be something like an interface with a default implementation. But it's working and the code's cleaner than it was, so I'm happy to leave that question for another time.
+    video_ram: [u8; 8192],
+
+array field to my `GameBoy` state struct, and writing Video RAM doesn't have any immediate side-effects, so this should also be trivial.
+
+The comment indicates that this is supposed to be zeroing out a range of memory by looping through these last three instructions, until our `HL` address pointer is decremented far enough that it's 7th bit becomes set (FACT CHECK ??). There's a problem: this loop is implementing by a relative jump back from `0x000a` to `0x0007`, but I've interpreted the relative jump as a jump forward by 251 (FACT CHECK ???). That's simple enough: I interpreted the address offset as an unsigned byte (`u8`), but it should obviously be a signed byte instead (`i8`). Interpreting it as an signed value would give us a jump backwards by 5, matching the disassembly.
+
+I'll finish those fixes tomorrow.
