@@ -79,28 +79,59 @@ fn main() {
     let r_d = 4;
     let r_e = 5;
     let r_f = 1;
-    let r_H = 6;
+    let r_h = 6;
     let r_l = 7;
     let r_sp_s = 8;
     let r_sp_p = 9;
     let r_pc_p = 10;
     let r_pc_c = 11;
 
+    let mut set_memory = |address: u16, value: u8| {
+        println!("    memory[0x{:X}] = {:X}", address, value);
+        panic!("I don't understand memory addresses.");
+    };
+
     let mut run_code = |code: &Vec<u8>| {
         let mut i = 0;
         while i < code.len() {
             let opcode = code[i];
-            println!("running opcode at {:x}, {:x}", i, opcode);
+            println!("read opcode {:X} at {:X}", opcode, i);
             match opcode {
                 0x31 => {
+                    // LOAD SP, $1, $2
                     registers[r_sp_s] = code[i + 1];
                     registers[r_sp_p] = code[i + 2];
+                    println!("  SP = 0x{:X}, 0x{:X}", code[i + 1], code[i + 2]);
                     i += 2;
+                }
 
-                    println!("updated registers: {:?}", registers);
+                0x21 => {
+                    // LOAD HL, $1, $2
+                    registers[r_h] = code[i + 1];
+                    registers[r_l] = code[i + 2];
+                    i += 2;
+                    println!("  H, L = 0x{:X}, 0x{:X}", code[i + 1], code[i + 2]);
+                }
+
+                0xAF => {
+                    // XOR A A
+                    registers[r_a] = 0; // ^= registers[r_a];
+                    println!("  A ^= A (A = 0)");
+                }
+
+                0x32 => {
+                    // Put A into memory address HL.
+                    let mut address = ((registers[r_h] as u16) << 8) + registers[r_l] as u16;
+                    println!("  memory[HL] = A");
+                    set_memory(address, registers[r_a]);
+                    //  Decrement HL.
+                    address -= 1;
+                    println!("  HL -= 1");
+                    registers[r_h] = (address >> 8) as u8;
+                    registers[r_l] = address as u8;
                 }
                 _ => {
-                    panic!("unrecognized opcode: {:x}", opcode);
+                    panic!("unrecognized opcode: {:X}", opcode);
                 }
             }
             i += 1;
