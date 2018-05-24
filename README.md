@@ -7,6 +7,7 @@ Learning Rust by trying to build a partial Game Boy emulator.
 - CPU Manual  
   http://marc.rawer.de/Gameboy/Docs/GBCPUman.pdf
 - Bootstrap ROM  
+  https://gist.github.com/drhelius/6063288  
   http://gbdev.gg8.se/wiki/articles/Gameboy_Bootstrap_ROM  
 - Memory Layout  
   http://gameboy.mongenel.com/dmg/asmmemmap.html

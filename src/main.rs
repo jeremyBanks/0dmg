@@ -36,6 +36,18 @@ impl GameBoy {
             let opcode = self.boot_rom[i];
             println!("read opcode 0x{:X} at 0x{:X}", opcode, i);
             match opcode {
+                0x20 => {
+                    // relative jump if Z flag is unset
+
+                    let delta = self.boot_rom[i + 1] as usize;
+                    i += 1;
+
+                    println!("  relative jump of {} if Z flag is false (it is {})", delta, self.z_flag());
+                    if !self.z_flag() {
+                        i += delta - 1;
+                    }
+                }
+
                 0x21 => {
                     // LOAD HL, $1, $2
                     println!("  H, L = 0x{:X}, 0x{:X}", self.boot_rom[i + 1], self.boot_rom[i + 2]);
