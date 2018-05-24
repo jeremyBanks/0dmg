@@ -181,12 +181,11 @@ impl GameBoy {
     }
 
     fn hl(&self) -> u16 {
-        return ((self.main_registers[6] as u16) << 8) + (self.main_registers[7] as u16);
+        return u8s_to_u16(self.main_registers[6], self.main_registers[7]);
     }
 
     fn set_hl(&mut self, value:u16) {
-        let h = (value >> 8) as u8;
-        let l = value as u8;
+        let (h, l) = u16_to_u8s(value);
         self.main_registers[6] = h;
         self.main_registers[7] = l;
     }
@@ -197,12 +196,11 @@ impl GameBoy {
     }
 
     fn sp(&self) -> u16 {
-        return ((self.main_registers[8] as u16) << 8) + (self.main_registers[9] as u16);
+        return u8s_to_u16(self.main_registers[8], self.main_registers[9]);
     }
 
     fn set_sp(&mut self, value: u16) {
-        let s = (value >> 8) as u8;
-        let p = value as u8;
+        let (s, p) = u16_to_u8s(value);
         self.main_registers[8] = s;
         self.main_registers[9] = p;
     }
@@ -213,12 +211,11 @@ impl GameBoy {
     }
 
     fn pc(&self) -> u16 {
-        return ((self.main_registers[10] as u16) << 8) + (self.main_registers[11] as u16);
+        return u8s_to_u16(self.main_registers[10], self.main_registers[11]);
     }
 
     fn set_pc(&mut self, value: u16) {
-        let p = (value >> 8) as u8;
-        let c = value as u8;
+        let (p, c) = u16_to_u8s(value);
         self.main_registers[10] = p;
         self.main_registers[11] = c;
     }
@@ -229,35 +226,35 @@ impl GameBoy {
     }
 
     fn z_flag(&self) -> bool {
-        self.flag_register & 0b10000000 > 0
+        u8_get_bit(self.flag_register, 1)
     }
 
     fn set_z_flag(&mut self, value: bool) {
-        self.flag_register = (self.flag_register & 0b01111111) + (if value { 0b10000000 } else { 0 });
+        u8_set_bit(&mut self.flag_register, 1, value);
     }
 
     fn n_flag(&self) -> bool {
-        self.flag_register & 0b01000000 > 0
+        u8_get_bit(self.flag_register, 2)
     }
 
     fn set_n_flag(&mut self, value: bool) {
-        self.flag_register = (self.flag_register & 0b10111111) + (if value { 0b01000000 } else { 0 });
+        u8_set_bit(&mut self.flag_register, 2, value);
     }
 
     fn h_flag(&self) -> bool {
-        self.flag_register & 0b00100000 > 0
+        u8_get_bit(self.flag_register, 3)
     }
 
     fn set_h_flag(&mut self, value: bool) {
-        self.flag_register = (self.flag_register & 0b11011111) + (if value { 0b00100000 } else { 0 });
+        u8_set_bit(&mut self.flag_register, 3, value);
     }
 
     fn c_flag(&self) -> bool {
-        self.flag_register & 0b00010000 > 0
+        u8_get_bit(self.flag_register, 4)
     }
 
     fn set_c_flag(&mut self, value: bool) {
-        self.flag_register = (self.flag_register & 0b11101111) + (if value { 0b00010000 } else { 0 });
+        u8_set_bit(&mut self.flag_register, 4, value);
     }
 
     // Memory Access
@@ -270,8 +267,33 @@ impl GameBoy {
             println!("      high_ram[0x{:X}] = 0x{:X}", i, value);
             self.high_ram[i] = value;
         } else {
-            panic!("I don't know how to set address 0x{:X}.");
+            panic!("I don't know how to set address 0x{:X}.", address);
         }
+    }
+}
+
+fn u8s_to_u16(a: u8, b: u8) -> u16 {
+    return a as u16 + ((b as u16) << 8)
+}
+
+fn u16_to_u8s(x: u16) -> (u8, u8) {
+    (x as u8, (x >> 8) as u8)
+}
+
+fn u8_get_bit(x: u8, offset: u8) -> bool {
+    if offset > 7 { panic!(); }
+
+    (x >> offset) & 1 == 1
+}
+
+fn u8_set_bit(x: &mut u8, offset: u8, value: bool) {
+    if offset > 7 { panic!(); }
+
+    let mask = 1 << offset;
+    if value {
+        *x |= mask;
+    } else {
+        *x &= !mask;
     }
 }
 
