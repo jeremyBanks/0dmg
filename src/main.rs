@@ -1,9 +1,9 @@
 fn main() {
-    let mut gameboy = GameBoyState::new();
+    let mut gameboy = GameBoy::new();
     gameboy.run();
 }
 
-struct GameBoyState {
+struct GameBoy {
     t: u64,
     main_ram: [u8; 8192],
     video_ram: [u8; 8192],
@@ -14,9 +14,9 @@ struct GameBoyState {
     game_rom: Vec<u8>,
 }
 
-impl GameBoyState {
-    fn new() -> GameBoyState {
-        GameBoyState {
+impl GameBoy {
+    fn new() -> GameBoy {
+        GameBoy {
             t: 0,
             main_ram: [0u8; 8192],
             video_ram: [0u8; 8192],
@@ -79,7 +79,11 @@ impl GameBoyState {
                     match opcode_2 {
                         0x7C => {
                             let h = self.h();
-                            panic!("unsupported opcode: {:X} {:X}", opcode, opcode_2);
+                            let result = h & 0b0000_0010 > 0;
+                            println!("  setting Z flag to 7th bit of H register ({})", result);
+                            self.set_z_flag(result);
+                            self.set_n_flag(false);
+                            self.set_h_flag(true);
                         }
 
                         _ => {
