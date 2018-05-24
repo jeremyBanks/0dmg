@@ -8,6 +8,7 @@ struct GameBoyState {
     video_ram: [u8; 8192],
     high_ram: [u8; 127],
     main_registers: [u8; 12],
+    flag_register: u8,
     boot_rom: Vec<u8>,
     game_rom: Vec<u8>,
 }
@@ -19,6 +20,7 @@ impl GameBoyState {
             video_ram: [0u8; 8192],
             high_ram: [0u8; 127],
             main_registers: [0u8; 12],
+            flag_register: 0,
             boot_rom: load_boot_rom(),
             game_rom: load_game_rom("Pokemon Red (US)[:256]"),
         }
@@ -68,11 +70,18 @@ impl GameBoyState {
                 }
 
                 0xCB => {
+                    // 2-byte opcode
+
                     let opcode_2 = self.boot_rom[i + 1];
 
                     match opcode_2 {
+                        0x7C => {
+                            let h = self.h();
+                            panic!("unsupported opcode: {:X} {:X}", opcode, opcode_2);
+                        }
+
                         _ => {
-                            panic!("unrecognized opcode: {:X} {:X}", opcode, opcode_2);
+                            panic!("unsupported opcode: {:X} {:X}", opcode, opcode_2);
                         }
                     }
 
@@ -80,7 +89,7 @@ impl GameBoyState {
                 }
 
                 _ => {
-                    panic!("unrecognized opcode: {:X}", opcode);
+                    panic!("unsupported opcode: {:X}", opcode);
                 }
             }
             i += 1;
@@ -199,6 +208,38 @@ impl GameBoyState {
     fn set_p_c(&mut self, p: u8, c: u8) {
         self.main_registers[10] = p;
         self.main_registers[11] = c;
+    }
+
+    fn z_flag(&self) -> bool {
+        self.flag_register & 0b10000000 > 0
+    }
+
+    fn set_z_flag(&mut self, value: bool) {
+        self.flag_register = (self.flag_register & 0b01111111) + (if value { 0b10000000 } else { 0 });
+    }
+
+    fn n_flag(&self) -> bool {
+        self.flag_register & 0b01000000 > 0
+    }
+
+    fn set_n_flag(&mut self, value: bool) {
+        self.flag_register = (self.flag_register & 0b10111111) + (if value { 0b01000000 } else { 0 });
+    }
+
+    fn h_flag(&self) -> bool {
+        self.flag_register & 0b00100000 > 0
+    }
+
+    fn set_h_flag(&mut self, value: bool) {
+        self.flag_register = (self.flag_register & 0b11011111) + (if value { 0b00100000 } else { 0 });
+    }
+
+    fn c_flag(&self) -> bool {
+        self.flag_register & 0b00010000 > 0
+    }
+
+    fn set_c_flag(&mut self, value: bool) {
+        self.flag_register = (self.flag_register & 0b11101111) + (if value { 0b00010000 } else { 0 });
     }
 
     // Memory Access
