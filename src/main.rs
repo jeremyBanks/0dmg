@@ -72,6 +72,7 @@ fn main() {
 
     let mut main_ram = vec![0u8; 8192];
     let mut video_ram = vec![0u8; 8192];
+    let mut high_ram = vec![0u8; 127];
     let mut registers = vec![0u8; 12];
     let r_a = 0;
     let r_b = 2;
@@ -87,24 +88,23 @@ fn main() {
     let r_pc_c = 11;
 
     let mut set_memory = |address: u16, value: u8| {
-        println!("    memory[0x{:X}] = {:X}", address, value);
-        panic!("I don't understand memory addresses.");
+        println!("    memory[0x{:X}] = 0x{:X}", address, value);
+
+        if 0xFF80 <= address && address <= 0xFFFE {
+            let i: usize = (address - 0xFF80) as usize;
+            println!("      high_ram[0x{:X}] = 0x{:X}", i, value);
+            high_ram[i] = value;
+        } else {
+            panic!("I don't know how to set address 0x{:X}.");
+        }
     };
 
     let mut run_code = |code: &Vec<u8>| {
         let mut i = 0;
         while i < code.len() {
             let opcode = code[i];
-            println!("read opcode {:X} at {:X}", opcode, i);
+            println!("read opcode 0x{:X} at 0x{:X}", opcode, i);
             match opcode {
-                0x31 => {
-                    // LOAD SP, $1, $2
-                    println!("  SP = 0x{:X}, 0x{:X}", code[i + 1], code[i + 2]);
-                    registers[r_sp_s] = code[i + 1];
-                    registers[r_sp_p] = code[i + 2];
-                    i += 2;
-                }
-
                 0x21 => {
                     // LOAD HL, $1, $2
                     println!("  H, L = 0x{:X}, 0x{:X}", code[i + 1], code[i + 2]);
@@ -113,10 +113,12 @@ fn main() {
                     i += 2;
                 }
 
-                0xAF => {
-                    // XOR A A
-                    println!("  A ^= A (A = 0)");
-                    registers[r_a] = 0; // ^= registers[r_a];
+                0x31 => {
+                    // LOAD SP, $1, $2
+                    println!("  SP = 0x{:X}, 0x{:X}", code[i + 1], code[i + 2]);
+                    registers[r_sp_s] = code[i + 1];
+                    registers[r_sp_p] = code[i + 2];
+                    i += 2;
                 }
 
                 0x32 => {
@@ -129,6 +131,25 @@ fn main() {
                     registers[r_h] = (address >> 8) as u8;
                     registers[r_l] = address as u8;
                 }
+
+                0xAF => {
+                    // XOR A A
+                    println!("  A ^= A (A = 0)");
+                    registers[r_a] = 0; // ^= registers[r_a];
+                }
+
+                0xCB => {
+                    let opcode_2 = code[i + 1];
+
+                    match opcode_2 {
+                        _ => {
+                            panic!("unrecognized opcode: {:X} {:X}", opcode, opcode_2);
+                        }
+                    }
+
+                    i += 1;
+                }
+
                 _ => {
                     panic!("unrecognized opcode: {:X}", opcode);
                 }
