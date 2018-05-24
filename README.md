@@ -12,7 +12,8 @@ Learning Rust by trying to build a partial Game Boy emulator.
 - Memory Layout  
   http://gameboy.mongenel.com/dmg/asmmemmap.html
 - Opcodes  
-  http://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html
+  http://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html  
+  https://www.reddit.com/r/EmuDev/comments/7ljc41/how_to_algorithmically_parse_gameboy_opcodes/
 - Ultimate Game Boy Talk  
   https://youtu.be/HyzD8pNlpwI  
   https://news.ycombinator.com/item?id=13290362
