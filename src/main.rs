@@ -1,9 +1,7 @@
 fn main() {
-    let mut main_ram = vec![0; 8192];
-    let mut video_ram = vec![0; 8192];
-    let boot_rom = vec![
+    let mut boot_rom = vec![
         // The bootstrap ROM run when the Game Boy is turned on.
-        0x31, 0xFE, 0xFF, 0xAF, 0x21, 0xFF, 0x9F, 0x32,
+        0x31u8, 0xFE, 0xFF, 0xAF, 0x21, 0xFF, 0x9F, 0x32,
         0xCB, 0x7C, 0x20, 0xFB, 0x21, 0x26, 0xFF, 0x0E,
         0x11, 0x3E, 0x80, 0x32, 0xE2, 0x0C, 0x3E, 0xF3,
         0xE2, 0x32, 0x3E, 0x77, 0x77, 0x3E, 0xFC, 0xE0,
@@ -38,7 +36,7 @@ fn main() {
     ];
     let game_rom = vec![
         // First 256 bytes of the Pokemon Red US ROM.
-        0xFF,    0,    0,    0,    0,    0,    0,    0,
+        0xFFu8,    0,    0,    0,    0,    0,    0,    0,
         0xFF,    0,    0,    0,    0,    0,    0,    0,
         0xFF,    0,    0,    0,    0,    0,    0,    0,
         0xFF,    0,    0,    0,    0,    0,    0,    0,
@@ -72,5 +70,42 @@ fn main() {
            0,    0,    0,    0,    0,    0,    0,    0,
     ];
 
-    println!("{:?}", &boot_rom[..128]);
+    let mut main_ram = vec![0u8; 8192];
+    let mut video_ram = vec![0u8; 8192];
+    let mut registers = vec![0u8; 12];
+    let r_a = 0;
+    let r_b = 2;
+    let r_c = 3;
+    let r_d = 4;
+    let r_e = 5;
+    let r_f = 1;
+    let r_H = 6;
+    let r_l = 7;
+    let r_sp_s = 8;
+    let r_sp_p = 9;
+    let r_pc_p = 10;
+    let r_pc_c = 11;
+
+    let mut run_code = |code: &Vec<u8>| {
+        let mut i = 0;
+        while i < code.len() {
+            let opcode = code[i];
+            println!("running opcode at {:x}, {:x}", i, opcode);
+            match opcode {
+                0x31 => {
+                    registers[r_sp_s] = code[i + 1];
+                    registers[r_sp_p] = code[i + 2];
+                    i += 2;
+
+                    println!("updated registers: {:?}", registers);
+                }
+                _ => {
+                    panic!("unrecognized opcode: {:x}", opcode);
+                }
+            }
+            i += 1;
+        }
+    };
+
+    run_code(&boot_rom);
 }
