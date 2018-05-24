@@ -1,7 +1,3 @@
----
-date: 2018-05-23
----
-
 # Getting Started
 
 [6786da...c4095b79](https://github.com/jeremyBanks/0dmg/compare/6786da30a2f50e67c445242fb718da9edbb21e94...c4095b79dbf93d34a15c2fd4aaf91e1fc0d22334)
