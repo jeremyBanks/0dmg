@@ -99,34 +99,33 @@ fn main() {
             match opcode {
                 0x31 => {
                     // LOAD SP, $1, $2
+                    println!("  SP = 0x{:X}, 0x{:X}", code[i + 1], code[i + 2]);
                     registers[r_sp_s] = code[i + 1];
                     registers[r_sp_p] = code[i + 2];
-                    println!("  SP = 0x{:X}, 0x{:X}", code[i + 1], code[i + 2]);
                     i += 2;
                 }
 
                 0x21 => {
                     // LOAD HL, $1, $2
+                    println!("  H, L = 0x{:X}, 0x{:X}", code[i + 1], code[i + 2]);
                     registers[r_h] = code[i + 1];
                     registers[r_l] = code[i + 2];
                     i += 2;
-                    println!("  H, L = 0x{:X}, 0x{:X}", code[i + 1], code[i + 2]);
                 }
 
                 0xAF => {
                     // XOR A A
-                    registers[r_a] = 0; // ^= registers[r_a];
                     println!("  A ^= A (A = 0)");
+                    registers[r_a] = 0; // ^= registers[r_a];
                 }
 
                 0x32 => {
                     // Put A into memory address HL.
+                    println!("  memory[HL] = A; HL -= 1");
                     let mut address = ((registers[r_h] as u16) << 8) + registers[r_l] as u16;
-                    println!("  memory[HL] = A");
                     set_memory(address, registers[r_a]);
                     //  Decrement HL.
                     address -= 1;
-                    println!("  HL -= 1");
                     registers[r_h] = (address >> 8) as u8;
                     registers[r_l] = address as u8;
                 }
