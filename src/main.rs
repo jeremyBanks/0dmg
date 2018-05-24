@@ -4,6 +4,7 @@ fn main() {
 }
 
 struct GameBoyState {
+    t: u64,
     main_ram: [u8; 8192],
     video_ram: [u8; 8192],
     high_ram: [u8; 127],
@@ -16,6 +17,7 @@ struct GameBoyState {
 impl GameBoyState {
     fn new() -> GameBoyState {
         GameBoyState {
+            t: 0,
             main_ram: [0u8; 8192],
             video_ram: [0u8; 8192],
             high_ram: [0u8; 127],
