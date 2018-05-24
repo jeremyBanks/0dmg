@@ -23,7 +23,7 @@ Learning Rust by trying to build a partial Game Boy emulator.
 
 ## Train Fragments
 
-### 2018-05-23 / [c4095b79](https://github.com/jeremyBanks/0dmg/compare/6786da30a2f50e67c445242fb718da9edbb21e94...c4095b79dbf93d34a15c2fd4aaf91e1fc0d22334)
+### 2018-05-23 / [6786da...c4095b79](https://github.com/jeremyBanks/0dmg/compare/6786da30a2f50e67c445242fb718da9edbb21e94...c4095b79dbf93d34a15c2fd4aaf91e1fc0d22334)
 
 I saw [this blog post by Tomek Rękawek](http://blog.rekawek.eu/2017/02/09/coffee-gb/) on HN, watched the linked [Ultimate Game Boy Talk](https://youtu.be/HyzD8pNlpwI), and was inspired. My knowledge of anything assembly-level or lower is vague, and I've been looking for a good exercise to learn some Rust, so taking a stab at this should be rewarding even if the results aren't world class.
 
@@ -63,12 +63,20 @@ I start implementing a `set_memory(address: u16, value: u8)` method that will `p
         memory[0xFF9F] = 0x0
           high_ram[0x1F] = 0x0
 
-next two instructions weird.
+XXXX last two instructions are what? re-run old code and copy the log here
 
-After implementing these instructions, I found someone's disassembly of the boot ROM
+To help understand whether this was doing the right thing, I found [Ignacio Sánchez Ginés's disassembly of the boot ROM](https://gist.github.com/drhelius/6063288) and compared the section corresponding to the code I've run so far:
 
-Other observations from the first day? I found someone's disassembly of the boot ROM, and it indicates negative jump? I guess that's a signed value.
+      LD SP,$fffe      ; $0000  Setup Stack
+      XOR A            ; $0003  Zero the memory from $8000-$9FFF (VRAM)
+      LD HL,$9fff		   ; $0004
+    Addr_0007:
+      LD (HL-),A		   ; $0007
+      BIT 7,H          ; $0008
+      JR NZ, Addr_0007 ; $000a
 
-copy paste it here
+Hmm. The comment says this is supposed to be zeroing out a range of memory, and I that's implemented by looping through these last three instructions until our `HL` address pointer is decremented far enough that it's 7th bit becomes set (FACT CHECK ??). There's a problem: this loop is implementing by a relative jump back from `0x000a` to `0x0007`, but I've interpreted the relative jump as a jump forward by 251 (FACT CHECK ???). That's simple enough: I interpreted the address offset as an unsigned byte (`u8`), but it should obviously be a signed byte instead (`i8`). Interpreting it as an signed value gives us a jump backwards by 5, matching the disassembly:
 
-up until here I was just using local variables and closures. Decide to wrap this in a struct and the methods in a "trait". I don't have a very good understanding of what these pieces really mean, but I manage to clean things up a bit.
+XXXX corrected output here
+
+So far, I had implemented everything using local variables and closures. That was getting a bit messy, so I finished by shoving all of the data into a `struct` and moving all of my logic to methods in an associated `trait`. I don't know what a trait *really* is. It might be something like an interface with a default implementation. But it's working and the code's cleaner than it was, so I'm happy to leave that question for another time.
