@@ -24,6 +24,71 @@ impl GameBoyState {
         }
     }
 
+    // Main Loop
+
+    fn run(&mut self) {
+        let mut i = 0;
+        while i < self.boot_rom.len() {
+            let opcode = self.boot_rom[i];
+            println!("read opcode 0x{:X} at 0x{:X}", opcode, i);
+            match opcode {
+                0x21 => {
+                    // LOAD HL, $1, $2
+                    println!("  H, L = 0x{:X}, 0x{:X}", self.boot_rom[i + 1], self.boot_rom[i + 2]);
+                    let h = self.boot_rom[i + 1];
+                    let l = self.boot_rom[i + 2];
+                    self.set_h_l(h, l);
+                    i += 2;
+                }
+
+                0x31 => {
+                    // LOAD SP, $1, $2
+                    println!("  SP = 0x{:X}, 0x{:X}", self.boot_rom[i + 1], self.boot_rom[i + 2]);
+                    let h = self.boot_rom[i + 1];
+                    let l = self.boot_rom[i + 2];
+                    self.set_s_p(h, l);
+                    i += 2;
+                }
+
+                0x32 => {
+                    // Put A into memory address HL.
+                    println!("  memory[HL] = A; HL -= 1");
+                    let mut hl = self.hl();
+                    let a = self.a();
+                    self.set_memory(hl, a);
+                    //  Decrement HL.
+                    hl -= 1;
+                    self.set_hl(hl);
+                }
+
+                0xAF => {
+                    // XOR A A
+                    println!("  A ^= A (A = 0)");
+                    self.set_a(0);
+                }
+
+                0xCB => {
+                    let opcode_2 = self.boot_rom[i + 1];
+
+                    match opcode_2 {
+                        _ => {
+                            panic!("unrecognized opcode: {:X} {:X}", opcode, opcode_2);
+                        }
+                    }
+
+                    i += 1;
+                }
+
+                _ => {
+                    panic!("unrecognized opcode: {:X}", opcode);
+                }
+            }
+            i += 1;
+        }
+    }
+
+    // Register Access
+
     fn a(&self) -> u8 {
         return self.main_registers[0];
     }
@@ -136,6 +201,8 @@ impl GameBoyState {
         self.main_registers[11] = c;
     }
 
+    // Memory Access
+
     fn set_memory(&mut self, address: u16, value: u8) {
         println!("    memory[0x{:X}] = 0x{:X}", address, value);
 
@@ -145,67 +212,6 @@ impl GameBoyState {
             self.high_ram[i] = value;
         } else {
             panic!("I don't know how to set address 0x{:X}.");
-        }
-    }
-
-    fn run(&mut self) {
-        let mut i = 0;
-        while i < self.boot_rom.len() {
-            let opcode = self.boot_rom[i];
-            println!("read opcode 0x{:X} at 0x{:X}", opcode, i);
-            match opcode {
-                0x21 => {
-                    // LOAD HL, $1, $2
-                    println!("  H, L = 0x{:X}, 0x{:X}", self.boot_rom[i + 1], self.boot_rom[i + 2]);
-                    let h = self.boot_rom[i + 1];
-                    let l = self.boot_rom[i + 2];
-                    self.set_h_l(h, l);
-                    i += 2;
-                }
-
-                0x31 => {
-                    // LOAD SP, $1, $2
-                    println!("  SP = 0x{:X}, 0x{:X}", self.boot_rom[i + 1], self.boot_rom[i + 2]);
-                    let h = self.boot_rom[i + 1];
-                    let l = self.boot_rom[i + 2];
-                    self.set_s_p(h, l);
-                    i += 2;
-                }
-
-                0x32 => {
-                    // Put A into memory address HL.
-                    println!("  memory[HL] = A; HL -= 1");
-                    let mut hl = self.hl();
-                    let a = self.a();
-                    self.set_memory(hl, a);
-                    //  Decrement HL.
-                    hl -= 1;
-                    self.set_hl(hl);
-                }
-
-                0xAF => {
-                    // XOR A A
-                    println!("  A ^= A (A = 0)");
-                    self.set_a(0);
-                }
-
-                0xCB => {
-                    let opcode_2 = self.boot_rom[i + 1];
-
-                    match opcode_2 {
-                        _ => {
-                            panic!("unrecognized opcode: {:X} {:X}", opcode, opcode_2);
-                        }
-                    }
-
-                    i += 1;
-                }
-
-                _ => {
-                    panic!("unrecognized opcode: {:X}", opcode);
-                }
-            }
-            i += 1;
         }
     }
 }
@@ -235,7 +241,7 @@ fn load_boot_rom() -> Vec<u8> {
         0x05, 0x20, 0xF5, 0x22, 0x23, 0x22, 0x23, 0xC9,
         0xCE, 0xED, 0x66, 0x66, 0xCC, 0x0D,    0, 0x0B,
         0x03, 0x73,    0, 0x83,    0, 0x0C,    0, 0x0D,
-        0, 0x08, 0x11, 0x1F, 0x88, 0x89,    0, 0x0E,
+           0, 0x08, 0x11, 0x1F, 0x88, 0x89,    0, 0x0E,
         0xDC, 0xCC, 0x6E, 0xE6, 0xDD, 0xDD, 0xD9, 0x99,
         0xBB, 0xBB, 0x67, 0x63, 0x6E, 0x0E, 0xEC, 0xCC,
         0xDD, 0xDC, 0x99, 0x9F, 0xBB, 0xB9, 0x33, 0x3E,
@@ -269,20 +275,20 @@ fn load_game_rom(game_name: &str) -> Vec<u8> {
                 0xE0, 0xFF, 0xC9, 0xF0, 0x40, 0xCB, 0xFF, 0xE0,
                 0x40, 0xC9, 0xAF, 0x21,    0, 0xC3, 0x06, 0xA0,
                 0x22, 0x05, 0x20, 0xFC, 0xC9, 0x3E, 0xA0, 0x21,
-                0, 0xC3, 0x11, 0x04,    0, 0x06, 0x28, 0x77,
+                   0, 0xC3, 0x11, 0x04,    0, 0x06, 0x28, 0x77,
                 0x19, 0x05, 0x20, 0xFB, 0xC9, 0xEA, 0xE9, 0xCE,
                 0xF0, 0xB8, 0xF5, 0xFA, 0xE9, 0xCE, 0xE0, 0xB8,
                 0xEA,    0, 0x20, 0xCD, 0xB5,    0, 0xF1, 0xE0,
                 0xB8, 0xEA,    0, 0x20, 0xC9, 0x2A, 0x12, 0x13,
                 0x0B, 0x79, 0xB0, 0x20, 0xF8, 0xC9,    0,    0,
-                0,    0,    0,    0,    0,    0,    0,    0,
-                0,    0,    0,    0,    0,    0,    0,    0,
-                0,    0,    0,    0,    0,    0,    0,    0,
-                0,    0,    0,    0,    0,    0,    0,    0,
-                0,    0,    0,    0,    0,    0,    0,    0,
-                0,    0,    0,    0,    0,    0,    0,    0,
-                0,    0,    0,    0,    0,    0,    0,    0,
-                0,    0,    0,    0,    0,    0,    0,    0,
+                   0,    0,    0,    0,    0,    0,    0,    0,
+                   0,    0,    0,    0,    0,    0,    0,    0,
+                   0,    0,    0,    0,    0,    0,    0,    0,
+                   0,    0,    0,    0,    0,    0,    0,    0,
+                   0,    0,    0,    0,    0,    0,    0,    0,
+                   0,    0,    0,    0,    0,    0,    0,    0,
+                   0,    0,    0,    0,    0,    0,    0,    0,
+                   0,    0,    0,    0,    0,    0,    0,    0,
             ];
         }
 
