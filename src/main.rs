@@ -9,7 +9,6 @@ struct GameBoy {
     video_ram: [u8; 8192],
     high_ram: [u8; 127],
     main_registers: [u8; 12],
-    flag_register: u8,
     boot_rom: Vec<u8>,
     game_rom: Vec<u8>,
 }
@@ -22,7 +21,6 @@ impl GameBoy {
             video_ram: [0u8; 8192],
             high_ram: [0u8; 127],
             main_registers: [0u8; 12],
-            flag_register: 0,
             boot_rom: load_boot_rom(),
             game_rom: load_game_rom("Pokemon Red (US)[:256]"),
         }
@@ -42,8 +40,8 @@ impl GameBoy {
                     let delta = self.boot_rom[i + 1] as i8;
                     i += 1;
 
-                    println!("  relative jump of {} if Z flag is false (it is {})", delta, self.z_flag());
-                    if !self.z_flag() {
+                    println!("  relative jump of {} if Z flag is false (it is {})", delta, self.zero_flag());
+                    if !self.zero_flag() {
                         i = (i as i64 + delta as i64) as usize;
                     }
                 }
@@ -70,8 +68,8 @@ impl GameBoy {
                     // Put A into memory address HL.
                     println!("  memory[HL] = A; HL -= 1");
                     let mut hl = self.hl();
-                    let a = self.a();
-                    self.set_memory(hl, a);
+                    let accumulator = self.accumulator();
+                    self.set_memory(hl, accumulator);
                     //  Decrement HL.
                     hl -= 1;
                     self.set_hl(hl);
@@ -80,20 +78,21 @@ impl GameBoy {
                 0xAF => {
                     // XOR A A
                     println!("  A ^= A (A = 0)");
-                    self.set_a(0);
+                    self.set_aaccumulator(0);
                 }
 
                 0xCB => {
                     // 2-byte opcode
 
                     let opcode_2 = self.boot_rom[i + 1];
+                    println!("read opcode_2 0x{:X}", opcode_2);
 
                     match opcode_2 {
                         0x7C => {
                             let h = self.h();
-                            let result = h & 0b0000_0010 > 0;
-                            println!("  setting Z flag to 7th bit of H register ({})", result);
-                            self.set_z_flag(result);
+                            let result = h & 0b0000_0010 == 0;
+                            println!("  setting Z flag to opposite of 7th bit of H register ({})", result);
+                            self.set_zero_flag(result);
                             self.set_n_flag(false);
                             self.set_h_flag(true);
                         }
@@ -116,12 +115,20 @@ impl GameBoy {
 
     // Register Access
 
-    fn a(&self) -> u8 {
+    fn accumulator(&self) -> u8 {
         return self.main_registers[0];
     }
 
-    fn set_a(&mut self, value: u8) {
+    fn set_aaccumulator(&mut self, value: u8) {
         self.main_registers[0] = value;
+    }
+
+    fn flags(&self) -> u8 {
+        return self.main_registers[1];
+    }
+
+    fn set_flags(&mut self, value: u8) {
+        self.main_registers[1] = value;
     }
 
     fn b(&self) -> u8 {
@@ -154,14 +161,6 @@ impl GameBoy {
 
     fn set_e(&mut self, value: u8) {
         self.main_registers[5] = value;
-    }
-
-    fn f(&self) -> u8 {
-        return self.main_registers[1];
-    }
-
-    fn set_f(&mut self, value: u8) {
-        self.main_registers[1] = value;
     }
 
     fn h(&self) -> u8 {
@@ -225,55 +224,79 @@ impl GameBoy {
         self.main_registers[11] = c;
     }
 
-    fn z_flag(&self) -> bool {
-        u8_get_bit(self.flag_register, 1)
+    fn zero_flag(&self) -> bool {
+        u8_get_bit(self.flags(), 1)
     }
 
-    fn set_z_flag(&mut self, value: bool) {
-        u8_set_bit(&mut self.flag_register, 1, value);
+    fn set_zero_flag(&mut self, value: bool) {
+        let mut flags = self.flags();
+        u8_set_bit(&mut flags, 1, value);
+        self.set_flags(flags);
     }
 
     fn n_flag(&self) -> bool {
-        u8_get_bit(self.flag_register, 2)
+        u8_get_bit(self.flags(), 2)
     }
 
     fn set_n_flag(&mut self, value: bool) {
-        u8_set_bit(&mut self.flag_register, 2, value);
+        let mut flags = self.flags();
+        u8_set_bit(&mut flags, 2, value);
+        self.set_flags(flags);
     }
 
     fn h_flag(&self) -> bool {
-        u8_get_bit(self.flag_register, 3)
+        u8_get_bit(self.flags(), 3)
     }
 
     fn set_h_flag(&mut self, value: bool) {
-        u8_set_bit(&mut self.flag_register, 3, value);
+        let mut flags = self.flags();
+        u8_set_bit(&mut flags, 3, value);
+        self.set_flags(flags);
     }
 
     fn c_flag(&self) -> bool {
-        u8_get_bit(self.flag_register, 4)
+        u8_get_bit(self.flags(), 4)
     }
 
     fn set_c_flag(&mut self, value: bool) {
-        u8_set_bit(&mut self.flag_register, 4, value);
+        let mut flags = self.flags();
+        u8_set_bit(&mut flags, 4, value);
+        self.set_flags(flags);
     }
 
     // Memory Access
 
+    fn get_memory(&self, address: u16) -> u8 {
+        if 0x8000 <= address && address <= 0x9FFF {
+            let i: usize = (address - 0x8000) as usize;
+            return self.video_ram[i];
+        } else if 0xFF80 <= address && address <= 0xFFFE {
+            let i: usize = (address - 0xFF80) as usize;
+            return self.high_ram[i];
+        } else {
+            panic!("I don't know how to get memory address 0x{:X}.", address);
+        }
+    }
+
     fn set_memory(&mut self, address: u16, value: u8) {
         println!("    memory[0x{:X}] = 0x{:X}", address, value);
 
-        if 0xFF80 <= address && address <= 0xFFFE {
+        if 0x8000 <= address && address <= 0x9FFF {
+            let i: usize = (address - 0x8000) as usize;
+            println!("      video_ram[0x{:X}] = 0x{:X}", i, value);
+            self.video_ram[i] = value;
+        } else if 0xFF80 <= address && address <= 0xFFFE {
             let i: usize = (address - 0xFF80) as usize;
             println!("      high_ram[0x{:X}] = 0x{:X}", i, value);
             self.high_ram[i] = value;
         } else {
-            panic!("I don't know how to set address 0x{:X}.", address);
+            panic!("I don't know how to set memory address 0x{:X}.", address);
         }
     }
 }
 
-fn u8s_to_u16(a: u8, b: u8) -> u16 {
-    return a as u16 + ((b as u16) << 8)
+fn u8s_to_u16(accumulator: u8, b: u8) -> u16 {
+    return accumulator as u16 + ((b as u16) << 8)
 }
 
 fn u16_to_u8s(x: u16) -> (u8, u8) {
