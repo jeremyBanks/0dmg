@@ -1,10 +1,5 @@
----
----
-
 # 0dmg
 
-Learning Rust by trying to build a partial Game Boy emulator.
-  
 ## Posts
   
 <ul>{% for post in site.posts %}   
