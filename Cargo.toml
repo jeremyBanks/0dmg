@@ -1,0 +1,6 @@
+[package]
+name = "zerodmg"
+version = "0.1.0"
+authors = ["Jeremy Banks <_@jeremy.ca>"]
+
+[dependencies]
