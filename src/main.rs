@@ -48,10 +48,9 @@ impl GameBoy {
 
     fn run(&mut self) {
         while true {
-            println!("[ i=0x{:X} t={} ]", self.i, self.t);
+            println!("; ${:04X} is 0x{:02X} at t={}", self.i, self.peek_instruction(), self.t);
 
             let opcode = self.pop_instruction();
-            println!("read opcode 0x{:X}", opcode);
 
             match opcode {
                 // 8-bit loads
@@ -59,22 +58,22 @@ impl GameBoy {
                 // Put value nn into n.
                 0x06 => {
                      let n = self.pop_instruction();
-                    println!("  LD B, n = 0x{:X}", n);
+                    println!("LD B, n = 0x{:02X}", n);
                     self.set_b(n);
                 }
                 0x0E => {
                     let n = self.pop_instruction();
-                    println!("  LD C, n = 0x{:X}", n);
+                    println!("LD C, n = 0x{:02X}", n);
                     self.set_c(n);
                 }
                 0x16 => {
                     let n = self.pop_instruction();
-                    println!("  LD D, n = 0x{:X}", n);
+                    println!("LD D, n = 0x{:02X}", n);
                     self.set_d(n);
                 }
                 0x1E => {
                     let n = self.pop_instruction();
-                    println!("  LD E, n = 0x{:X}", n);
+                    println!("LD E, n = 0x{:02X}", n);
                     self.set_e(n);
                 }
 
@@ -83,35 +82,35 @@ impl GameBoy {
                 // Unconditional relative jump.
                 0x18 => {
                     let delta = self.pop_instruction() as i8;
-                    println!(" JR n={})", delta);
+                    println!("JR n={})", delta);
                     self.relative_jump(delta as i32);
                 }
                 // JR cc, n
                 // Conditional relative jump.
                 0x20 => {
                     let delta = self.pop_instruction() as i8;
-                    println!(" JR NZ, n={} (Z = {})", delta, self.z_flag());
+                    println!("JR NZ, n={}  ; Z = {}", delta, self.z_flag());
                     if !self.z_flag() {
                         self.relative_jump(delta as i32);
                     }
                 }
                 0x28 => {
                     let delta = self.pop_instruction() as i8;
-                    println!(" JR Z, n={} (Z = {})", delta, self.z_flag());
+                    println!("JR Z, n={}  ; Z = {}", delta, self.z_flag());
                     if self.z_flag() {
                         self.relative_jump(delta as i32);
                     }
                 }
                 0x30 => {
                     let delta = self.pop_instruction() as i8;
-                    println!(" JR NC, n={} (C = {})", delta, self.c_flag());
+                    println!("JR NC, n={}  ; C = {}", delta, self.c_flag());
                     if !self.c_flag() {
                         self.relative_jump(delta as i32);
                     }
                 }
                 0x38 => {
                     let delta = self.pop_instruction() as i8;
-                    println!(" JR C, n={} (C = {})", delta, self.c_flag());
+                    println!("JR C, n={}  ; C = {}", delta, self.c_flag());
                     if self.c_flag() {
                         self.relative_jump(delta as i32);
                     }
@@ -121,7 +120,7 @@ impl GameBoy {
                     // LOAD HL, $1, $2
                     let h = self.pop_instruction();
                     let l = self.pop_instruction();
-                    println!("  H, L = 0x{:X}, 0x{:X}", h, l);
+                    println!("H, L = 0x{:02X}, 0x{:02X}", h, l);
                     self.set_h_l(h, l);
                 }
 
@@ -129,13 +128,13 @@ impl GameBoy {
                     // LOAD SP, $1, $2
                     let s = self.pop_instruction();
                     let p = self.pop_instruction();
-                    println!("  SP = 0x{:X}, 0x{:X}", s, p);
+                    println!("SP = 0x{:02X}, 0x{:02X}", s, p);
                     self.set_s_p(s, p);
                 }
 
                 0x32 => {
                     // Put A into memory address HL.
-                    println!("  memory[HL] = A; HL -= 1");
+                    println!("memory[HL] = A; HL -= 1");
                     let mut hl = self.hl();
                     let accumulator = self.accumulator();
                     self.set_memory(hl, accumulator);
@@ -145,8 +144,7 @@ impl GameBoy {
                 }
 
                 0xAF => {
-                    // XOR A A
-                    println!("  A ^= A (A = 0)");
+                    println!("XOR A A");
                     self.set_accumulator(0);
                 }
 
@@ -154,25 +152,25 @@ impl GameBoy {
                     // 2-byte opcode
 
                     let opcode_2 = self.pop_instruction();
-                    println!("read opcode_2 0x{:X}", opcode_2);
+                    println!("; opcode_2 = 0x{:02X}", opcode_2);
 
                     match opcode_2 {
                         0x7C => {
                             let result = !u8_get_bit(self.h(), 7);
-                            println!("  setting Z flag to {}, the opposite of 8th bit of H register", result);
+                            println!("BIT 7, H  ; Z = {}", result);
                             self.set_z_flag(result);
                             self.set_n_flag(false);
                             self.set_h_flag(true);
                         }
 
                         _ => {
-                            panic!("unsupported opcode: {:X} {:X}", opcode, opcode_2);
+                            panic!("unsupported opcode: {:02X} {:02X}", opcode, opcode_2);
                         }
                     }
                 }
 
                 _ => {
-                    panic!("unsupported opcode: {:X}", opcode);
+                    panic!("unsupported opcode: {:02X}", opcode);
                 }
             }
 
@@ -347,23 +345,23 @@ impl GameBoy {
             let i: usize = (address - 0xFF80) as usize;
             return self.high_ram[i];
         } else {
-            panic!("I don't know how to get memory address 0x{:X}.", address);
+            panic!("I don't know how to get memory address 0x{:02X}.", address);
         }
     }
 
     fn set_memory(&mut self, address: u16, value: u8) {
-        println!("    memory[0x{:X}] = 0x{:X}", address, value);
+        println!("  memory[0x{:02X}] = 0x{:02X}", address, value);
 
         if 0x8000 <= address && address <= 0x9FFF {
             let i: usize = (address - 0x8000) as usize;
-            println!("      video_ram[0x{:X}] = 0x{:X}", i, value);
+            println!("    video_ram[0x{:02X}] = 0x{:02X}", i, value);
             self.video_ram[i] = value;
         } else if 0xFF80 <= address && address <= 0xFFFE {
             let i: usize = (address - 0xFF80) as usize;
-            println!("      high_ram[0x{:X}] = 0x{:X}", i, value);
+            println!("    high_ram[0x{:02X}] = 0x{:02X}", i, value);
             self.high_ram[i] = value;
         } else {
-            panic!("I don't know how to set memory address 0x{:X}.", address);
+            panic!("I don't know how to set memory address 0x{:02X}.", address);
         }
     }
 }
