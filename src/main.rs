@@ -164,19 +164,23 @@ impl GameBoy {
     }
 
     fn h(&self) -> u8 {
-        return self.main_registers[6];
-    }
-
-    fn set_h(&mut self, value: u8) {
-        self.main_registers[6] = value;
-    }
-
-    fn l(&self) -> u8 {
+        // XXX: this has been swapped with l as a test, clean-up required
         return self.main_registers[7];
     }
 
-    fn set_l(&mut self, value: u8) {
+    fn set_h(&mut self, value: u8) {
+        // XXX: this has been swapped with l as a test, clean-up required
         self.main_registers[7] = value;
+    }
+
+    fn l(&self) -> u8 {
+        // XXX: this has been swapped with h as a test, clean-up required
+        return self.main_registers[6];
+    }
+
+    fn set_l(&mut self, value: u8) {
+        // XXX: this has been swapped with h as a test, clean-up required
+        self.main_registers[6] = value;
     }
 
     fn hl(&self) -> u16 {
