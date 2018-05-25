@@ -29,37 +29,37 @@ impl GameBoy {
     // Main Loop
 
     fn run(&mut self) {
-        let mut i = 0;
-        while i < self.boot_rom.len() {
-            let opcode = self.boot_rom[i];
+        let mut i: u16 = 0;
+        while true {
+            let opcode = self.get_memory(i);
             println!("read opcode 0x{:X} at 0x{:X} at t={}", opcode, i, self.t);
             match opcode {
                 0x20 => {
                     // relative jump if Z flag is unset
 
-                    let delta = self.boot_rom[i + 1] as i8;
+                    let delta = self.get_memory(i + 1) as i8;
                     i += 1;
 
                     println!("  relative jump of {} if Z flag is false (it is {})", delta, self.z_flag());
                     if !self.z_flag() {
-                        i = (i as i64 + delta as i64) as usize;
+                        i = (i as i64 + delta as i64) as u16;
                     }
                 }
 
                 0x21 => {
                     // LOAD HL, $1, $2
-                    println!("  H, L = 0x{:X}, 0x{:X}", self.boot_rom[i + 1], self.boot_rom[i + 2]);
-                    let h = self.boot_rom[i + 1];
-                    let l = self.boot_rom[i + 2];
+                    println!("  H, L = 0x{:X}, 0x{:X}", self.get_memory(i + 1), self.get_memory(i + 2));
+                    let h = self.get_memory(i + 1);
+                    let l = self.get_memory(i + 2);
                     self.set_h_l(h, l);
                     i += 2;
                 }
 
                 0x31 => {
                     // LOAD SP, $1, $2
-                    println!("  SP = 0x{:X}, 0x{:X}", self.boot_rom[i + 1], self.boot_rom[i + 2]);
-                    let h = self.boot_rom[i + 1];
-                    let l = self.boot_rom[i + 2];
+                    println!("  SP = 0x{:X}, 0x{:X}", self.get_memory(i + 1), self.get_memory(i + 2));
+                    let h = self.get_memory(i + 1);
+                    let l = self.get_memory(i + 2);
                     self.set_s_p(h, l);
                     i += 2;
                 }
@@ -84,7 +84,7 @@ impl GameBoy {
                 0xCB => {
                     // 2-byte opcode
 
-                    let opcode_2 = self.boot_rom[i + 1];
+                    let opcode_2 = self.get_memory(i + 1);
                     println!("read opcode_2 0x{:X}", opcode_2);
 
                     match opcode_2 {
@@ -271,7 +271,9 @@ impl GameBoy {
     // Memory Access
 
     fn get_memory(&self, address: u16) -> u8 {
-        if 0x8000 <= address && address <= 0x9FFF {
+        if address <= 0x00FF {
+            return self.boot_rom[address as usize];
+        } else if 0x8000 <= address && address <= 0x9FFF {
             let i: usize = (address - 0x8000) as usize;
             return self.video_ram[i];
         } else if 0xFF80 <= address && address <= 0xFFFE {
