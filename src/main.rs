@@ -36,6 +36,10 @@ impl GameBoy {
         value
     }
 
+    fn relative_jump(&mut self, n: i32) {
+        self.i = ((self.i as i32) + n) as u16;
+    }
+
     fn peek_instruction(&self) -> u8 {
         self.get_memory(self.i)
     }
@@ -53,18 +57,63 @@ impl GameBoy {
                 // 8-bit loads
                 // LD nn,n
                 // Put value nn into n.
-                // 0x06 => {
+                0x06 => {
+                     let n = self.pop_instruction();
+                    println!("  LD B, n = 0x{:X}", n);
+                    self.set_b(n);
+                }
+                0x0E => {
+                    let n = self.pop_instruction();
+                    println!("  LD C, n = 0x{:X}", n);
+                    self.set_c(n);
+                }
+                0x16 => {
+                    let n = self.pop_instruction();
+                    println!("  LD D, n = 0x{:X}", n);
+                    self.set_d(n);
+                }
+                0x1E => {
+                    let n = self.pop_instruction();
+                    println!("  LD E, n = 0x{:X}", n);
+                    self.set_e(n);
+                }
 
-                // }
-
-                0x20 => {
-                    // relative jump if Z flag is unset
-
+                // Jumps
+                // JR n
+                // Unconditional relative jump.
+                0x18 => {
                     let delta = self.pop_instruction() as i8;
-
-                    println!("  relative jump of {} if Z flag is false (it is {})", delta, self.z_flag());
+                    println!(" JR n={})", delta);
+                    self.relative_jump(delta as i32);
+                }
+                // JR cc, n
+                // Conditional relative jump.
+                0x20 => {
+                    let delta = self.pop_instruction() as i8;
+                    println!(" JR NZ, n={} (Z = {})", delta, self.z_flag());
                     if !self.z_flag() {
-                        self.i = (self.i as i64 + delta as i64) as u16;
+                        self.relative_jump(delta as i32);
+                    }
+                }
+                0x28 => {
+                    let delta = self.pop_instruction() as i8;
+                    println!(" JR Z, n={} (Z = {})", delta, self.z_flag());
+                    if self.z_flag() {
+                        self.relative_jump(delta as i32);
+                    }
+                }
+                0x30 => {
+                    let delta = self.pop_instruction() as i8;
+                    println!(" JR NC, n={} (C = {})", delta, self.c_flag());
+                    if !self.c_flag() {
+                        self.relative_jump(delta as i32);
+                    }
+                }
+                0x38 => {
+                    let delta = self.pop_instruction() as i8;
+                    println!(" JR C, n={} (C = {})", delta, self.c_flag());
+                    if self.c_flag() {
+                        self.relative_jump(delta as i32);
                     }
                 }
 
