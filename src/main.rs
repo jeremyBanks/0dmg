@@ -4,7 +4,10 @@ fn main() {
 }
 
 struct GameBoy {
+    // time/ticks since start
     t: u64,
+    // instruction pointer/index
+    i: u16,
     main_ram: [u8; 8192],
     video_ram: [u8; 8192],
     high_ram: [u8; 127],
@@ -17,6 +20,7 @@ impl GameBoy {
     fn new() -> GameBoy {
         GameBoy {
             t: 0,
+            i: 0,
             main_ram: [0u8; 8192],
             video_ram: [0u8; 8192],
             high_ram: [0u8; 127],
@@ -26,42 +30,58 @@ impl GameBoy {
         }
     }
 
+    fn pop_instruction(&mut self) -> u8 {
+        let value = self.get_memory(self.i);
+        self.i += 1;
+        value
+    }
+
+    fn peek_instruction(&self) -> u8 {
+        self.get_memory(self.i)
+    }
+
     // Main Loop
 
     fn run(&mut self) {
-        let mut i: u16 = 0;
         while true {
-            let opcode = self.get_memory(i);
-            println!("read opcode 0x{:X} at 0x{:X} at t={}", opcode, i, self.t);
+            println!("[ i=0x{:X} t={} ]", self.i, self.t);
+
+            let opcode = self.pop_instruction();
+            println!("read opcode 0x{:X}", opcode);
+
             match opcode {
+                // 8-bit loads
+                // LD nn,n
+                // Put value nn into n.
+                // 0x06 => {
+
+                // }
+
                 0x20 => {
                     // relative jump if Z flag is unset
 
-                    let delta = self.get_memory(i + 1) as i8;
-                    i += 1;
+                    let delta = self.pop_instruction() as i8;
 
                     println!("  relative jump of {} if Z flag is false (it is {})", delta, self.z_flag());
                     if !self.z_flag() {
-                        i = (i as i64 + delta as i64) as u16;
+                        self.i = (self.i as i64 + delta as i64) as u16;
                     }
                 }
 
                 0x21 => {
                     // LOAD HL, $1, $2
-                    println!("  H, L = 0x{:X}, 0x{:X}", self.get_memory(i + 1), self.get_memory(i + 2));
-                    let h = self.get_memory(i + 1);
-                    let l = self.get_memory(i + 2);
+                    let h = self.pop_instruction();
+                    let l = self.pop_instruction();
+                    println!("  H, L = 0x{:X}, 0x{:X}", h, l);
                     self.set_h_l(h, l);
-                    i += 2;
                 }
 
                 0x31 => {
                     // LOAD SP, $1, $2
-                    println!("  SP = 0x{:X}, 0x{:X}", self.get_memory(i + 1), self.get_memory(i + 2));
-                    let h = self.get_memory(i + 1);
-                    let l = self.get_memory(i + 2);
-                    self.set_s_p(h, l);
-                    i += 2;
+                    let s = self.pop_instruction();
+                    let p = self.pop_instruction();
+                    println!("  SP = 0x{:X}, 0x{:X}", s, p);
+                    self.set_s_p(s, p);
                 }
 
                 0x32 => {
@@ -78,13 +98,13 @@ impl GameBoy {
                 0xAF => {
                     // XOR A A
                     println!("  A ^= A (A = 0)");
-                    self.set_aaccumulator(0);
+                    self.set_accumulator(0);
                 }
 
                 0xCB => {
                     // 2-byte opcode
 
-                    let opcode_2 = self.get_memory(i + 1);
+                    let opcode_2 = self.pop_instruction();
                     println!("read opcode_2 0x{:X}", opcode_2);
 
                     match opcode_2 {
@@ -100,15 +120,13 @@ impl GameBoy {
                             panic!("unsupported opcode: {:X} {:X}", opcode, opcode_2);
                         }
                     }
-
-                    i += 1;
                 }
 
                 _ => {
                     panic!("unsupported opcode: {:X}", opcode);
                 }
             }
-            i += 1;
+
             self.t += 1;
         }
     }
@@ -119,7 +137,7 @@ impl GameBoy {
         return self.main_registers[0];
     }
 
-    fn set_aaccumulator(&mut self, value: u8) {
+    fn set_accumulator(&mut self, value: u8) {
         self.main_registers[0] = value;
     }
 
