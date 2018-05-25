@@ -32,7 +32,7 @@ impl GameBoy {
         let mut i = 0;
         while i < self.boot_rom.len() {
             let opcode = self.boot_rom[i];
-            println!("read opcode 0x{:X} at 0x{:X}", opcode, i);
+            println!("read opcode 0x{:X} at 0x{:X} at t={}", opcode, i, self.t);
             match opcode {
                 0x20 => {
                     // relative jump if Z flag is unset
@@ -40,8 +40,8 @@ impl GameBoy {
                     let delta = self.boot_rom[i + 1] as i8;
                     i += 1;
 
-                    println!("  relative jump of {} if Z flag is false (it is {})", delta, self.zero_flag());
-                    if !self.zero_flag() {
+                    println!("  relative jump of {} if Z flag is false (it is {})", delta, self.z_flag());
+                    if !self.z_flag() {
                         i = (i as i64 + delta as i64) as usize;
                     }
                 }
@@ -89,10 +89,9 @@ impl GameBoy {
 
                     match opcode_2 {
                         0x7C => {
-                            let h = self.h();
-                            let result = h & 0b0000_0010 == 0;
-                            println!("  setting Z flag to opposite of 7th bit of H register ({})", result);
-                            self.set_zero_flag(result);
+                            let result = !u8_get_bit(self.h(), 7);
+                            println!("  setting Z flag to {}, the opposite of 8th bit of H register", result);
+                            self.set_z_flag(result);
                             self.set_n_flag(false);
                             self.set_h_flag(true);
                         }
@@ -110,6 +109,7 @@ impl GameBoy {
                 }
             }
             i += 1;
+            self.t += 1;
         }
     }
 
@@ -224,11 +224,11 @@ impl GameBoy {
         self.main_registers[11] = c;
     }
 
-    fn zero_flag(&self) -> bool {
+    fn z_flag(&self) -> bool {
         u8_get_bit(self.flags(), 1)
     }
 
-    fn set_zero_flag(&mut self, value: bool) {
+    fn set_z_flag(&mut self, value: bool) {
         let mut flags = self.flags();
         u8_set_bit(&mut flags, 1, value);
         self.set_flags(flags);

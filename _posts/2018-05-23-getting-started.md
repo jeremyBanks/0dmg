@@ -78,6 +78,6 @@ array field to my `GameBoy` state struct, and writing Video RAM doesn't have any
 
 The comment indicates that this is supposed to be zeroing out a range of memory by looping through these last three instructions. This loop is implementing by a relative jump back from `0x000a` to `0x0007`, but I've interpreted the relative jump as a jump forward by 251. That's simple enough: I interpreted the address offset as an unsigned byte (`u8`), but it should obviously be a signed byte instead (`i8`). Interpreting it as an signed value would give us a jump backwards by 5, matching the disassembly.
 
-The loop is supposed to continue until our `HL` address pointer is decremented far enough that the 7th bit of its `H` register becomes set. But if we're little-endian and the `H` byte is first, the 7th bit is the 2^7 = 128ths place, and we could only go through a maximum of 128 consecutive values before it would flip. So that can't be how we're supposed to clear zero out 8KiB of VRAM. I must still have something confused there.
+The loop is supposed to continue until our `HL` address pointer is decremented far enough that the 7th bit of its `H` register becomes set. But if we're little-endian and the `H` byte is first, the 7th bit is the 2^7 = 64ths place, and we could only go through a maximum of 64 consecutive values before it would flip. So that can't be how we're supposed to clear zero out 8KiB of VRAM. I must still have something confused there.
 
 I'll try to figure that out after fixing up these other bugs tomorrow.
