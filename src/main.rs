@@ -161,7 +161,7 @@ impl GameBoy {
                     // Put A into memory address HL.
                     self.print_current_code(
                         "LD (HL-), A".to_string(),
-                        format!("HL₀ = ${:04x}", self.hl()));
+                        format!("HL₀ = ${:04x}, A = ${:02x}", self.hl(), self.accumulator()));
                     let mut hl = self.hl();
                     let accumulator = self.accumulator();
                     self.set_memory(hl, accumulator);
@@ -171,7 +171,9 @@ impl GameBoy {
                 }
 
                 0xAF => {
-                    self.print_current_code("XOR A A".to_string(), "".to_string());
+                    self.print_current_code(
+                        "XOR A A".to_string(),
+                        format!("A₀ = ${:02x}, A₁ = $00", self.accumulator()).to_string());
                     self.set_accumulator(0);
                 }
 
@@ -185,7 +187,7 @@ impl GameBoy {
                             let result = !u8_get_bit(self.h(), 7);
                             self.print_current_code(
                                 "BIT 7, H".to_string(),
-                                format!("Z₁ = ${}", result));
+                                format!("Z₁ = {}", result));
                             self.set_z_flag(result);
                             self.set_n_flag(false);
                             self.set_h_flag(true);
@@ -380,11 +382,11 @@ impl GameBoy {
     fn set_memory(&mut self, address: u16, value: u8) {
         if 0x8000 <= address && address <= 0x9FFF {
             let i: usize = (address - 0x8000) as usize;
-            println!("; video_ram[${:04x}] = ${:02x}", i, value);
+            println!("  ; video_ram[${:04x}] = ${:02x}", i, value);
             self.video_ram[i] = value;
         } else if 0xFF80 <= address && address <= 0xFFFE {
             let i: usize = (address - 0xFF80) as usize;
-            println!("; high_ram[${:04x}] = ${:02x}", i, value);
+            println!("  ; high_ram[${:04x}] = ${:02x}", i, value);
             self.high_ram[i] = value;
         } else {
             panic!("I don't know how to set memory address ${:04x}.", address);
