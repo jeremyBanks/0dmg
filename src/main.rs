@@ -71,26 +71,41 @@ impl GameBoy {
 
             match opcode {
                 // 8-bit loads
-                // LD nn,n
-                // Put value nn into n.
+                // LD nn, n
+                // Put value n into nn.
+                0x3E => {
+                    let n = self.read_immediate_u8();
+                    self.print_current_code(
+                        format!("LD A, ${:02x}", n),
+                        format!("A₀ = ${:02x}, A₁ = ${:02x}", self.accumulator(), n));
+                    self.set_accumulator(n);
+                }
                 0x06 => {
                     let n = self.read_immediate_u8();
-                    self.print_current_code(format!("LD B, ${:02x}", n), "".to_string());
+                    self.print_current_code(
+                        format!("LD B, ${:02x}", n),
+                        format!("B₀ = ${:02x}, B₁ = ${:02x}", self.b(), n));
                     self.set_b(n);
                 }
                 0x0E => {
                     let n = self.read_immediate_u8();
-                    self.print_current_code(format!("LD C, ${:02x}", n), "".to_string());
+                    self.print_current_code(
+                        format!("LD C, ${:02x}", n),
+                        format!("C₀ = ${:02x}, C₁ = ${:02x}", self.c(), n));
                     self.set_c(n);
                 }
                 0x16 => {
                     let n = self.read_immediate_u8();
-                    self.print_current_code(format!("LD D, ${:02x}", n), "".to_string());
+                    self.print_current_code(
+                        format!("LD D, ${:02x}", n),
+                        format!("D₀ = ${:02x}, D₁ = ${:02x}", self.d(), n));
                     self.set_d(n);
                 }
                 0x1E => {
                     let n = self.read_immediate_u8();
-                    self.print_current_code(format!("LD E, ${:02x}", n), "".to_string());
+                    self.print_current_code(
+                        format!("LD E, ${:02x}", n),
+                        format!("E₀ = ${:02x}, E₁ = ${:02x}", self.e(), n));
                     self.set_e(n);
                 }
 
@@ -170,12 +185,26 @@ impl GameBoy {
                     self.set_hl(hl);
                 }
 
+                0xE2 => {
+                    // Put A into memory address 0xFF00 + C.
+                    self.print_current_code(
+                        "LD ($FF00+C), A ".to_string(),
+                        format!("A = ${:02x}, C = ${:02x}", self.accumulator(), self.c()));
+                    let accumulator = self.accumulator();
+                    let address = 0xFF00 + (self.c() as u16);
+                    self.set_memory(address, accumulator);
+                }
+
                 0xAF => {
                     self.print_current_code(
                         "XOR A A".to_string(),
                         format!("A₀ = ${:02x}, A₁ = $00", self.accumulator()).to_string());
                     self.set_accumulator(0);
                 }
+
+                // 8-Bit Arithmatic
+                // Increment the value in register n.
+                
 
                 0xCB => {
                     // 2-byte opcode
@@ -368,13 +397,19 @@ impl GameBoy {
     fn get_memory(&self, address: u16) -> u8 {
         if address <= 0x00FF {
             return self.boot_rom[address as usize];
-        } else if 0x8000 <= address && address <= 0x9FFF {
+        }
+        
+        else if 0x8000 <= address && address <= 0x9FFF {
             let i: usize = (address - 0x8000) as usize;
             return self.video_ram[i];
-        } else if 0xFF80 <= address && address <= 0xFFFE {
+        }
+        
+        else if 0xFF80 <= address && address <= 0xFFFE {
             let i: usize = (address - 0xFF80) as usize;
             return self.high_ram[i];
-        } else {
+        }
+        
+        else {
             panic!("I don't know how to get memory address ${:04x}.", address);
         }
     }
@@ -384,11 +419,19 @@ impl GameBoy {
             let i: usize = (address - 0x8000) as usize;
             println!("  ; video_ram[${:04x}] = ${:02x}", i, value);
             self.video_ram[i] = value;
-        } else if 0xFF80 <= address && address <= 0xFFFE {
+        }
+        
+        else if 0xFF80 <= address && address <= 0xFFFE {
             let i: usize = (address - 0xFF80) as usize;
             println!("  ; high_ram[${:04x}] = ${:02x}", i, value);
             self.high_ram[i] = value;
-        } else {
+        }
+
+        else if 0xFF10 <= address && address <= 0xFF26 {
+            println!("  ; skipping write to sound control memory -- not implemented");
+        }
+        
+        else {
             panic!("I don't know how to set memory address ${:04x}.", address);
         }
     }
