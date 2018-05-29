@@ -106,6 +106,8 @@ fn getOperations() -> HashMap<u8, Operation> {
 
             // 2. LD r1, r2
             // Put value r2 into r1.
+            // 3. LD A, n
+            // Put value n into A.
             {
                 // LD A, *
                 op(0x7F, 1, |gb| {
@@ -166,6 +168,26 @@ fn getOperations() -> HashMap<u8, Operation> {
                         format!("A₀ = ${:02x}, L = ${:02x}", a0, l),
                     )
                 });
+                // op(0x0A, 2, |gb| {
+                //     let a0 = gb.a();
+                //     let bc = gb.bc();
+                //     let a1 = gb.get_memory(bc);
+                //     gb.set_a(a1);
+                //     (
+                //         format!("LD A, (BC)"),
+                //         format!("A₀ = ${:02x}, BC = ${:04x}, (BC) = ${:04x}", a0, bc, a1),
+                //     )
+                // });
+                // op(0x1A, 2, |gb| {
+                //     let a0 = gb.a();
+                //     let de = gb.de();
+                //     let a1 = gb.get_memory(de);
+                //     gb.set_a(a1);
+                //     (
+                //         format!("LD A, (DE)"),
+                //         format!("A₀ = ${:02x}, DE = ${:04x}, (DE) = ${:04x}", a0, de, a1),
+                //     )
+                // });
                 op(0x7E, 2, |gb| {
                     let a0 = gb.a();
                     let hl = gb.hl();
@@ -175,6 +197,22 @@ fn getOperations() -> HashMap<u8, Operation> {
                         format!("LD A, (HL)"),
                         format!("A₀ = ${:02x}, HL = ${:04x}, (HL) = ${:04x}", a0, hl, a1),
                     )
+                });
+                op(0xFA, 4, |gb| {
+                    let nn = gb.read_immediate_u16();
+                    let a0 = gb.a();
+                    let a1 = gb.get_memory(nn);
+                    gb.set_a(a1);
+                    (
+                        format!("LD A, (${:04x})", nn),
+                        format!("A₀ = ${:02x}, A₁ = ${:04x}", a0, a1),
+                    )
+                });
+                op(0x3E, 2, |gb| {
+                    let n = gb.read_immediate_u8();
+                    let a0 = gb.a();
+                    gb.set_a(n);
+                    (format!("LD A, ${:02x}", n), format!("A₀ = ${:02x}", a0))
                 });
                 // LD B, *
                 op(0x40, 1, |gb| {
@@ -603,6 +641,114 @@ fn getOperations() -> HashMap<u8, Operation> {
                     (format!("LD (HL), ${:02x}", n), format!("HL = ${:02x}", hl))
                 });
             }
+
+            // 19. LDH (n), A
+            op(0xE0, 3, |gb| {
+                let a = gb.a();
+                let n = gb.read_immediate_u8();
+                gb.set_memory(0xFF00 as u16 + n as u16, a);
+                (
+                    format!("LD ($ff00 + ${:02x}), A", n),
+                    format!("A = ${:02x}", a),
+                )
+            });
+        }
+
+        // 3.3.5. Miscellaneous
+        {
+            // 6. NOP
+            op(0x00, 1, |gb| (format!("NOP"), format!("")));
+        }
+
+        // 3.3.8 Jumps
+        {
+            // 1. JP nn
+            // Jump to address nn.
+            op(0xC3, 3, |gb| {
+                let nn = gb.read_immediate_u16();
+                gb.i = nn;
+                (format!("JP ${:04x}", nn), format!(""))
+            });
+            // 2. JP cc, nn
+            // Jump to address n if condition is true.
+            op(0xC2, 3, |gb| {
+                let nn = gb.read_immediate_u16();
+                let z_flag = gb.z_flag();
+                if (z_flag == false) {
+                    gb.i = nn;
+                }
+                (format!("JP NZ, ${:04x}", nn), format!("Z = {}", z_flag))
+            });
+            op(0xCA, 3, |gb| {
+                let nn = gb.read_immediate_u16();
+                let z_flag = gb.z_flag();
+                if (z_flag) {
+                    gb.i = nn;
+                }
+                (format!("JP Z, ${:04x}", nn), format!("Z = {}", z_flag))
+            });
+            op(0xD2, 3, |gb| {
+                let nn = gb.read_immediate_u16();
+                let c_flag = gb.c_flag();
+                if (c_flag == false) {
+                    gb.i = nn;
+                }
+                (format!("JP NC, ${:04x}", nn), format!("C = {}", c_flag))
+            });
+            op(0xDA, 3, |gb| {
+                let nn = gb.read_immediate_u16();
+                let c_flag = gb.c_flag();
+                if (c_flag) {
+                    gb.i = nn;
+                }
+                (format!("JP C, ${:04x}", nn), format!("C = {}", c_flag))
+            });
+            // 3. JP (HL)
+            // Jump to address contained in HL.
+            op(0xE9, 1, |gb| {
+                let hl = gb.hl();
+                (format!("JP (HL)"), format!("HL = ${:04x}", hl))
+            });
+            // 4. JR n
+            // Add n to current address and jump to it.
+            op(0x18, 2, |gb| {
+                let n = gb.read_immediate_i8();
+                (format!("JP {}", n), format!(""))
+            });
+            // 5. JR cc, n
+            // If condition is true then add n to current address and jump to it.
+            op(0x20, 2, |gb| {
+                let n = gb.read_immediate_i8();
+                let z_flag = gb.z_flag();
+                if (z_flag == false) {
+                    gb.relative_jump(n);
+                }
+                (format!("JR NZ, {}", n), format!("Z = {}", z_flag))
+            });
+            op(0x28, 2, |gb| {
+                let n = gb.read_immediate_i8();
+                let z_flag = gb.z_flag();
+                if (z_flag) {
+                    gb.relative_jump(n);
+                }
+                (format!("JR Z, {}", n), format!("Z = {}", z_flag))
+            });
+            op(0x30, 2, |gb| {
+                let n = gb.read_immediate_i8();
+                let c_flag = gb.c_flag();
+                if (c_flag == false) {
+                    gb.relative_jump(n);
+                }
+                (format!("JR NC, {}", n), format!("C = {}", c_flag))
+            });
+            op(0x38, 2, |gb| {
+                let n = gb.read_immediate_i8();
+                let c_flag = gb.c_flag();
+                if (c_flag) {
+                    gb.relative_jump(n);
+                }
+                (format!("JR C, {}", n), format!("C = {}", c_flag))
+            });
         }
     }
 
@@ -638,8 +784,18 @@ impl GameBoy {
         value
     }
 
-    fn relative_jump(&mut self, n: i32) {
-        self.i = ((self.i as i32) + n) as u16;
+    fn read_immediate_i8(&mut self) -> i8 {
+        self.read_immediate_u8() as i8
+    }
+
+    fn read_immediate_u16(&mut self) -> u16 {
+        let n1 = self.read_immediate_u8();
+        let n2 = self.read_immediate_u8();
+        u8s_to_u16(n1, n2)
+    }
+
+    fn relative_jump(&mut self, n: i8) {
+        self.i = ((self.i as i32) + (n as i32)) as u16;
     }
 
     fn print_current_code(&self, asm: String, info: String) {
@@ -679,77 +835,18 @@ impl GameBoy {
                 }
                 None => {
                     match opcode {
-                        // Jumps
-                        // JR n
-                        // Unconditional relative jump.
-                        0x18 => {
-                            let delta = self.read_immediate_u8() as i8;
-                            self.print_current_code(format!("JR {})", delta), "".to_string());
-                            self.relative_jump(delta as i32);
-                        }
-                        // JR cc, n
-                        // Conditional relative jump.
-                        0x20 => {
-                            let delta = self.read_immediate_u8() as i8;
-                            self.print_current_code(
-                                format!("JR NZ, {}", delta),
-                                format!("Z = {}", self.z_flag()),
-                            );
-                            if !self.z_flag() {
-                                self.relative_jump(delta as i32);
-                            }
-                        }
-                        0x28 => {
-                            let delta = self.read_immediate_u8() as i8;
-                            self.print_current_code(
-                                format!("JR Z, {}", delta),
-                                format!("Z = {}", self.z_flag()),
-                            );
-                            if self.z_flag() {
-                                self.relative_jump(delta as i32);
-                            }
-                        }
-                        0x30 => {
-                            let delta = self.read_immediate_u8() as i8;
-                            self.print_current_code(
-                                format!("JR NC, {}", delta),
-                                format!("C = {}", self.c_flag()),
-                            );
-                            if !self.c_flag() {
-                                self.relative_jump(delta as i32);
-                            }
-                        }
-                        0x38 => {
-                            let delta = self.read_immediate_u8() as i8;
-                            self.print_current_code(
-                                format!("JR C, {}", delta),
-                                format!("C = {}", self.c_flag()),
-                            );
-                            if self.c_flag() {
-                                self.relative_jump(delta as i32);
-                            }
-                        }
-
                         0x21 => {
                             // LOAD HL, $1, $2
-                            let h = self.read_immediate_u8();
-                            let l = self.read_immediate_u8();
-                            self.print_current_code(
-                                format!("LOAD HL, ${:02x}, ${:02x}", h, l),
-                                "".to_string(),
-                            );
-                            self.set_h_l(h, l);
+                            let hl = self.read_immediate_u16();
+                            self.print_current_code(format!("LOAD HL, ${:04x}", hl), format!(""));
+                            self.set_hl(hl);
                         }
 
                         0x31 => {
                             // LOAD SP, $1, $2
-                            let s = self.read_immediate_u8();
-                            let p = self.read_immediate_u8();
-                            self.print_current_code(
-                                format!("LOAD SP ${:02x}, ${:02x}", s, p),
-                                "".to_string(),
-                            );
-                            self.set_s_p(s, p);
+                            let sp = self.read_immediate_u16();
+                            self.print_current_code(format!("LOAD SP ${:04x}", sp), format!(""));
+                            self.set_sp(sp);
                         }
 
                         0x77 => {
@@ -1007,11 +1104,6 @@ impl GameBoy {
         self.main_registers[7] = l;
     }
 
-    fn set_h_l(&mut self, h: u8, l: u8) {
-        self.main_registers[6] = h;
-        self.main_registers[7] = l;
-    }
-
     fn sp(&self) -> u16 {
         return u8s_to_u16(self.main_registers[8], self.main_registers[9]);
     }
@@ -1022,22 +1114,12 @@ impl GameBoy {
         self.main_registers[9] = p;
     }
 
-    fn set_s_p(&mut self, s: u8, p: u8) {
-        self.main_registers[8] = s;
-        self.main_registers[9] = p;
-    }
-
     fn pc(&self) -> u16 {
         return u8s_to_u16(self.main_registers[10], self.main_registers[11]);
     }
 
     fn set_pc(&mut self, value: u16) {
         let (p, c) = u16_to_u8s(value);
-        self.main_registers[10] = p;
-        self.main_registers[11] = c;
-    }
-
-    fn set_p_c(&mut self, p: u8, c: u8) {
         self.main_registers[10] = p;
         self.main_registers[11] = c;
     }
