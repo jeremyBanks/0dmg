@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::fmt;
 
 fn main() {
     let mut gameboy = GameBoy::new();
@@ -17,6 +16,8 @@ struct GameBoy {
     main_registers: [u8; 12],
     boot_rom: Vec<u8>,
     game_rom: Vec<u8>,
+    // the 4-item one-byte 2-bit-greyscale color table at $FF47
+    bg_palette: u8,
     debug_current_op_addr: u16,
     debug_current_code: Vec<u8>,
 }
@@ -27,7 +28,7 @@ struct Operation {
     execute: fn(gb: &mut GameBoy) -> (String, String),
 }
 
-fn getOperations() -> HashMap<u8, Operation> {
+fn get_operations() -> HashMap<u8, Operation> {
     let mut operations = HashMap::new();
 
     {
@@ -38,12 +39,12 @@ fn getOperations() -> HashMap<u8, Operation> {
                 execute: execute,
             };
             match operations.insert(operation.code, operation) {
-                Some(existingOp) => panic!("duplicate opcode"),
+                Some(_existing_op) => panic!("duplicate opcode"),
                 None => {}
             }
         };
 
-        // 3.1.1. 8-bit loads
+        // 3.1.1. 8-bit Loads
         {
             // 1. LD nn, n
             // Put value n into nn.
@@ -654,10 +655,17 @@ fn getOperations() -> HashMap<u8, Operation> {
             });
         }
 
+        // 3.3.2 16-Bit Loads
+        {
+            // 1. LD n, nn
+            // Put value nn into 16-bit register n.
+            // TODO
+        }
+
         // 3.3.5. Miscellaneous
         {
             // 6. NOP
-            op(0x00, 1, |gb| (format!("NOP"), format!("")));
+            op(0x00, 1, |_gb| (format!("NOP"), format!("")));
         }
 
         // 3.3.8 Jumps
@@ -674,7 +682,7 @@ fn getOperations() -> HashMap<u8, Operation> {
             op(0xC2, 3, |gb| {
                 let nn = gb.read_immediate_u16();
                 let z_flag = gb.z_flag();
-                if (z_flag == false) {
+                if z_flag == false {
                     gb.i = nn;
                 }
                 (format!("JP NZ, ${:04x}", nn), format!("Z = {}", z_flag))
@@ -682,7 +690,7 @@ fn getOperations() -> HashMap<u8, Operation> {
             op(0xCA, 3, |gb| {
                 let nn = gb.read_immediate_u16();
                 let z_flag = gb.z_flag();
-                if (z_flag) {
+                if z_flag {
                     gb.i = nn;
                 }
                 (format!("JP Z, ${:04x}", nn), format!("Z = {}", z_flag))
@@ -690,7 +698,7 @@ fn getOperations() -> HashMap<u8, Operation> {
             op(0xD2, 3, |gb| {
                 let nn = gb.read_immediate_u16();
                 let c_flag = gb.c_flag();
-                if (c_flag == false) {
+                if c_flag == false {
                     gb.i = nn;
                 }
                 (format!("JP NC, ${:04x}", nn), format!("C = {}", c_flag))
@@ -698,7 +706,7 @@ fn getOperations() -> HashMap<u8, Operation> {
             op(0xDA, 3, |gb| {
                 let nn = gb.read_immediate_u16();
                 let c_flag = gb.c_flag();
-                if (c_flag) {
+                if c_flag {
                     gb.i = nn;
                 }
                 (format!("JP C, ${:04x}", nn), format!("C = {}", c_flag))
@@ -720,7 +728,7 @@ fn getOperations() -> HashMap<u8, Operation> {
             op(0x20, 2, |gb| {
                 let n = gb.read_immediate_i8();
                 let z_flag = gb.z_flag();
-                if (z_flag == false) {
+                if z_flag == false {
                     gb.relative_jump(n);
                 }
                 (format!("JR NZ, {}", n), format!("Z = {}", z_flag))
@@ -728,7 +736,7 @@ fn getOperations() -> HashMap<u8, Operation> {
             op(0x28, 2, |gb| {
                 let n = gb.read_immediate_i8();
                 let z_flag = gb.z_flag();
-                if (z_flag) {
+                if z_flag {
                     gb.relative_jump(n);
                 }
                 (format!("JR Z, {}", n), format!("Z = {}", z_flag))
@@ -736,7 +744,7 @@ fn getOperations() -> HashMap<u8, Operation> {
             op(0x30, 2, |gb| {
                 let n = gb.read_immediate_i8();
                 let c_flag = gb.c_flag();
-                if (c_flag == false) {
+                if c_flag == false {
                     gb.relative_jump(n);
                 }
                 (format!("JR NC, {}", n), format!("C = {}", c_flag))
@@ -744,10 +752,31 @@ fn getOperations() -> HashMap<u8, Operation> {
             op(0x38, 2, |gb| {
                 let n = gb.read_immediate_i8();
                 let c_flag = gb.c_flag();
-                if (c_flag) {
+                if c_flag {
                     gb.relative_jump(n);
                 }
                 (format!("JR C, {}", n), format!("C = {}", c_flag))
+            });
+        }
+
+        // Two-Byte Operations
+        {
+            op(0xCB, 0, |gb| {
+                let opcode_2 = gb.read_immediate_u8();
+
+                match opcode_2 {
+                    0x7C => {
+                        let result = !u8_get_bit(gb.h(), 7);
+                        gb.set_z_flag(result);
+                        gb.set_n_flag(false);
+                        gb.set_h_flag(true);
+                        (format!("BIT 7, H"), format!("Z₁ = {}", result))
+                    }
+
+                    _ => {
+                        panic!("unsupported opcode: $CB ${:02x}", opcode_2);
+                    }
+                }
             });
         }
     }
@@ -766,6 +795,7 @@ impl GameBoy {
             main_registers: [0u8; 12],
             boot_rom: load_boot_rom(),
             game_rom: load_game_rom("Pokemon Red (US)[:256]"),
+            bg_palette: 0,
             debug_current_op_addr: 0,
             debug_current_code: vec![],
         }
@@ -809,7 +839,7 @@ impl GameBoy {
             .join("");
         print!(" ; {:6}", self.t);
         print!(" ; ${:8}", code);
-        if (info.len() > 0) {
+        if info.len() > 0 {
             print!(" ; {}", info);
         }
         println!();
@@ -818,12 +848,19 @@ impl GameBoy {
     // Main Loop
 
     fn run(&mut self) {
-        println!("assembly:                          addr:   t/μs:   codes:       flags:");
-        println!("---------                          -----   -----   ------       ------");
+        println!();
+        let operations = get_operations();
+        println!(
+            "; {:3} one-byte opcodes implemented (~{:3.0}%).",
+            operations.len(),
+            (operations.len() as f32 / 2.55)
+        );
+        println!();
 
-        let operations = getOperations();
+        println!("; assembly:                        addr:   t/μs:   codes:       flags:");
+        println!("; ---------                        -----   -----   ------       ------");
 
-        while true {
+        loop {
             let opcode = self.read_instruction();
 
             let op = operations.get(&opcode);
@@ -831,7 +868,7 @@ impl GameBoy {
                 Some(op) => {
                     let (asm, debug) = (op.execute)(self);
                     self.print_current_code(asm, debug);
-                    self.t += (op.cycles as u64);
+                    self.t += op.cycles as u64;
                 }
                 None => {
                     match opcode {
@@ -877,7 +914,7 @@ impl GameBoy {
                         0xE2 => {
                             // Put A into memory address 0xFF00 + C.
                             self.print_current_code(
-                                "LD ($FF00+C), A ".to_string(),
+                                "LD ($FF00 + C), A ".to_string(),
                                 format!("A = ${:02x}, C = ${:02x}", self.a(), self.c()),
                             );
                             let a = self.a();
@@ -899,118 +936,95 @@ impl GameBoy {
                         // N flag cleared.
                         // H flag set iff value overflows and wraps.
                         0x3C => {
-                            let oldValue = self.a();
-                            let newValue = oldValue + 1;
+                            let old_value = self.a();
+                            let new_value = old_value + 1;
                             self.print_current_code(
                                 "INC A".to_string(),
-                                format!("A₀ = ${:02x}, A₁ = ${:02x}", oldValue, newValue)
+                                format!("A₀ = ${:02x}, A₁ = ${:02x}", old_value, new_value)
                                     .to_string(),
                             );
-                            self.set_a(newValue);
-                            self.set_z_flag(newValue == 0);
+                            self.set_a(new_value);
+                            self.set_z_flag(new_value == 0);
                             self.set_n_flag(false);
-                            self.set_h_flag(oldValue > newValue);
+                            self.set_h_flag(old_value > new_value);
                         }
                         0x04 => {
-                            let oldValue = self.b();
-                            let newValue = oldValue + 1;
+                            let old_value = self.b();
+                            let new_value = old_value + 1;
                             self.print_current_code(
                                 "INC B".to_string(),
-                                format!("B₀ = ${:02x}, B₁ = ${:02x}", oldValue, newValue)
+                                format!("B₀ = ${:02x}, B₁ = ${:02x}", old_value, new_value)
                                     .to_string(),
                             );
-                            self.set_b(newValue);
-                            self.set_z_flag(newValue == 0);
+                            self.set_b(new_value);
+                            self.set_z_flag(new_value == 0);
                             self.set_n_flag(false);
-                            self.set_h_flag(oldValue > newValue);
+                            self.set_h_flag(old_value > new_value);
                         }
                         0x0C => {
-                            let oldValue = self.c();
-                            let newValue = oldValue + 1;
+                            let old_value = self.c();
+                            let new_value = old_value + 1;
                             self.print_current_code(
                                 "INC C".to_string(),
-                                format!("C₀ = ${:02x}, C₁ = ${:02x}", oldValue, newValue)
+                                format!("C₀ = ${:02x}, C₁ = ${:02x}", old_value, new_value)
                                     .to_string(),
                             );
-                            self.set_c(newValue);
-                            self.set_z_flag(newValue == 0);
+                            self.set_c(new_value);
+                            self.set_z_flag(new_value == 0);
                             self.set_n_flag(false);
-                            self.set_h_flag(oldValue > newValue);
+                            self.set_h_flag(old_value > new_value);
                         }
                         0x14 => {
-                            let oldValue = self.d();
-                            let newValue = oldValue + 1;
+                            let old_value = self.d();
+                            let new_value = old_value + 1;
                             self.print_current_code(
                                 "INC D".to_string(),
-                                format!("D₀ = ${:02x}, D₁ = ${:02x}", oldValue, newValue)
+                                format!("D₀ = ${:02x}, D₁ = ${:02x}", old_value, new_value)
                                     .to_string(),
                             );
-                            self.set_d(newValue);
-                            self.set_z_flag(newValue == 0);
+                            self.set_d(new_value);
+                            self.set_z_flag(new_value == 0);
                             self.set_n_flag(false);
-                            self.set_h_flag(oldValue > newValue);
+                            self.set_h_flag(old_value > new_value);
                         }
                         0x1C => {
-                            let oldValue = self.e();
-                            let newValue = oldValue + 1;
+                            let old_value = self.e();
+                            let new_value = old_value + 1;
                             self.print_current_code(
                                 "INC E".to_string(),
-                                format!("E₀ = ${:02x}, E₁ = ${:02x}", oldValue, newValue)
+                                format!("E₀ = ${:02x}, E₁ = ${:02x}", old_value, new_value)
                                     .to_string(),
                             );
-                            self.set_e(newValue);
-                            self.set_z_flag(newValue == 0);
+                            self.set_e(new_value);
+                            self.set_z_flag(new_value == 0);
                             self.set_n_flag(false);
-                            self.set_h_flag(oldValue > newValue);
+                            self.set_h_flag(old_value > new_value);
                         }
                         0x24 => {
-                            let oldValue = self.h();
-                            let newValue = oldValue + 1;
+                            let old_value = self.h();
+                            let new_value = old_value + 1;
                             self.print_current_code(
                                 "INC H".to_string(),
-                                format!("H₀ = ${:02x}, H₁ = ${:02x}", oldValue, newValue)
+                                format!("H₀ = ${:02x}, H₁ = ${:02x}", old_value, new_value)
                                     .to_string(),
                             );
-                            self.set_h(newValue);
-                            self.set_z_flag(newValue == 0);
+                            self.set_h(new_value);
+                            self.set_z_flag(new_value == 0);
                             self.set_n_flag(false);
-                            self.set_h_flag(oldValue > newValue);
+                            self.set_h_flag(old_value > new_value);
                         }
                         0x2C => {
-                            let oldValue = self.l();
-                            let newValue = oldValue + 1;
+                            let old_value = self.l();
+                            let new_value = old_value + 1;
                             self.print_current_code(
                                 "INC L".to_string(),
-                                format!("L₀ = ${:02x}, L₁ = ${:02x}", oldValue, newValue)
+                                format!("L₀ = ${:02x}, L₁ = ${:02x}", old_value, new_value)
                                     .to_string(),
                             );
-                            self.set_l(newValue);
-                            self.set_z_flag(newValue == 0);
+                            self.set_l(new_value);
+                            self.set_z_flag(new_value == 0);
                             self.set_n_flag(false);
-                            self.set_h_flag(oldValue > newValue);
-                        }
-
-                        0xCB => {
-                            // 2-byte opcode
-
-                            let opcode_2 = self.read_immediate_u8();
-
-                            match opcode_2 {
-                                0x7C => {
-                                    let result = !u8_get_bit(self.h(), 7);
-                                    self.print_current_code(
-                                        "BIT 7, H".to_string(),
-                                        format!("Z₁ = {}", result),
-                                    );
-                                    self.set_z_flag(result);
-                                    self.set_n_flag(false);
-                                    self.set_h_flag(true);
-                                }
-
-                                _ => {
-                                    panic!("unsupported opcode: ${:02x}{:02x}", opcode, opcode_2);
-                                }
-                            }
+                            self.set_h_flag(old_value > new_value);
                         }
 
                         _ => {
@@ -1183,14 +1197,17 @@ impl GameBoy {
     fn set_memory(&mut self, address: u16, value: u8) {
         if 0x8000 <= address && address <= 0x9FFF {
             let i: usize = (address - 0x8000) as usize;
-            println!("  ; video_ram[${:04x}] = ${:02x}", i, value);
             self.video_ram[i] = value;
+            println!("  ; video_ram[${:04x}] = ${:02x}", i, value);
         } else if 0xFF80 <= address && address <= 0xFFFE {
             let i: usize = (address - 0xFF80) as usize;
-            println!("  ; high_ram[${:04x}] = ${:02x}", i, value);
             self.high_ram[i] = value;
+            println!("  ; high_ram[${:04x}] = ${:02x}", i, value);
         } else if 0xFF10 <= address && address <= 0xFF26 {
             println!("  ; skipping write to sound control memory -- not implemented");
+        } else if address == 0xFF47 {
+            self.bg_palette = value;
+            println!("  ; updated background palette");
         } else {
             panic!("I don't know how to set memory address ${:04x}.", address);
         }
