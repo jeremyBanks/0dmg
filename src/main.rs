@@ -172,6 +172,16 @@ impl GameBoy {
                     self.set_s_p(s, p);
                 }
 
+                0x77 => {
+                    // Put A into memory address HL.
+                    self.print_current_code(
+                        "LD (HL), A".to_string(),
+                        format!("HL = ${:04x}, A = ${:02x}", self.hl(), self.accumulator()));
+                    let mut hl = self.hl();
+                    let accumulator = self.accumulator();
+                    self.set_memory(hl, accumulator);
+                }
+
                 0x32 => {
                     // Put A into memory address HL.
                     self.print_current_code(
@@ -204,7 +214,86 @@ impl GameBoy {
 
                 // 8-Bit Arithmatic
                 // Increment the value in register n.
-                
+                // Z flag set iff result is 0.
+                // N flag cleared.
+                // H flag set iff value overflows and wraps.
+                0x3C => {
+                    let oldValue = self.accumulator();
+                    let newValue = oldValue + 1;
+                    self.print_current_code(
+                        "INC A".to_string(),
+                        format!("A₀ = ${:02x}, A₁ = ${:02x}", oldValue, newValue).to_string());
+                    self.set_accumulator(newValue);
+                    self.set_z_flag(newValue == 0);
+                    self.set_n_flag(false);
+                    self.set_h_flag(oldValue > newValue);
+                }
+                0x04 => {
+                    let oldValue = self.b();
+                    let newValue = oldValue + 1;
+                    self.print_current_code(
+                        "INC B".to_string(),
+                        format!("B₀ = ${:02x}, B₁ = ${:02x}", oldValue, newValue).to_string());
+                    self.set_b(newValue);
+                    self.set_z_flag(newValue == 0);
+                    self.set_n_flag(false);
+                    self.set_h_flag(oldValue > newValue);
+                }
+                0x0C => {
+                    let oldValue = self.c();
+                    let newValue = oldValue + 1;
+                    self.print_current_code(
+                        "INC C".to_string(),
+                        format!("C₀ = ${:02x}, C₁ = ${:02x}", oldValue, newValue).to_string());
+                    self.set_c(newValue);
+                    self.set_z_flag(newValue == 0);
+                    self.set_n_flag(false);
+                    self.set_h_flag(oldValue > newValue);
+                }
+                0x14 => {
+                    let oldValue = self.d();
+                    let newValue = oldValue + 1;
+                    self.print_current_code(
+                        "INC D".to_string(),
+                        format!("D₀ = ${:02x}, D₁ = ${:02x}", oldValue, newValue).to_string());
+                    self.set_d(newValue);
+                    self.set_z_flag(newValue == 0);
+                    self.set_n_flag(false);
+                    self.set_h_flag(oldValue > newValue);
+                }
+                0x1C => {
+                    let oldValue = self.e();
+                    let newValue = oldValue + 1;
+                    self.print_current_code(
+                        "INC E".to_string(),
+                        format!("E₀ = ${:02x}, E₁ = ${:02x}", oldValue, newValue).to_string());
+                    self.set_e(newValue);
+                    self.set_z_flag(newValue == 0);
+                    self.set_n_flag(false);
+                    self.set_h_flag(oldValue > newValue);
+                }
+                0x24 => {
+                    let oldValue = self.h();
+                    let newValue = oldValue + 1;
+                    self.print_current_code(
+                        "INC H".to_string(),
+                        format!("H₀ = ${:02x}, H₁ = ${:02x}", oldValue, newValue).to_string());
+                    self.set_h(newValue);
+                    self.set_z_flag(newValue == 0);
+                    self.set_n_flag(false);
+                    self.set_h_flag(oldValue > newValue);
+                }
+                0x2C => {
+                    let oldValue = self.l();
+                    let newValue = oldValue + 1;
+                    self.print_current_code(
+                        "INC L".to_string(),
+                        format!("L₀ = ${:02x}, L₁ = ${:02x}", oldValue, newValue).to_string());
+                    self.set_l(newValue);
+                    self.set_z_flag(newValue == 0);
+                    self.set_n_flag(false);
+                    self.set_h_flag(oldValue > newValue);
+                }
 
                 0xCB => {
                     // 2-byte opcode
