@@ -23,6 +23,7 @@ struct GameBoy {
 
 struct Operation {
     code: u8,
+    cycles: u8,
     execute: fn(gb: &mut GameBoy) -> (String, String),
 }
 
@@ -30,9 +31,10 @@ fn getOperations() -> HashMap<u8, Operation> {
     let mut operations = HashMap::new();
 
     {
-        let mut op = |code: u8, execute: fn(gb: &mut GameBoy) -> (String, String)| {
+        let mut op = |code: u8, cycles: u8, execute: fn(gb: &mut GameBoy) -> (String, String)| {
             let operation = Operation {
                 code: code,
+                cycles: cycles,
                 execute: execute,
             };
             match operations.insert(operation.code, operation) {
@@ -46,7 +48,7 @@ fn getOperations() -> HashMap<u8, Operation> {
             // 1. LD nn, n
             // Put value n into nn.
             {
-                op(0x06, |gb| {
+                op(0x06, 2, |gb| {
                     let b0 = gb.b();
                     let b1 = gb.read_immediate_u8();
                     gb.set_b(b1);
@@ -55,7 +57,7 @@ fn getOperations() -> HashMap<u8, Operation> {
                         format!("B₀ = ${:02x}, B₁ = ${:02x}", b0, b1),
                     )
                 });
-                op(0x0E, |gb| {
+                op(0x0E, 2, |gb| {
                     let c0 = gb.c();
                     let c1 = gb.read_immediate_u8();
                     gb.set_c(c1);
@@ -64,7 +66,7 @@ fn getOperations() -> HashMap<u8, Operation> {
                         format!("C₀ = ${:02x}, C₁ = ${:02x}", c0, c1),
                     )
                 });
-                op(0x16, |gb| {
+                op(0x16, 2, |gb| {
                     let d0 = gb.d();
                     let d1 = gb.read_immediate_u8();
                     gb.set_d(d1);
@@ -73,7 +75,7 @@ fn getOperations() -> HashMap<u8, Operation> {
                         format!("D₀ = ${:02x}, D₁ = ${:02x}", d0, d1),
                     )
                 });
-                op(0x1E, |gb| {
+                op(0x1E, 2, |gb| {
                     let e0 = gb.e();
                     let e1 = gb.read_immediate_u8();
                     gb.set_e(e1);
@@ -82,7 +84,7 @@ fn getOperations() -> HashMap<u8, Operation> {
                         format!("E₀ = ${:02x}, E₁ = ${:02x}", e0, e1),
                     )
                 });
-                op(0x26, |gb| {
+                op(0x26, 2, |gb| {
                     let h0 = gb.h();
                     let h1 = gb.read_immediate_u8();
                     gb.set_h(h1);
@@ -91,7 +93,7 @@ fn getOperations() -> HashMap<u8, Operation> {
                         format!("H₀ = ${:02x}, H₁ = ${:02x}", h0, h1),
                     )
                 });
-                op(0x2E, |gb| {
+                op(0x2E, 2, |gb| {
                     let l0 = gb.l();
                     let l1 = gb.read_immediate_u8();
                     gb.set_l(l1);
@@ -105,11 +107,12 @@ fn getOperations() -> HashMap<u8, Operation> {
             // 2. LD r1, r2
             // Put value r2 into r1.
             {
-                op(0x7F, |gb| {
+                // LD A, *
+                op(0x7F, 1, |gb| {
                     let a = gb.a();
                     (format!("LD A, A"), format!("A = ${:02x}", a))
                 });
-                op(0x78, |gb| {
+                op(0x78, 1, |gb| {
                     let a0 = gb.a();
                     let b = gb.b();
                     gb.set_a(b);
@@ -118,7 +121,7 @@ fn getOperations() -> HashMap<u8, Operation> {
                         format!("A₀ = ${:02x}, B = ${:02x}", a0, b),
                     )
                 });
-                op(0x79, |gb| {
+                op(0x79, 1, |gb| {
                     let a0 = gb.a();
                     let c = gb.c();
                     gb.set_a(c);
@@ -127,7 +130,7 @@ fn getOperations() -> HashMap<u8, Operation> {
                         format!("A₀ = ${:02x}, C = ${:02x}", a0, c),
                     )
                 });
-                op(0x7A, |gb| {
+                op(0x7A, 1, |gb| {
                     let a0 = gb.a();
                     let d = gb.d();
                     gb.set_a(d);
@@ -136,7 +139,7 @@ fn getOperations() -> HashMap<u8, Operation> {
                         format!("A₀ = ${:02x}, D = ${:02x}", a0, d),
                     )
                 });
-                op(0x7B, |gb| {
+                op(0x7B, 1, |gb| {
                     let a0 = gb.a();
                     let e = gb.e();
                     gb.set_a(e);
@@ -145,7 +148,7 @@ fn getOperations() -> HashMap<u8, Operation> {
                         format!("A₀ = ${:02x}, E = ${:02x}", a0, e),
                     )
                 });
-                op(0x7C, |gb| {
+                op(0x7C, 1, |gb| {
                     let a0 = gb.a();
                     let h = gb.h();
                     gb.set_a(h);
@@ -154,7 +157,7 @@ fn getOperations() -> HashMap<u8, Operation> {
                         format!("A₀ = ${:02x}, H = ${:02x}", a0, h),
                     )
                 });
-                op(0x7D, |gb| {
+                op(0x7D, 1, |gb| {
                     let a0 = gb.a();
                     let l = gb.l();
                     gb.set_a(l);
@@ -163,7 +166,7 @@ fn getOperations() -> HashMap<u8, Operation> {
                         format!("A₀ = ${:02x}, L = ${:02x}", a0, l),
                     )
                 });
-                op(0x7E, |gb| {
+                op(0x7E, 2, |gb| {
                     let a0 = gb.a();
                     let hl = gb.hl();
                     let a1 = gb.get_memory(hl);
@@ -173,11 +176,12 @@ fn getOperations() -> HashMap<u8, Operation> {
                         format!("A₀ = ${:02x}, HL = ${:04x}, (HL) = ${:04x}", a0, hl, a1),
                     )
                 });
-                op(0x40, |gb| {
+                // LD B, *
+                op(0x40, 1, |gb| {
                     let b = gb.b();
                     (format!("LD B, B"), format!("B = ${:02x}", b))
                 });
-                op(0x41, |gb| {
+                op(0x41, 1, |gb| {
                     let b0 = gb.b();
                     let c = gb.c();
                     gb.set_b(c);
@@ -186,7 +190,7 @@ fn getOperations() -> HashMap<u8, Operation> {
                         format!("B₀ = ${:02x}, C = ${:02x}", b0, c),
                     )
                 });
-                op(0x42, |gb| {
+                op(0x42, 1, |gb| {
                     let b0 = gb.b();
                     let d = gb.d();
                     gb.set_b(d);
@@ -195,7 +199,7 @@ fn getOperations() -> HashMap<u8, Operation> {
                         format!("B₀ = ${:02x}, D = ${:02x}", b0, d),
                     )
                 });
-                op(0x43, |gb| {
+                op(0x43, 1, |gb| {
                     let b0 = gb.b();
                     let e = gb.e();
                     gb.set_b(e);
@@ -204,7 +208,7 @@ fn getOperations() -> HashMap<u8, Operation> {
                         format!("B₀ = ${:02x}, E = ${:02x}", b0, e),
                     )
                 });
-                op(0x44, |gb| {
+                op(0x44, 1, |gb| {
                     let b0 = gb.b();
                     let h = gb.h();
                     gb.set_b(h);
@@ -213,7 +217,7 @@ fn getOperations() -> HashMap<u8, Operation> {
                         format!("B₀ = ${:02x}, H = ${:02x}", b0, h),
                     )
                 });
-                op(0x45, |gb| {
+                op(0x45, 1, |gb| {
                     let b0 = gb.b();
                     let l = gb.l();
                     gb.set_b(l);
@@ -222,7 +226,7 @@ fn getOperations() -> HashMap<u8, Operation> {
                         format!("B₀ = ${:02x}, L = ${:02x}", b0, l),
                     )
                 });
-                op(0x46, |gb| {
+                op(0x46, 2, |gb| {
                     let b0 = gb.b();
                     let hl = gb.hl();
                     let b1 = gb.get_memory(hl);
@@ -231,6 +235,372 @@ fn getOperations() -> HashMap<u8, Operation> {
                         format!("LD B, (HL)"),
                         format!("B₀ = ${:02x}, HL = ${:04x}, (HL) = ${:04x}", b0, hl, b1),
                     )
+                });
+                // LD C, *
+                op(0x48, 1, |gb| {
+                    let c0 = gb.c();
+                    let b = gb.b();
+                    gb.set_c(b);
+                    (
+                        format!("LD C, B"),
+                        format!("C₀ = ${:02x}, B = ${:02x}", c0, b),
+                    )
+                });
+                op(0x49, 1, |gb| {
+                    let c = gb.c();
+                    (format!("LD C, C"), format!("C = ${:02x}", c))
+                });
+                op(0x4A, 1, |gb| {
+                    let c0 = gb.c();
+                    let d = gb.d();
+                    gb.set_c(d);
+                    (
+                        format!("LD C, D"),
+                        format!("C₀ = ${:02x}, D = ${:02x}", c0, d),
+                    )
+                });
+                op(0x4B, 1, |gb| {
+                    let c0 = gb.c();
+                    let e = gb.e();
+                    gb.set_c(e);
+                    (
+                        format!("LD C, E"),
+                        format!("C₀ = ${:02x}, E = ${:02x}", c0, e),
+                    )
+                });
+                op(0x4C, 1, |gb| {
+                    let c0 = gb.c();
+                    let h = gb.h();
+                    gb.set_c(h);
+                    (
+                        format!("LD C, H"),
+                        format!("C₀ = ${:02x}, H = ${:02x}", c0, h),
+                    )
+                });
+                op(0x4D, 1, |gb| {
+                    let c0 = gb.c();
+                    let l = gb.l();
+                    gb.set_c(l);
+                    (
+                        format!("LD C, L"),
+                        format!("C₀ = ${:02x}, L = ${:02x}", c0, l),
+                    )
+                });
+                op(0x4E, 2, |gb| {
+                    let c0 = gb.c();
+                    let hl = gb.hl();
+                    let c1 = gb.get_memory(hl);
+                    gb.set_c(c1);
+                    (
+                        format!("LD C, (HL)"),
+                        format!("C₀ = ${:02x}, HL = ${:04x}, (HL) = ${:04x}", c0, hl, c1),
+                    )
+                });
+                // LD D, *
+                op(0x51, 1, |gb| {
+                    let d0 = gb.d();
+                    let b = gb.b();
+                    gb.set_d(b);
+                    (
+                        format!("LD D, B"),
+                        format!("D₀ = ${:02x}, B = ${:02x}", d0, b),
+                    )
+                });
+                op(0x52, 1, |gb| {
+                    let d0 = gb.d();
+                    let c = gb.c();
+                    gb.set_d(c);
+                    (
+                        format!("LD D, C"),
+                        format!("D₀ = ${:02x}, C = ${:02x}", d0, c),
+                    )
+                });
+                op(0x53, 1, |gb| {
+                    let d = gb.d();
+                    (format!("LD D, D"), format!("D = ${:02x}", d))
+                });
+                op(0x54, 1, |gb| {
+                    let d0 = gb.d();
+                    let e = gb.e();
+                    gb.set_d(e);
+                    (
+                        format!("LD D, E"),
+                        format!("D₀ = ${:02x}, E = ${:02x}", d0, e),
+                    )
+                });
+                op(0x55, 1, |gb| {
+                    let d0 = gb.d();
+                    let h = gb.h();
+                    gb.set_d(h);
+                    (
+                        format!("LD D, H"),
+                        format!("D₀ = ${:02x}, H = ${:02x}", d0, h),
+                    )
+                });
+                op(0x56, 1, |gb| {
+                    let d0 = gb.d();
+                    let l = gb.l();
+                    gb.set_d(l);
+                    (
+                        format!("LD D, L"),
+                        format!("D₀ = ${:02x}, L = ${:02x}", d0, l),
+                    )
+                });
+                op(0x57, 2, |gb| {
+                    let d0 = gb.d();
+                    let hl = gb.hl();
+                    let d1 = gb.get_memory(hl);
+                    gb.set_d(d1);
+                    (
+                        format!("LD D, (HL)"),
+                        format!("D₀ = ${:02x}, HL = ${:04x}, (HL) = ${:04x}", d0, hl, d1),
+                    )
+                });
+                // LD E, *
+                op(0x58, 1, |gb| {
+                    let e0 = gb.e();
+                    let b = gb.b();
+                    gb.set_e(b);
+                    (
+                        format!("LD E, B"),
+                        format!("E₀ = ${:02x}, B = ${:02x}", e0, b),
+                    )
+                });
+                op(0x59, 1, |gb| {
+                    let e0 = gb.e();
+                    let c = gb.c();
+                    gb.set_e(c);
+                    (
+                        format!("LD E, C"),
+                        format!("E₀ = ${:02x}, C = ${:02x}", e0, c),
+                    )
+                });
+                op(0x5A, 1, |gb| {
+                    let e0 = gb.e();
+                    let d = gb.d();
+                    gb.set_e(d);
+                    (
+                        format!("LD E, D"),
+                        format!("E₀ = ${:02x}, D = ${:02x}", e0, d),
+                    )
+                });
+                op(0x5B, 1, |gb| {
+                    let e = gb.e();
+                    (format!("LD E, E"), format!("E = ${:02x}", e))
+                });
+                op(0x5C, 1, |gb| {
+                    let e0 = gb.e();
+                    let h = gb.h();
+                    gb.set_e(h);
+                    (
+                        format!("LD E, H"),
+                        format!("E₀ = ${:02x}, H = ${:02x}", e0, h),
+                    )
+                });
+                op(0x5D, 1, |gb| {
+                    let e0 = gb.e();
+                    let l = gb.l();
+                    gb.set_e(l);
+                    (
+                        format!("LD E, L"),
+                        format!("E₀ = ${:02x}, L = ${:02x}", e0, l),
+                    )
+                });
+                op(0x5E, 2, |gb| {
+                    let e0 = gb.e();
+                    let hl = gb.hl();
+                    let e1 = gb.get_memory(hl);
+                    gb.set_e(e1);
+                    (
+                        format!("LD E, (HL)"),
+                        format!("E₀ = ${:02x}, HL = ${:04x}, (HL) = ${:04x}", e0, hl, e1),
+                    )
+                });
+                // LD H, *
+                op(0x60, 1, |gb| {
+                    let h0 = gb.h();
+                    let b = gb.b();
+                    gb.set_h(b);
+                    (
+                        format!("LD H, B"),
+                        format!("H₀ = ${:02x}, B = ${:02x}", h0, b),
+                    )
+                });
+                op(0x61, 1, |gb| {
+                    let h0 = gb.h();
+                    let c = gb.c();
+                    gb.set_h(c);
+                    (
+                        format!("LD H, C"),
+                        format!("H₀ = ${:02x}, C = ${:02x}", h0, c),
+                    )
+                });
+                op(0x62, 1, |gb| {
+                    let h0 = gb.h();
+                    let d = gb.d();
+                    gb.set_h(d);
+                    (
+                        format!("LD H, D"),
+                        format!("H₀ = ${:02x}, D = ${:02x}", h0, d),
+                    )
+                });
+                op(0x63, 1, |gb| {
+                    let h0 = gb.h();
+                    let e = gb.e();
+                    gb.set_h(e);
+                    (
+                        format!("LD H, E"),
+                        format!("H₀ = ${:02x}, E = ${:02x}", h0, e),
+                    )
+                });
+                op(0x64, 1, |gb| {
+                    let h = gb.h();
+                    (format!("LD H, H"), format!("H = ${:02x}", h))
+                });
+                op(0x65, 1, |gb| {
+                    let h0 = gb.h();
+                    let l = gb.l();
+                    gb.set_h(l);
+                    (
+                        format!("LD H, L"),
+                        format!("H₀ = ${:02x}, L = ${:02x}", h0, l),
+                    )
+                });
+                op(0x66, 2, |gb| {
+                    let h0 = gb.h();
+                    let hl = gb.hl();
+                    let h1 = gb.get_memory(hl);
+                    gb.set_h(h1);
+                    (
+                        format!("LD H, (HL)"),
+                        format!("H₀ = ${:02x}, HL = ${:04x}, (HL) = ${:04x}", h0, hl, h1),
+                    )
+                });
+                // LD L, *
+                op(0x68, 1, |gb| {
+                    let l0 = gb.l();
+                    let b = gb.b();
+                    gb.set_l(b);
+                    (
+                        format!("LD L, B"),
+                        format!("L₀ = ${:02x}, B = ${:02x}", l0, b),
+                    )
+                });
+                op(0x69, 1, |gb| {
+                    let l0 = gb.l();
+                    let c = gb.c();
+                    gb.set_l(c);
+                    (
+                        format!("LD L, C"),
+                        format!("L₀ = ${:02x}, C = ${:02x}", l0, c),
+                    )
+                });
+                op(0x6A, 1, |gb| {
+                    let l0 = gb.l();
+                    let d = gb.d();
+                    gb.set_l(d);
+                    (
+                        format!("LD L, D"),
+                        format!("L₀ = ${:02x}, D = ${:02x}", l0, d),
+                    )
+                });
+                op(0x6B, 1, |gb| {
+                    let l0 = gb.l();
+                    let e = gb.e();
+                    gb.set_l(e);
+                    (
+                        format!("LD L, E"),
+                        format!("L₀ = ${:02x}, E = ${:02x}", l0, e),
+                    )
+                });
+                op(0x6C, 1, |gb| {
+                    let l0 = gb.l();
+                    let h = gb.h();
+                    gb.set_l(h);
+                    (
+                        format!("LD L, H"),
+                        format!("L₀ = ${:02x}, H = ${:02x}", l0, h),
+                    )
+                });
+                op(0x6D, 1, |gb| {
+                    let l0 = gb.l();
+                    let l = gb.l();
+                    gb.set_l(l);
+                    (
+                        format!("LD L, L"),
+                        format!("L₀ = ${:02x}, L = ${:02x}", l0, l),
+                    )
+                });
+                op(0x6E, 2, |gb| {
+                    let l0 = gb.l();
+                    let hl = gb.hl();
+                    let l1 = gb.get_memory(hl);
+                    gb.set_l(l1);
+                    (
+                        format!("LD L, (HL)"),
+                        format!("L₀ = ${:02x}, HL = ${:04x}, (HL) = ${:04x}", l0, hl, l1),
+                    )
+                });
+                // LD (HL), *
+                op(0x70, 2, |gb| {
+                    let hl = gb.hl();
+                    let b = gb.b();
+                    gb.set_memory(hl, b);
+                    (
+                        format!("LD (HL), B"),
+                        format!("HL = ${:02x}, B = ${:02x}", hl, b),
+                    )
+                });
+                op(0x71, 2, |gb| {
+                    let hl = gb.hl();
+                    let c = gb.c();
+                    gb.set_memory(hl, c);
+                    (
+                        format!("LD (HL), C"),
+                        format!("HL = ${:02x}, C = ${:02x}", hl, c),
+                    )
+                });
+                op(0x72, 2, |gb| {
+                    let hl = gb.hl();
+                    let d = gb.d();
+                    gb.set_memory(hl, d);
+                    (
+                        format!("LD (HL), D"),
+                        format!("HL = ${:02x}, D = ${:02x}", hl, d),
+                    )
+                });
+                op(0x73, 2, |gb| {
+                    let hl = gb.hl();
+                    let e = gb.e();
+                    gb.set_memory(hl, e);
+                    (
+                        format!("LD (HL), E"),
+                        format!("HL = ${:02x}, E = ${:02x}", hl, e),
+                    )
+                });
+                op(0x74, 2, |gb| {
+                    let hl = gb.hl();
+                    let h = gb.h();
+                    gb.set_memory(hl, h);
+                    (
+                        format!("LD (HL), H"),
+                        format!("HL = ${:02x}, H = ${:02x}", hl, h),
+                    )
+                });
+                op(0x75, 2, |gb| {
+                    let hl = gb.hl();
+                    let l = gb.l();
+                    gb.set_memory(hl, l);
+                    (
+                        format!("LD (HL), L"),
+                        format!("HL = ${:02x}, L = ${:02x}", hl, l),
+                    )
+                });
+                op(0x36, 3, |gb| {
+                    let hl = gb.hl();
+                    let n = gb.read_immediate_u8();
+                    gb.set_memory(hl, n);
+                    (format!("LD (HL), ${:02x}", n), format!("HL = ${:02x}", hl))
                 });
             }
         }
@@ -281,16 +651,19 @@ impl GameBoy {
             .map(|c| format!("{:02x}", c))
             .collect::<Vec<String>>()
             .join("");
+        print!(" ; {:6}", self.t);
         print!(" ; ${:8}", code);
-        print!(" ; {}", info);
+        if (info.len() > 0) {
+            print!(" ; {}", info);
+        }
         println!();
     }
 
     // Main Loop
 
     fn run(&mut self) {
-        println!("ASM:                               ADDR:   CODES:      FLAGS:");
-        println!("----                               -----   ------      ------");
+        println!("assembly:                          addr:   t/μs:   codes:       flags:");
+        println!("---------                          -----   -----   ------       ------");
 
         let operations = getOperations();
 
@@ -302,6 +675,7 @@ impl GameBoy {
                 Some(op) => {
                     let (asm, debug) = (op.execute)(self);
                     self.print_current_code(asm, debug);
+                    self.t += (op.cycles as u64);
                 }
                 None => {
                     match opcode {
@@ -546,10 +920,10 @@ impl GameBoy {
                             panic!("unsupported opcode: ${:02x}", opcode);
                         }
                     }
+
+                    self.t += 1;
                 }
             }
-
-            self.t += 1;
         }
     }
 
