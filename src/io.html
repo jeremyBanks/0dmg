@@ -164,55 +164,59 @@
       canvas.width = gbWidth;
       canvas.height = gbHeight;
       
-      await sleep(1000);
+      const twoBitStyle = () => {
+          // our anti-aliased text has too many shades.
+          // cut each colour channel down to two bits.
+          let data = g2d.getImageData(0, 0, gbWidth, gbHeight);
+          for (let i = 0; i < data.data.length; i++) {
+            data.data[i] = ((data.data[i] & (128 + 64)) >> 6) * (1 + 4 + 16 + 64);
+          }
+          g2d.putImageData(data, 0, 0);
+      }
 
       const g2d = canvas.getContext('2d');
 
-      g2d.fillStyle = 'rgba(255, 255, 255, 0.5)';
-      g2d.fillRect(0, 0, gbWidth, gbHeight);
+      g2d.fillStyle = 'rgba(0, 0, 0, 0.75)'
 
       g2d.font = "bold 36px monospace";
-      g2d.fillStyle = 'rgba(0, 0, 0, 0.75)'
-
       g2d.fillText("0dmg", 16.5, 64.5);
-
-      g2d.clearRect(0, gbHeight / 2, gbWidth, gbHeight / 2);
-      g2d.fillStyle = 'rgba(255, 255, 255, 0.5)';
-      g2d.fillRect(0, gbHeight / 2, gbWidth, gbHeight / 2);
-      g2d.fillStyle = 'rgba(0, 0, 0, 0.75)'
-
-      g2d.font = "bold 12px monospace";
-      g2d.fillText("press any key", 24.5, 86.5);
-      
-      await new Promise(resolve => document.addEventListener('keydown', resolve, {once: true}));      
-
-      g2d.clearRect(0, gbHeight / 2, gbWidth, gbHeight / 2);
-      g2d.fillStyle = 'rgba(255, 255, 255, 0.5)';
-      g2d.fillRect(0, gbHeight / 2, gbWidth, gbHeight / 2);
-      g2d.fillStyle = 'rgba(0, 0, 0, 0.75)'
 
       g2d.font = "bold 12px monospace";
       g2d.fillText("connecting...", 24.5, 86.5);
 
-      const ws = new WebSocket('wss://qa.sockets.stackexchange.com/');
+      twoBitStyle();
       
-      await new Promise(resolve => ws.addEventListener('open', resolve));
+      const onKeyUpDown = keyboardEvent => {
+        if (keyboardEvent.ctrlKey || keyboardEvent.metaKey) {
+          // ignore control-presses
+          return;
+        }
+        keyboardEvent.preventDefault();
+        keyboardEvent.stopPropagation();
+        
+        const el = document.querySelector(`button.${CSS.escape(keyboardEvent.key.toLowerCase().replace(' ', 'space'))}-button`);
+        
+        if (el) {
+          if (event.type == 'keydown') {
+            el.classList.add('pressed');
+            fetch(`/key/down/${keyboardEvent.key.toLowerCase()}`);
+          } else {
+            el.classList.remove('pressed');
+            fetch(`/key/up/${keyboardEvent.key.toLowerCase()}`);
+          }
+        }
+      };
 
-      g2d.clearRect(0, gbHeight / 2, gbWidth, gbHeight / 2);
-      g2d.fillStyle = 'rgba(255, 255, 255, 0.5)';
-      g2d.fillRect(0, gbHeight / 2, gbWidth, gbHeight / 2);
-      g2d.fillStyle = 'rgba(0, 0, 0, 0.75)'
+      document.addEventListener('keydown', onKeyUpDown);
+      document.addEventListener('keyup', onKeyUpDown);
 
-      g2d.font = "bold 12px monospace";
-      g2d.fillText("waiting for frame...", 8.5, 86.5);
-      
-      ws.send(`155-questions-active`);
-      
       let buffer = '';
       let data = g2d.getImageData(0, 0, gbWidth, gbHeight);
-      ws.addEventListener('message', async messageEvent => {
+      while (true) {
+        let frame = new Uint8Array(await (await fetch('/frame')).arrayBuffer());
+
         const bytes = new TextEncoder('utf-8').encode(
-          buffer = (JSON.stringify(messageEvent.data) + buffer).slice(0, 100000));
+          buffer = (frame + buffer).slice(0, 100000));
         
         for (let i = 0; i < bytes.length; i++) {
           for (let j = 0; j < 4; j++) {
@@ -237,31 +241,9 @@
           }
         }
         g2d.putImageData(data, 0, 0);
-      });
-      
-      await sleep(1000);
-
-      const onKeyUpDown = keyboardEvent => {
-        if (keyboardEvent.ctrlKey || keyboardEvent.metaKey) {
-          // ignore control-presses
-          return;
-        }
-        keyboardEvent.preventDefault();
-        keyboardEvent.stopPropagation();
         
-        const el = document.querySelector(`button.${CSS.escape(keyboardEvent.key.toLowerCase().replace(' ', 'space'))}-button`);
-        
-        if (el) {
-          if (event.type == 'keydown') {
-            el.classList.add('pressed');
-          } else {
-            el.classList.remove('pressed');
-          }
-        }
-      };
-
-      document.addEventListener('keydown', onKeyUpDown);
-      document.addEventListener('keyup', onKeyUpDown);
+        await sleep(1000);
+      }
     };
 
     const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));

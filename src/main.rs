@@ -13,12 +13,10 @@ use hyper::server::{Http, Request, Response, Service};
 struct GameBoyIOServer;
 
 impl Service for GameBoyIOServer {
-    // boilerplate hooking up hyper's server types
     type Request = Request;
     type Response = Response;
     type Error = hyper::Error;
-    // The future representing the eventual Response your call will
-    // resolve to. This can change to whatever Future you need.
+
     type Future = Box<Future<Item = Self::Response, Error = Self::Error>>;
 
     fn call(&self, _req: Request) -> Self::Future {
