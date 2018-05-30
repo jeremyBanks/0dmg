@@ -1213,26 +1213,29 @@ impl GameBoy {
     // Memory Access
 
     fn get_memory(&self, address: u16) -> u8 {
+        let value;
         if address <= 0x00FF {
-            return self.boot_rom[address as usize];
+            value = self.boot_rom[address as usize];
         } else if 0x8000 <= address && address <= 0x9FFF {
             let i: usize = (address - 0x8000) as usize;
-            return self.video_ram[i];
+            value = self.video_ram[i];
         } else if 0xFF80 <= address && address <= 0xFFFE {
             let i: usize = (address - 0xFF80) as usize;
-            return self.high_ram[i];
+            value = self.high_ram[i];
         } else {
             panic!("I don't know how to get memory address ${:04x}.", address);
         }
-    }
 
-    fn set_memory(&mut self, address: u16, value: u8) {
         {
             let mut frame_buffer = self.frame_buffer.lock().unwrap();
             let i = (address as usize) % frame_buffer.len();
             frame_buffer[i] = value;
         }
 
+        value
+    }
+
+    fn set_memory(&mut self, address: u16, value: u8) {
         if 0x8000 <= address && address <= 0x9FFF {
             let i: usize = (address - 0x8000) as usize;
             self.video_ram[i] = value;
@@ -1248,6 +1251,12 @@ impl GameBoy {
             println!("  ; updated background palette");
         } else {
             panic!("I don't know how to set memory address ${:04x}.", address);
+        }
+
+        {
+            let mut frame_buffer = self.frame_buffer.lock().unwrap();
+            let i = (address as usize) % frame_buffer.len();
+            frame_buffer[i] = value;
         }
     }
 }
