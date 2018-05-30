@@ -1,8 +1,55 @@
 use std::collections::HashMap;
+use std::fs::File;
+use std::io::prelude::*;
+use std::thread;
+
+extern crate futures;
+use futures::future::Future;
+
+extern crate hyper;
+use hyper::header::ContentLength;
+use hyper::server::{Http, Request, Response, Service};
+
+struct GameBoyIOServer;
+
+impl Service for GameBoyIOServer {
+    // boilerplate hooking up hyper's server types
+    type Request = Request;
+    type Response = Response;
+    type Error = hyper::Error;
+    // The future representing the eventual Response your call will
+    // resolve to. This can change to whatever Future you need.
+    type Future = Box<Future<Item = Self::Response, Error = Self::Error>>;
+
+    fn call(&self, _req: Request) -> Self::Future {
+        let mut f = File::open("./src/io.html").expect("file not found");
+
+        let mut contents = String::new();
+        f.read_to_string(&mut contents)
+            .expect("something went wrong reading the file");;
+
+        Box::new(futures::future::ok(
+            Response::new()
+                .with_header(ContentLength(contents.len() as u64))
+                .with_body(contents),
+        ))
+    }
+}
 
 fn main() {
-    let mut gameboy = GameBoy::new();
-    gameboy.run();
+    let server = thread::spawn(move || {
+        let addr = "127.0.0.1:9898".parse().unwrap();
+        let server = Http::new().bind(&addr, || Ok(GameBoyIOServer)).unwrap();
+        server.run().unwrap();
+    });
+
+    let emulator = thread::spawn(move || {
+        let mut gameboy = GameBoy::new();
+        gameboy.run();
+    });
+
+    emulator.join();
+    server.join();
 }
 
 struct GameBoy {
@@ -774,6 +821,7 @@ fn get_operations() -> HashMap<u8, Operation> {
                     }
 
                     _ => {
+                        gb.print_current_code(format!("; ERROR: unsupported opcode"), format!(""));
                         panic!("unsupported opcode: $CB ${:02x}", opcode_2);
                     }
                 }
@@ -1028,6 +1076,10 @@ impl GameBoy {
                         }
 
                         _ => {
+                            self.print_current_code(
+                                format!("; ERROR: unsupported opcode"),
+                                format!(""),
+                            );
                             panic!("unsupported opcode: ${:02x}", opcode);
                         }
                     }

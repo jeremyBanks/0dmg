@@ -1,0 +1,272 @@
+<!doctype html>
+<html>
+<head>
+  <title>0dmg</title>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="https://cdn.glitch.com/24a0763e-f0ea-48ec-aeb1-31b95e3ab0fa%2Fgb.png?1527567414683" />
+</head>  
+<body>
+  <div class="frame"><canvas></canvas></div>
+  
+  <div class="controls">
+    <div class="arrow-filler"></div>
+    <button class="arrowleft-button">◀</button>
+    <button class="arrowright-button">▶</button>
+    <button class="arrowup-button">▲</button>
+    <button class="arrowdown-button">▼</button>
+
+    <button class="a-button">A</button>
+    <button class="b-button">B</button>
+
+    <button class="space-button">SELECT</button>
+    <button class="enter-button">START</button>
+    </div>
+  <style>
+    html {
+      background: #000;
+      text-align: center;
+    }
+    body {
+      background: #6ab4df;
+      width: 880px;
+      margin: auto;
+      margin-top: 8px;
+      padding: 54px 42px;
+      padding-bottom: 18px;
+      box-sizing: border-box;
+      border: 4px outset #4489b3;
+      pointer-events: none;
+      user-select: none;
+      border-radius: 12px;
+      border-bottom-right-radius: 92px;
+    }
+    .frame {
+      background: #222;
+      padding: 50px 60px;
+      border: 4px inset #244983;
+      border-radius: 12px;
+      border-bottom-right-radius: 64px;
+    }
+    canvas {
+      width: 640px;
+      display: block;
+      image-rendering: pixelated;
+      margin: auto;
+      background: #879c57;
+      border: 4px inset #443;
+    }
+    button {
+      font: 24px monospace;
+      padding: 8px;
+      min-width: 60px;
+      height: 60px;
+      border: 4px outset #9A9993;
+      background: #393933;
+      border-radius: 8px;
+      margin: 4px;
+      color: #CCC;
+    }
+    button.pressed {
+      border: 4px inset #6A6963;
+      background: #292923;
+      color: #999;
+    }
+    .controls {
+      margin: auto;
+      margin-top: 20px;
+      width: 650px;
+      height: 300px;
+      position: relative;
+    }
+    .arrowleft-button {
+      width: 66px;
+      height: 66px;
+      position: absolute;
+      top: 70px;
+      left: 20px;
+      border-right-color: transparent;
+    }
+    .arrowright-button {
+      width: 66px;
+      height: 66px;
+      position: absolute;
+      top: 70px;
+      left: 140px;
+      border-left-color: transparent;
+    }
+    .arrowup-button {
+      width: 66px;
+      height: 66px;
+      position: absolute;
+      top: 10px;
+      left: 80px;
+      border-bottom-color: transparent;
+    }
+    .arrowdown-button {
+      width: 66px;
+      height: 66px;
+      position: absolute;
+      top: 130px;
+      left: 80px;
+      border-top-color: transparent;
+    }
+    .arrow-filler {
+      position: absolute;
+      left: 84px;
+      top: 74px;
+      width: 66px;
+      height: 66px;
+      background: #393933;
+      z-index: 100;
+    }
+    .a-button {
+      position: absolute;
+      top: 55px;
+      right: 0px;
+      width: 72px;
+      height: 72px;
+      border-radius: 1000px;
+    }
+    .b-button {
+      position: absolute;
+      top: 95px;
+      right: 100px;
+      width: 72px;
+      height: 72px;
+      border-radius: 1000px;
+    }
+    .enter-button {
+      position: absolute;
+      bottom: 16px;
+      border-radius: 16px;
+      left: calc(50% + 8px);
+      width: 100px;
+      padding: 0;
+      height: 42px;
+    }
+    .space-button {
+      position: absolute;
+      bottom: 16px;
+      border-radius: 16px;
+      right: calc(50% + 8px);
+      width: 100px;
+      padding: 0;
+      height: 42px;
+    }
+  </style>
+  <script async type="module">
+    const main = async () => {
+      const gbWidth = 160;
+      const gbHeight = 144;
+      const canvas = document.querySelector('canvas');
+      canvas.width = gbWidth;
+      canvas.height = gbHeight;
+      
+      await sleep(1000);
+
+      const g2d = canvas.getContext('2d');
+
+      g2d.fillStyle = 'rgba(255, 255, 255, 0.5)';
+      g2d.fillRect(0, 0, gbWidth, gbHeight);
+
+      g2d.font = "bold 36px monospace";
+      g2d.fillStyle = 'rgba(0, 0, 0, 0.75)'
+
+      g2d.fillText("0dmg", 16.5, 64.5);
+
+      g2d.clearRect(0, gbHeight / 2, gbWidth, gbHeight / 2);
+      g2d.fillStyle = 'rgba(255, 255, 255, 0.5)';
+      g2d.fillRect(0, gbHeight / 2, gbWidth, gbHeight / 2);
+      g2d.fillStyle = 'rgba(0, 0, 0, 0.75)'
+
+      g2d.font = "bold 12px monospace";
+      g2d.fillText("press any key", 24.5, 86.5);
+      
+      await new Promise(resolve => document.addEventListener('keydown', resolve, {once: true}));      
+
+      g2d.clearRect(0, gbHeight / 2, gbWidth, gbHeight / 2);
+      g2d.fillStyle = 'rgba(255, 255, 255, 0.5)';
+      g2d.fillRect(0, gbHeight / 2, gbWidth, gbHeight / 2);
+      g2d.fillStyle = 'rgba(0, 0, 0, 0.75)'
+
+      g2d.font = "bold 12px monospace";
+      g2d.fillText("connecting...", 24.5, 86.5);
+
+      const ws = new WebSocket('wss://qa.sockets.stackexchange.com/');
+      
+      await new Promise(resolve => ws.addEventListener('open', resolve));
+
+      g2d.clearRect(0, gbHeight / 2, gbWidth, gbHeight / 2);
+      g2d.fillStyle = 'rgba(255, 255, 255, 0.5)';
+      g2d.fillRect(0, gbHeight / 2, gbWidth, gbHeight / 2);
+      g2d.fillStyle = 'rgba(0, 0, 0, 0.75)'
+
+      g2d.font = "bold 12px monospace";
+      g2d.fillText("waiting for frame...", 8.5, 86.5);
+      
+      ws.send(`155-questions-active`);
+      
+      let buffer = '';
+      let data = g2d.getImageData(0, 0, gbWidth, gbHeight);
+      ws.addEventListener('message', async messageEvent => {
+        const bytes = new TextEncoder('utf-8').encode(
+          buffer = (JSON.stringify(messageEvent.data) + buffer).slice(0, 100000));
+        
+        for (let i = 0; i < bytes.length; i++) {
+          for (let j = 0; j < 4; j++) {
+            const frameIndex = (i * 4 + j); 
+            const frameX = frameIndex % gbWidth;
+            const frameY = (frameIndex / gbWidth) % gbHeight
+            
+            const colorIndex = (bytes[i] >> (j * 2)) & 3;
+            
+            const color = [
+              [8, 16, 8],
+              [92, 100, 92],
+              [170, 200, 170],
+              [220, 255, 220],
+            ][colorIndex];
+
+            const offset = frameIndex * 4;
+            data.data[offset + 0] = color[0];
+            data.data[offset + 1] = color[1];
+            data.data[offset + 2] = color[2];
+            data.data[offset + 3] = 255 * 0.75;
+          }
+        }
+        g2d.putImageData(data, 0, 0);
+      });
+      
+      await sleep(1000);
+
+      const onKeyUpDown = keyboardEvent => {
+        if (keyboardEvent.ctrlKey || keyboardEvent.metaKey) {
+          // ignore control-presses
+          return;
+        }
+        keyboardEvent.preventDefault();
+        keyboardEvent.stopPropagation();
+        
+        const el = document.querySelector(`button.${CSS.escape(keyboardEvent.key.toLowerCase().replace(' ', 'space'))}-button`);
+        
+        if (el) {
+          if (event.type == 'keydown') {
+            el.classList.add('pressed');
+          } else {
+            el.classList.remove('pressed');
+          }
+        }
+      };
+
+      document.addEventListener('keydown', onKeyUpDown);
+      document.addEventListener('keyup', onKeyUpDown);
+    };
+
+    const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+    main();
+  </script>
+</body>
+</html>
