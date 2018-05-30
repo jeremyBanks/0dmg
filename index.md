@@ -33,3 +33,5 @@
   <https://doc.rust-lang.org/book/second-edition/index.html>
 - Rust Language Service in Visual Studio Code  
   <https://marketplace.visualstudio.com/items?itemName=rust-lang.rust>
+- Rust-WASM Book
+  https://rust-lang-nursery.github.io/rust-wasm
