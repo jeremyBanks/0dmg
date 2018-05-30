@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
 pub struct GameBoy {
     // time/ticks since start
@@ -15,6 +16,8 @@ pub struct GameBoy {
     bg_palette: u8,
     debug_current_op_addr: u16,
     debug_current_code: Vec<u8>,
+
+    frame_buffer: Arc<Mutex<Vec<u8>>>,
 }
 
 struct Operation {
@@ -781,7 +784,7 @@ fn get_operations() -> HashMap<u8, Operation> {
 }
 
 impl GameBoy {
-    pub fn new() -> GameBoy {
+    pub fn new(frame_buffer: Arc<Mutex<Vec<u8>>>) -> GameBoy {
         GameBoy {
             t: 0,
             i: 0,
@@ -794,6 +797,7 @@ impl GameBoy {
             bg_palette: 0,
             debug_current_op_addr: 0,
             debug_current_code: vec![],
+            frame_buffer,
         }
     }
 
@@ -1223,6 +1227,12 @@ impl GameBoy {
     }
 
     fn set_memory(&mut self, address: u16, value: u8) {
+        {
+            let mut frame_buffer = self.frame_buffer.lock().unwrap();
+            let i = (address as usize) % frame_buffer.len();
+            frame_buffer[i] = value;
+        }
+
         if 0x8000 <= address && address <= 0x9FFF {
             let i: usize = (address - 0x8000) as usize;
             self.video_ram[i] = value;

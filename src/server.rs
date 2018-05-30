@@ -1,17 +1,18 @@
 use std::fs::File;
 use std::io::prelude::*;
+use std::sync::{Arc, Mutex};
 
 extern crate hyper;
 use server::hyper::header::{ContentLength, ContentType};
 use server::hyper::server::{Request, Response, Service};
 use server::hyper::{Get, StatusCode};
 
-extern crate rand;
-
 extern crate futures;
 use server::futures::future::Future;
 
-pub struct GameBoyIOServer;
+pub struct GameBoyIOServer {
+    pub frame_buffer: Arc<Mutex<Vec<u8>>>,
+}
 
 impl Service for GameBoyIOServer {
     type Request = Request;
@@ -39,20 +40,12 @@ impl Service for GameBoyIOServer {
                 ))
             }
             (&Get, "/frame") => {
-                let r = rand::random::<f64>();
-                let mut contents;
-                if r < 1.0 / 3.0 {
-                    contents = "\x00".repeat(160 * 144 / 4).to_string();
-                } else if r < 2.0 / 3.0 {
-                    contents = "\x42".repeat(160 * 144 / 4).to_string();
-                } else {
-                    contents = "\x7F".repeat(160 * 144 / 4).to_string();
-                }
+                let frame_buffer = self.frame_buffer.lock().unwrap();
 
                 Box::new(futures::future::ok(
                     Response::new()
-                        .with_header(ContentLength(contents.len() as u64))
-                        .with_body(contents.clone()),
+                        .with_header(ContentLength(frame_buffer.len() as u64))
+                        .with_body(frame_buffer.clone()),
                 ))
             }
             _ => Box::new(futures::future::ok(
