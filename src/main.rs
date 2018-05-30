@@ -22,4 +22,5 @@ pub fn main() {
 
     http_server_thread.join();
     emulator_thread.join();
+
 }
