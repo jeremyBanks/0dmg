@@ -181,10 +181,15 @@
       g2d.font = "bold 36px monospace";
       g2d.fillText("0dmg", 16.5, 64.5);
 
+      twoBitStyle();
+      await sleep(125);
+
       g2d.font = "bold 12px monospace";
       g2d.fillText("connecting...", 24.5, 86.5);
 
       twoBitStyle();
+      await sleep(375);
+
       
       const onKeyUpDown = keyboardEvent => {
         if (keyboardEvent.ctrlKey || keyboardEvent.metaKey) {
@@ -210,14 +215,10 @@
       document.addEventListener('keydown', onKeyUpDown);
       document.addEventListener('keyup', onKeyUpDown);
 
-      let buffer = '';
       let data = g2d.getImageData(0, 0, gbWidth, gbHeight);
       while (true) {
-        let frame = new Uint8Array(await (await fetch('/frame')).arrayBuffer());
+        const bytes = new Uint8Array(await (await fetch('/frame')).arrayBuffer());
 
-        const bytes = new TextEncoder('utf-8').encode(
-          buffer = (frame + buffer).slice(0, 100000));
-        
         for (let i = 0; i < bytes.length; i++) {
           for (let j = 0; j < 4; j++) {
             const frameIndex = (i * 4 + j); 

@@ -3,12 +3,14 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::thread;
 
+use hyper::header::ContentLength;
+use hyper::server::{Http, Request, Response, Service};
+use hyper::{Get, Post, StatusCode};
+
 extern crate futures;
 use futures::future::Future;
 
 extern crate hyper;
-use hyper::header::ContentLength;
-use hyper::server::{Http, Request, Response, Service};
 
 struct GameBoyIOServer;
 
@@ -19,18 +21,34 @@ impl Service for GameBoyIOServer {
 
     type Future = Box<Future<Item = Self::Response, Error = Self::Error>>;
 
-    fn call(&self, _req: Request) -> Self::Future {
-        let mut f = File::open("./src/io.html").expect("file not found");
+    fn call(&self, req: Request) -> Self::Future {
+        match (req.method(), req.path()) {
+            (&Get, "/") => {
+                let mut f = File::open("./src/io.html").expect("file not found");
 
-        let mut contents = String::new();
-        f.read_to_string(&mut contents)
-            .expect("something went wrong reading the file");;
+                let mut contents = String::new();
+                f.read_to_string(&mut contents)
+                    .expect("something went wrong reading the file");;
 
-        Box::new(futures::future::ok(
-            Response::new()
-                .with_header(ContentLength(contents.len() as u64))
-                .with_body(contents),
-        ))
+                Box::new(futures::future::ok(
+                    Response::new()
+                        .with_header(ContentLength(contents.len() as u64))
+                        .with_body(contents),
+                ))
+            }
+            (&Get, "/frame") => {
+                let contents = "\x00".repeat(160 * 144 / 4).to_string();
+
+                Box::new(futures::future::ok(
+                    Response::new()
+                        .with_header(ContentLength(contents.len() as u64))
+                        .with_body(contents.clone()),
+                ))
+            }
+            _ => Box::new(futures::future::ok(
+                Response::new().with_status(StatusCode::NotFound),
+            )),
+        }
     }
 }
 
