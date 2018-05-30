@@ -30,8 +30,8 @@
 ---
 
 - The Rust Programming Language  
-  <https://doc.rust-lang.org/book/second-edition/index.html>
+  <https://doc.rust-lang.org/book/second-edition/>
 - Rust Language Service in Visual Studio Code  
   <https://marketplace.visualstudio.com/items?itemName=rust-lang.rust>
-- Rust-WASM Book
-  https://rust-lang-nursery.github.io/rust-wasm
+- Rust-WASM Book  
+  <https://rust-lang-nursery.github.io/rust-wasm>
