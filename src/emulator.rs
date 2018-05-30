@@ -1089,53 +1089,81 @@ impl GameBoy {
     }
 
     fn h(&self) -> u8 {
-        // XXX: this has been swapped with l as a test, clean-up required
-        return self.main_registers[7];
-    }
-
-    fn set_h(&mut self, value: u8) {
-        // XXX: this has been swapped with l as a test, clean-up required
-        self.main_registers[7] = value;
-    }
-
-    fn l(&self) -> u8 {
-        // XXX: this has been swapped with h as a test, clean-up required
         return self.main_registers[6];
     }
 
-    fn set_l(&mut self, value: u8) {
-        // XXX: this has been swapped with h as a test, clean-up required
+    fn set_h(&mut self, value: u8) {
         self.main_registers[6] = value;
     }
 
+    fn l(&self) -> u8 {
+        return self.main_registers[7];
+    }
+
+    fn set_l(&mut self, value: u8) {
+        self.main_registers[7] = value;
+    }
+
+    fn sp_s(&self) -> u8 {
+        return self.main_registers[8];
+    }
+
+    fn set_sp_s(&mut self, value: u8) {
+        self.main_registers[8] = value;
+    }
+
+    fn sp_p(&self) -> u8 {
+        return self.main_registers[9];
+    }
+
+    fn set_sp_p(&mut self, value: u8) {
+        self.main_registers[9] = value;
+    }
+
+    fn pc_p(&self) -> u8 {
+        return self.main_registers[10];
+    }
+
+    fn set_pc_p(&mut self, value: u8) {
+        self.main_registers[10] = value;
+    }
+
+    fn pc_c(&self) -> u8 {
+        return self.main_registers[11];
+    }
+
+    fn set_pc_c(&mut self, value: u8) {
+        self.main_registers[11] = value;
+    }
+
     fn hl(&self) -> u16 {
-        return u8s_to_u16(self.main_registers[6], self.main_registers[7]);
+        return u8s_to_u16(self.l(), self.h());
     }
 
     fn set_hl(&mut self, value: u16) {
-        let (h, l) = u16_to_u8s(value);
-        self.main_registers[6] = h;
-        self.main_registers[7] = l;
+        let (l, h) = u16_to_u8s(value);
+        self.set_h(h);
+        self.set_l(l);
     }
 
     fn sp(&self) -> u16 {
-        return u8s_to_u16(self.main_registers[8], self.main_registers[9]);
+        return u8s_to_u16(self.sp_p(), self.sp_s());
     }
 
     fn set_sp(&mut self, value: u16) {
-        let (s, p) = u16_to_u8s(value);
-        self.main_registers[8] = s;
-        self.main_registers[9] = p;
+        let (p, s) = u16_to_u8s(value);
+        self.set_sp_s(s);
+        self.set_sp_p(p);
     }
 
     fn pc(&self) -> u16 {
-        return u8s_to_u16(self.main_registers[10], self.main_registers[11]);
+        return u8s_to_u16(self.pc_c(), self.pc_p());
     }
 
     fn set_pc(&mut self, value: u16) {
-        let (p, c) = u16_to_u8s(value);
-        self.main_registers[10] = p;
-        self.main_registers[11] = c;
+        let (c, p) = u16_to_u8s(value);
+        self.set_pc_p(p);
+        self.set_pc_c(c);
     }
 
     fn z_flag(&self) -> bool {
