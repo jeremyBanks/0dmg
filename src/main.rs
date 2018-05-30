@@ -35,7 +35,7 @@ pub fn try_main() -> Result<(), String> {
     });
 
     if let Err(error) = emulator_thread.join() {
-        // return Err(format!("from emulator thread: {:?}", error));
+        return Err(format!("from emulator thread: {:?}", error));
     }
 
     if let Err(error) = http_server_thread.join() {

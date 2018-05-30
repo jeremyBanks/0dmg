@@ -167,26 +167,26 @@ fn get_operations() -> HashMap<u8, Operation> {
                         format!("A₀ = ${:02x}, L = ${:02x}", a0, l),
                     )
                 });
-                // op(0x0A, 2, |gb| {
-                //     let a0 = gb.a();
-                //     let bc = gb.bc();
-                //     let a1 = gb.get_memory(bc);
-                //     gb.set_a(a1);
-                //     (
-                //         format!("LD A, (BC)"),
-                //         format!("A₀ = ${:02x}, BC = ${:04x}, (BC) = ${:04x}", a0, bc, a1),
-                //     )
-                // });
-                // op(0x1A, 2, |gb| {
-                //     let a0 = gb.a();
-                //     let de = gb.de();
-                //     let a1 = gb.get_memory(de);
-                //     gb.set_a(a1);
-                //     (
-                //         format!("LD A, (DE)"),
-                //         format!("A₀ = ${:02x}, DE = ${:04x}, (DE) = ${:04x}", a0, de, a1),
-                //     )
-                // });
+                op(0x0A, 2, |gb| {
+                    let a0 = gb.a();
+                    let bc = gb.bc();
+                    let a1 = gb.get_memory(bc);
+                    gb.set_a(a1);
+                    (
+                        format!("LD A, (BC)"),
+                        format!("A₀ = ${:02x}, BC = ${:04x}, (BC) = ${:04x}", a0, bc, a1),
+                    )
+                });
+                op(0x1A, 2, |gb| {
+                    let a0 = gb.a();
+                    let de = gb.de();
+                    let a1 = gb.get_memory(de);
+                    gb.set_a(a1);
+                    (
+                        format!("LD A, (DE)"),
+                        format!("A₀ = ${:02x}, DE = ${:04x}, (DE) = ${:04x}", a0, de, a1),
+                    )
+                });
                 op(0x7E, 2, |gb| {
                     let a0 = gb.a();
                     let hl = gb.hl();
@@ -655,9 +655,57 @@ fn get_operations() -> HashMap<u8, Operation> {
 
         // 3.3.2 16-Bit Loads
         {
+            // 3.3.2. 16-Bit Loads
             // 1. LD n, nn
-            // Put value nn into 16-bit register n.
-            // TODO
+            // Put value nn into n.
+            op(0x01, 3, |gb| {
+                let bc0 = gb.bc();
+                let bc1 = gb.read_immediate_u16();
+                gb.set_bc(bc1);
+                (
+                    format!("LOAD BC, ${:04x}", bc1),
+                    format!("BC₁ = ${:04x}", bc0),
+                )
+            });
+            op(0x11, 3, |gb| {
+                let de0 = gb.de();
+                let de1 = gb.read_immediate_u16();
+                gb.set_de(de1);
+                (
+                    format!("LOAD DE, ${:04x}", de1),
+                    format!("DE₁ = ${:04x}", de0),
+                )
+            });
+            op(0x21, 3, |gb| {
+                let hl0 = gb.hl();
+                let hl1 = gb.read_immediate_u16();
+                gb.set_hl(hl1);
+                (
+                    format!("LOAD HL, ${:04x}", hl1),
+                    format!("hl₁ = ${:04x}", hl0),
+                )
+            });
+            op(0x31, 3, |gb| {
+                let sp0 = gb.sp();
+                let sp1 = gb.read_immediate_u16();
+                gb.set_sp(sp1);
+                (
+                    format!("LOAD SP, ${:04x}", sp1),
+                    format!("SP₁ = ${:04x}", sp0),
+                )
+            });
+
+            // 2. LD SP, HL
+            // Put HL into Stack Pointer (SP).
+            op(0xF9, 2, |gb| {
+                let sp0 = gb.sp();
+                let hl = gb.hl();
+                gb.set_sp(hl);
+                (
+                    format!("LOAD SP, HL"),
+                    format!("SP₀ = ${:04x}, HL = ${:02x}", sp0, hl),
+                )
+            });
         }
 
         // 3.3.5. Miscellaneous
@@ -872,20 +920,6 @@ impl GameBoy {
                 }
                 None => {
                     match opcode {
-                        0x21 => {
-                            // LOAD HL, $1, $2
-                            let hl = self.read_immediate_u16();
-                            self.print_current_code(format!("LOAD HL, ${:04x}", hl), format!(""));
-                            self.set_hl(hl);
-                        }
-
-                        0x31 => {
-                            // LOAD SP, $1, $2
-                            let sp = self.read_immediate_u16();
-                            self.print_current_code(format!("LOAD SP ${:04x}", sp), format!(""));
-                            self.set_sp(sp);
-                        }
-
                         0x77 => {
                             // Put A into memory address HL.
                             self.print_current_code(
@@ -1168,6 +1202,26 @@ impl GameBoy {
         let (c, p) = u16_to_u8s(value);
         self.set_pc_p(p);
         self.set_pc_c(c);
+    }
+
+    fn bc(&self) -> u16 {
+        return u8s_to_u16(self.c(), self.b());
+    }
+
+    fn set_bc(&mut self, value: u16) {
+        let (c, b) = u16_to_u8s(value);
+        self.set_b(b);
+        self.set_c(c);
+    }
+
+    fn de(&self) -> u16 {
+        return u8s_to_u16(self.e(), self.d());
+    }
+
+    fn set_de(&mut self, value: u16) {
+        let (e, d) = u16_to_u8s(value);
+        self.set_d(d);
+        self.set_e(e);
     }
 
     fn z_flag(&self) -> bool {
