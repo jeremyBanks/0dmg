@@ -1,2 +1,5 @@
-cargo fmt && cargo run
- 
+#!/bin/bash
+set -eu
+cargo fmt
+cargo run
+# cargo fix 
