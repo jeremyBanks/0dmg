@@ -7,6 +7,8 @@ use hyper::header::ContentLength;
 use hyper::server::{Http, Request, Response, Service};
 use hyper::{Get, Post, StatusCode};
 
+extern crate rand;
+
 extern crate futures;
 use futures::future::Future;
 
@@ -37,7 +39,15 @@ impl Service for GameBoyIOServer {
                 ))
             }
             (&Get, "/frame") => {
-                let contents = "\x00".repeat(160 * 144 / 4).to_string();
+                let r = rand::random::<f64>();
+                let mut contents = "".to_string();
+                if (r < 1.0 / 3.0) {
+                    contents = "\x00".repeat(160 * 144 / 4).to_string();
+                } else if (r < 2.0 / 3.0) {
+                    contents = "\x42".repeat(160 * 144 / 4).to_string();
+                } else {
+                    contents = "\x7F".repeat(160 * 144 / 4).to_string();
+                }
 
                 Box::new(futures::future::ok(
                     Response::new()
