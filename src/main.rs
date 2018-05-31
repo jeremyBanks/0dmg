@@ -1,5 +1,6 @@
 use std::sync::{Arc, Mutex};
 use std::thread;
+use std::time;
 
 extern crate hyper;
 use hyper::server::Http;
@@ -35,6 +36,9 @@ pub fn try_main() -> Result<(), String> {
     });
 
     if let Err(error) = emulator_thread.join() {
+        println!("; error in emulator thread: {:?}", error);
+        println!("; killing process in 10 seconds");
+        thread::sleep(time::Duration::from_secs(10));
         return Err(format!("from emulator thread: {:?}", error));
     }
 

@@ -22,6 +22,541 @@ pub struct GameBoy {
     frame_buffer: Arc<Mutex<Vec<u8>>>,
 }
 
+impl GameBoy {
+    pub fn new(frame_buffer: Arc<Mutex<Vec<u8>>>) -> GameBoy {
+        GameBoy {
+            t: 0,
+            i: 0,
+            main_ram: [0u8; 8192],
+            video_ram: [0u8; 8192],
+            high_ram: [0u8; 127],
+            main_registers: [0u8; 12],
+            boot_rom: load_boot_rom(),
+            boot_rom_mapped: true,
+            game_rom: load_game_rom("Tetris[:1024]"),
+            bg_palette: 0,
+            debug_current_op_addr: 0,
+            debug_current_code: vec![],
+            frame_buffer,
+        }
+    }
+
+    fn read_instruction(&mut self) -> u8 {
+        self.debug_current_code.clear();
+        self.debug_current_op_addr = self.i;
+        self.read_immediate_u8()
+    }
+
+    fn read_immediate_u8(&mut self) -> u8 {
+        let value = self.get_memory(self.i);
+        self.debug_current_code.push(value);
+        self.i += 1;
+        value
+    }
+
+    fn read_immediate_i8(&mut self) -> i8 {
+        self.read_immediate_u8() as i8
+    }
+
+    fn read_immediate_u16(&mut self) -> u16 {
+        let n1 = self.read_immediate_u8();
+        let n2 = self.read_immediate_u8();
+        u8s_to_u16(n1, n2)
+    }
+
+    fn relative_jump(&mut self, n: i8) {
+        self.i = ((self.i as i32) + (n as i32)) as u16;
+    }
+
+    fn stack_push(&mut self, value: u16) {
+        let sp0 = self.sp();
+        let (value_low, value_high) = u16_to_u8s(sp0);
+        self.set_memory(sp0 - 0, value_low);
+        self.set_memory(sp0 - 1, value_high);
+        let sp1 = sp0 - 2;
+        self.set_sp(sp1);
+    }
+
+    fn stack_pop(&mut self) -> u16 {
+        let sp0 = self.sp();
+        let value_low = self.get_memory(sp0 + 0);
+        let value_high = self.get_memory(sp0 + 1);
+        let value = u8s_to_u16(value_low, value_high);
+        let sp1 = sp0 + 2;
+        self.set_sp(sp1);
+        value
+    }
+
+    fn get_memory(&self, address: u16) -> u8 {
+        let value;
+        if self.boot_rom_mapped && address <= 0x00FF {
+            // boot ROM, until unmapped to expose initial bytes of game ROM
+            value = self.boot_rom[address as usize];
+        } else if address <= 0x7FFF {
+            // first page of game ROM
+            value = self.game_rom[address as usize];
+        } else if 0x8000 <= address && address <= 0x9FFF {
+            let i: usize = (address - 0x8000) as usize;
+            value = self.video_ram[i];
+        } else if 0xFF80 <= address && address <= 0xFFFE {
+            let i: usize = (address - 0xFF80) as usize;
+            value = self.high_ram[i];
+        } else {
+            panic!("I don't know how to get memory address ${:04x}.", address);
+        }
+
+        {
+            let mut frame_buffer = self.frame_buffer.lock().unwrap();
+            let i = (address as usize) % frame_buffer.len();
+            frame_buffer[i] = value;
+        }
+
+        value
+    }
+
+    fn set_memory(&mut self, address: u16, value: u8) {
+        if 0x8000 <= address && address <= 0x9FFF {
+            let i: usize = (address - 0x8000) as usize;
+            self.video_ram[i] = value;
+            println!("  ; video_ram[${:04x}] = ${:02x}", i, value);
+        } else if 0xFF80 <= address && address <= 0xFFFE {
+            let i: usize = (address - 0xFF80) as usize;
+            self.high_ram[i] = value;
+            println!("  ; high_ram[${:04x}] = ${:02x}", i, value);
+        } else if 0xFF10 <= address && address <= 0xFF26 {
+            println!("  ; skipping write to sound control memory -- not implemented");
+        } else if address == 0xFF47 {
+            self.bg_palette = value;
+            println!("  ; updated background palette");
+        } else {
+            panic!("I don't know how to set memory address ${:04x}.", address);
+        }
+
+        {
+            let mut frame_buffer = self.frame_buffer.lock().unwrap();
+            let i = (address as usize) % frame_buffer.len();
+            frame_buffer[i] = value;
+        }
+    }
+
+    fn print_current_code(&self, asm: String, info: String) {
+        print!("{:32}", asm);
+        print!(" ; ${:04x}", self.debug_current_op_addr);
+        let code = self.debug_current_code
+            .clone()
+            .into_iter()
+            .map(|c| format!("{:02x}", c))
+            .collect::<Vec<String>>()
+            .join("");
+        print!(" ; {:6}", self.t);
+        print!(" ; ${:8}", code);
+        if info.len() > 0 {
+            print!(" ; {}", info);
+        }
+        println!();
+    }
+
+    // Main Loop
+
+    pub fn run(&mut self) {
+        println!();
+        let operations = get_operations();
+        println!(
+            "; {:3} one-byte opcodes implemented (~{:3.0}%).",
+            operations.len(),
+            (operations.len() as f32 / 2.55)
+        );
+        println!();
+
+        println!("; assembly:                        addr:   t/μs:   codes:       flags:");
+        println!("; ---------                        -----   -----   ------       ------");
+
+        loop {
+            let opcode = self.read_instruction();
+
+            let op = operations.get(&opcode);
+            match op {
+                Some(op) => {
+                    let (asm, debug) = (op.execute)(self);
+                    self.print_current_code(asm, debug);
+                    self.t += op.cycles as u64;
+                }
+                None => {
+                    match opcode {
+                        0x77 => {
+                            // Put A into memory address HL.
+                            self.print_current_code(
+                                "LD (HL), A".to_string(),
+                                format!("HL = ${:04x}, A = ${:02x}", self.hl(), self.a()),
+                            );
+                            let mut hl = self.hl();
+                            let a = self.a();
+                            self.set_memory(hl, a);
+                        }
+
+                        0x32 => {
+                            // Put A into memory address HL.
+                            self.print_current_code(
+                                "LD (HL-), A".to_string(),
+                                format!("HL₀ = ${:04x}, A = ${:02x}", self.hl(), self.a()),
+                            );
+                            let mut hl = self.hl();
+                            let a = self.a();
+                            self.set_memory(hl, a);
+                            //  Decrement HL.
+                            hl -= 1;
+                            self.set_hl(hl);
+                        }
+
+                        0xE2 => {
+                            // Put A into memory address 0xFF00 + C.
+                            self.print_current_code(
+                                "LD ($FF00 + C), A ".to_string(),
+                                format!("A = ${:02x}, C = ${:02x}", self.a(), self.c()),
+                            );
+                            let a = self.a();
+                            let address = 0xFF00 + (self.c() as u16);
+                            self.set_memory(address, a);
+                        }
+
+                        0xAF => {
+                            self.print_current_code(
+                                "XOR A A".to_string(),
+                                format!("A₀ = ${:02x}, A₁ = $00", self.a()).to_string(),
+                            );
+                            self.set_a(0);
+                        }
+
+                        // 8-Bit Arithmatic
+                        // Increment the value in register n.
+                        // Z flag set iff result is 0.
+                        // N flag cleared.
+                        // H flag set iff value overflows and wraps.
+                        0x3C => {
+                            let old_value = self.a();
+                            let new_value = old_value + 1;
+                            self.print_current_code(
+                                "INC A".to_string(),
+                                format!("A₀ = ${:02x}, A₁ = ${:02x}", old_value, new_value)
+                                    .to_string(),
+                            );
+                            self.set_a(new_value);
+                            self.set_z_flag(new_value == 0);
+                            self.set_n_flag(false);
+                            self.set_h_flag(old_value > new_value);
+                        }
+                        0x04 => {
+                            let old_value = self.b();
+                            let new_value = old_value + 1;
+                            self.print_current_code(
+                                "INC B".to_string(),
+                                format!("B₀ = ${:02x}, B₁ = ${:02x}", old_value, new_value)
+                                    .to_string(),
+                            );
+                            self.set_b(new_value);
+                            self.set_z_flag(new_value == 0);
+                            self.set_n_flag(false);
+                            self.set_h_flag(old_value > new_value);
+                        }
+                        0x0C => {
+                            let old_value = self.c();
+                            let new_value = old_value + 1;
+                            self.print_current_code(
+                                "INC C".to_string(),
+                                format!("C₀ = ${:02x}, C₁ = ${:02x}", old_value, new_value)
+                                    .to_string(),
+                            );
+                            self.set_c(new_value);
+                            self.set_z_flag(new_value == 0);
+                            self.set_n_flag(false);
+                            self.set_h_flag(old_value > new_value);
+                        }
+                        0x14 => {
+                            let old_value = self.d();
+                            let new_value = old_value + 1;
+                            self.print_current_code(
+                                "INC D".to_string(),
+                                format!("D₀ = ${:02x}, D₁ = ${:02x}", old_value, new_value)
+                                    .to_string(),
+                            );
+                            self.set_d(new_value);
+                            self.set_z_flag(new_value == 0);
+                            self.set_n_flag(false);
+                            self.set_h_flag(old_value > new_value);
+                        }
+                        0x1C => {
+                            let old_value = self.e();
+                            let new_value = old_value + 1;
+                            self.print_current_code(
+                                "INC E".to_string(),
+                                format!("E₀ = ${:02x}, E₁ = ${:02x}", old_value, new_value)
+                                    .to_string(),
+                            );
+                            self.set_e(new_value);
+                            self.set_z_flag(new_value == 0);
+                            self.set_n_flag(false);
+                            self.set_h_flag(old_value > new_value);
+                        }
+                        0x24 => {
+                            let old_value = self.h();
+                            let new_value = old_value + 1;
+                            self.print_current_code(
+                                "INC H".to_string(),
+                                format!("H₀ = ${:02x}, H₁ = ${:02x}", old_value, new_value)
+                                    .to_string(),
+                            );
+                            self.set_h(new_value);
+                            self.set_z_flag(new_value == 0);
+                            self.set_n_flag(false);
+                            self.set_h_flag(old_value > new_value);
+                        }
+                        0x2C => {
+                            let old_value = self.l();
+                            let new_value = old_value + 1;
+                            self.print_current_code(
+                                "INC L".to_string(),
+                                format!("L₀ = ${:02x}, L₁ = ${:02x}", old_value, new_value)
+                                    .to_string(),
+                            );
+                            self.set_l(new_value);
+                            self.set_z_flag(new_value == 0);
+                            self.set_n_flag(false);
+                            self.set_h_flag(old_value > new_value);
+                        }
+
+                        _ => {
+                            self.print_current_code(
+                                format!("; ERROR: unsupported opcode"),
+                                format!(""),
+                            );
+                            panic!("unsupported opcode: ${:02x}", opcode);
+                        }
+                    }
+
+                    self.t += 1;
+                }
+            }
+        }
+    }
+
+    // Register Access
+
+    fn a(&self) -> u8 {
+        return self.main_registers[0];
+    }
+
+    fn set_a(&mut self, value: u8) {
+        self.main_registers[0] = value;
+    }
+
+    fn flags(&self) -> u8 {
+        return self.main_registers[1];
+    }
+
+    fn set_flags(&mut self, value: u8) {
+        self.main_registers[1] = value;
+    }
+
+    fn b(&self) -> u8 {
+        return self.main_registers[2];
+    }
+
+    fn set_b(&mut self, value: u8) {
+        self.main_registers[2] = value;
+    }
+
+    fn c(&self) -> u8 {
+        return self.main_registers[3];
+    }
+
+    fn set_c(&mut self, value: u8) {
+        self.main_registers[3] = value;
+    }
+
+    fn d(&self) -> u8 {
+        return self.main_registers[4];
+    }
+
+    fn set_d(&mut self, value: u8) {
+        self.main_registers[4] = value;
+    }
+
+    fn e(&self) -> u8 {
+        return self.main_registers[5];
+    }
+
+    fn set_e(&mut self, value: u8) {
+        self.main_registers[5] = value;
+    }
+
+    fn h(&self) -> u8 {
+        return self.main_registers[6];
+    }
+
+    fn set_h(&mut self, value: u8) {
+        self.main_registers[6] = value;
+    }
+
+    fn l(&self) -> u8 {
+        return self.main_registers[7];
+    }
+
+    fn set_l(&mut self, value: u8) {
+        self.main_registers[7] = value;
+    }
+
+    fn sp_s(&self) -> u8 {
+        return self.main_registers[8];
+    }
+
+    fn set_sp_s(&mut self, value: u8) {
+        self.main_registers[8] = value;
+    }
+
+    fn sp_p(&self) -> u8 {
+        return self.main_registers[9];
+    }
+
+    fn set_sp_p(&mut self, value: u8) {
+        self.main_registers[9] = value;
+    }
+
+    fn pc_p(&self) -> u8 {
+        return self.main_registers[10];
+    }
+
+    fn set_pc_p(&mut self, value: u8) {
+        self.main_registers[10] = value;
+    }
+
+    fn pc_c(&self) -> u8 {
+        return self.main_registers[11];
+    }
+
+    fn set_pc_c(&mut self, value: u8) {
+        self.main_registers[11] = value;
+    }
+
+    fn hl(&self) -> u16 {
+        return u8s_to_u16(self.l(), self.h());
+    }
+
+    fn set_hl(&mut self, value: u16) {
+        let (l, h) = u16_to_u8s(value);
+        self.set_h(h);
+        self.set_l(l);
+    }
+
+    fn sp(&self) -> u16 {
+        return u8s_to_u16(self.sp_p(), self.sp_s());
+    }
+
+    fn set_sp(&mut self, value: u16) {
+        let (p, s) = u16_to_u8s(value);
+        self.set_sp_s(s);
+        self.set_sp_p(p);
+    }
+
+    fn pc(&self) -> u16 {
+        return u8s_to_u16(self.pc_c(), self.pc_p());
+    }
+
+    fn set_pc(&mut self, value: u16) {
+        let (c, p) = u16_to_u8s(value);
+        self.set_pc_p(p);
+        self.set_pc_c(c);
+    }
+
+    fn bc(&self) -> u16 {
+        return u8s_to_u16(self.c(), self.b());
+    }
+
+    fn set_bc(&mut self, value: u16) {
+        let (c, b) = u16_to_u8s(value);
+        self.set_b(b);
+        self.set_c(c);
+    }
+
+    fn de(&self) -> u16 {
+        return u8s_to_u16(self.e(), self.d());
+    }
+
+    fn set_de(&mut self, value: u16) {
+        let (e, d) = u16_to_u8s(value);
+        self.set_d(d);
+        self.set_e(e);
+    }
+
+    fn z_flag(&self) -> bool {
+        u8_get_bit(self.flags(), 1)
+    }
+
+    fn set_z_flag(&mut self, value: bool) {
+        let mut flags = self.flags();
+        u8_set_bit(&mut flags, 1, value);
+        self.set_flags(flags);
+    }
+
+    fn n_flag(&self) -> bool {
+        u8_get_bit(self.flags(), 2)
+    }
+
+    fn set_n_flag(&mut self, value: bool) {
+        let mut flags = self.flags();
+        u8_set_bit(&mut flags, 2, value);
+        self.set_flags(flags);
+    }
+
+    fn h_flag(&self) -> bool {
+        u8_get_bit(self.flags(), 3)
+    }
+
+    fn set_h_flag(&mut self, value: bool) {
+        let mut flags = self.flags();
+        u8_set_bit(&mut flags, 3, value);
+        self.set_flags(flags);
+    }
+
+    fn c_flag(&self) -> bool {
+        u8_get_bit(self.flags(), 4)
+    }
+
+    fn set_c_flag(&mut self, value: bool) {
+        let mut flags = self.flags();
+        u8_set_bit(&mut flags, 4, value);
+        self.set_flags(flags);
+    }
+}
+
+fn u8s_to_u16(a: u8, b: u8) -> u16 {
+    return a as u16 + ((b as u16) << 8);
+}
+
+fn u16_to_u8s(x: u16) -> (u8, u8) {
+    (x as u8, (x >> 8) as u8)
+}
+
+fn u8_get_bit(x: u8, offset: u8) -> bool {
+    if offset > 7 {
+        panic!();
+    }
+
+    (x >> offset) & 1 == 1
+}
+
+fn u8_set_bit(x: &mut u8, offset: u8, value: bool) {
+    if offset > 7 {
+        panic!();
+    }
+
+    let mask = 1 << offset;
+    if value {
+        *x |= mask;
+    } else {
+        *x &= !mask;
+    }
+}
+
 struct Operation {
     code: u8,
     cycles: u8,
@@ -176,7 +711,7 @@ fn get_operations() -> HashMap<u8, Operation> {
                     gb.set_a(a1);
                     (
                         format!("LD A, (BC)"),
-                        format!("A₀ = ${:02x}, BC = ${:04x}, (BC) = ${:04x}", a0, bc, a1),
+                        format!("A₀ = ${:02x}, BC = ${:04x}, (BC) = ${:02x}", a0, bc, a1),
                     )
                 });
                 op(0x1A, 2, |gb| {
@@ -186,7 +721,7 @@ fn get_operations() -> HashMap<u8, Operation> {
                     gb.set_a(a1);
                     (
                         format!("LD A, (DE)"),
-                        format!("A₀ = ${:02x}, DE = ${:04x}, (DE) = ${:04x}", a0, de, a1),
+                        format!("A₀ = ${:02x}, DE = ${:04x}, (DE) = ${:02x}", a0, de, a1),
                     )
                 });
                 op(0x7E, 2, |gb| {
@@ -196,7 +731,7 @@ fn get_operations() -> HashMap<u8, Operation> {
                     gb.set_a(a1);
                     (
                         format!("LD A, (HL)"),
-                        format!("A₀ = ${:02x}, HL = ${:04x}, (HL) = ${:04x}", a0, hl, a1),
+                        format!("A₀ = ${:02x}, HL = ${:04x}, (HL) = ${:02x}", a0, hl, a1),
                     )
                 });
                 op(0xFA, 4, |gb| {
@@ -716,7 +1251,7 @@ fn get_operations() -> HashMap<u8, Operation> {
             op(0x00, 1, |_gb| (format!("NOP"), format!("")));
         }
 
-        // 3.3.8 Jumps
+        // 3.3.8. Jumps
         {
             // 1. JP nn
             // Jump to address nn.
@@ -807,6 +1342,24 @@ fn get_operations() -> HashMap<u8, Operation> {
             });
         }
 
+        // 3.3.9. Calls
+        {
+            // 1. Call nn
+            // Push address of next instruction onto stack and
+            // then jump to address nn.
+
+            op(0xCD, 3, |gb| {
+                let nn = gb.read_immediate_u16();
+                let i0 = gb.i;
+                gb.stack_push(i0);
+                gb.i = nn;
+                (
+                    format!("CALL ${:04x}", nn),
+                    format!("SP₁ = {:04x}", gb.sp()),
+                )
+            });
+        }
+
         // Two-Byte Operations
         {
             op(0xCB, 0, |gb| {
@@ -831,524 +1384,6 @@ fn get_operations() -> HashMap<u8, Operation> {
     }
 
     operations
-}
-
-impl GameBoy {
-    pub fn new(frame_buffer: Arc<Mutex<Vec<u8>>>) -> GameBoy {
-        GameBoy {
-            t: 0,
-            i: 0,
-            main_ram: [0u8; 8192],
-            video_ram: [0u8; 8192],
-            high_ram: [0u8; 127],
-            main_registers: [0u8; 12],
-            boot_rom: load_boot_rom(),
-            boot_rom_mapped: true,
-            game_rom: load_game_rom("Tetris[:1024]"),
-            bg_palette: 0,
-            debug_current_op_addr: 0,
-            debug_current_code: vec![],
-            frame_buffer,
-        }
-    }
-
-    fn read_instruction(&mut self) -> u8 {
-        self.debug_current_code.clear();
-        self.debug_current_op_addr = self.i;
-        self.read_immediate_u8()
-    }
-
-    fn read_immediate_u8(&mut self) -> u8 {
-        let value = self.get_memory(self.i);
-        self.debug_current_code.push(value);
-        self.i += 1;
-        value
-    }
-
-    fn read_immediate_i8(&mut self) -> i8 {
-        self.read_immediate_u8() as i8
-    }
-
-    fn read_immediate_u16(&mut self) -> u16 {
-        let n1 = self.read_immediate_u8();
-        let n2 = self.read_immediate_u8();
-        u8s_to_u16(n1, n2)
-    }
-
-    fn relative_jump(&mut self, n: i8) {
-        self.i = ((self.i as i32) + (n as i32)) as u16;
-    }
-
-    fn print_current_code(&self, asm: String, info: String) {
-        print!("{:32}", asm);
-        print!(" ; ${:04x}", self.debug_current_op_addr);
-        let code = self.debug_current_code
-            .clone()
-            .into_iter()
-            .map(|c| format!("{:02x}", c))
-            .collect::<Vec<String>>()
-            .join("");
-        print!(" ; {:6}", self.t);
-        print!(" ; ${:8}", code);
-        if info.len() > 0 {
-            print!(" ; {}", info);
-        }
-        println!();
-    }
-
-    // Main Loop
-
-    pub fn run(&mut self) {
-        println!();
-        let operations = get_operations();
-        println!(
-            "; {:3} one-byte opcodes implemented (~{:3.0}%).",
-            operations.len(),
-            (operations.len() as f32 / 2.55)
-        );
-        println!();
-
-        println!("; assembly:                        addr:   t/μs:   codes:       flags:");
-        println!("; ---------                        -----   -----   ------       ------");
-
-        loop {
-            let opcode = self.read_instruction();
-
-            let op = operations.get(&opcode);
-            match op {
-                Some(op) => {
-                    let (asm, debug) = (op.execute)(self);
-                    self.print_current_code(asm, debug);
-                    self.t += op.cycles as u64;
-                }
-                None => {
-                    match opcode {
-                        0x77 => {
-                            // Put A into memory address HL.
-                            self.print_current_code(
-                                "LD (HL), A".to_string(),
-                                format!("HL = ${:04x}, A = ${:02x}", self.hl(), self.a()),
-                            );
-                            let mut hl = self.hl();
-                            let a = self.a();
-                            self.set_memory(hl, a);
-                        }
-
-                        0x32 => {
-                            // Put A into memory address HL.
-                            self.print_current_code(
-                                "LD (HL-), A".to_string(),
-                                format!("HL₀ = ${:04x}, A = ${:02x}", self.hl(), self.a()),
-                            );
-                            let mut hl = self.hl();
-                            let a = self.a();
-                            self.set_memory(hl, a);
-                            //  Decrement HL.
-                            hl -= 1;
-                            self.set_hl(hl);
-                        }
-
-                        0xE2 => {
-                            // Put A into memory address 0xFF00 + C.
-                            self.print_current_code(
-                                "LD ($FF00 + C), A ".to_string(),
-                                format!("A = ${:02x}, C = ${:02x}", self.a(), self.c()),
-                            );
-                            let a = self.a();
-                            let address = 0xFF00 + (self.c() as u16);
-                            self.set_memory(address, a);
-                        }
-
-                        0xAF => {
-                            self.print_current_code(
-                                "XOR A A".to_string(),
-                                format!("A₀ = ${:02x}, A₁ = $00", self.a()).to_string(),
-                            );
-                            self.set_a(0);
-                        }
-
-                        // 8-Bit Arithmatic
-                        // Increment the value in register n.
-                        // Z flag set iff result is 0.
-                        // N flag cleared.
-                        // H flag set iff value overflows and wraps.
-                        0x3C => {
-                            let old_value = self.a();
-                            let new_value = old_value + 1;
-                            self.print_current_code(
-                                "INC A".to_string(),
-                                format!("A₀ = ${:02x}, A₁ = ${:02x}", old_value, new_value)
-                                    .to_string(),
-                            );
-                            self.set_a(new_value);
-                            self.set_z_flag(new_value == 0);
-                            self.set_n_flag(false);
-                            self.set_h_flag(old_value > new_value);
-                        }
-                        0x04 => {
-                            let old_value = self.b();
-                            let new_value = old_value + 1;
-                            self.print_current_code(
-                                "INC B".to_string(),
-                                format!("B₀ = ${:02x}, B₁ = ${:02x}", old_value, new_value)
-                                    .to_string(),
-                            );
-                            self.set_b(new_value);
-                            self.set_z_flag(new_value == 0);
-                            self.set_n_flag(false);
-                            self.set_h_flag(old_value > new_value);
-                        }
-                        0x0C => {
-                            let old_value = self.c();
-                            let new_value = old_value + 1;
-                            self.print_current_code(
-                                "INC C".to_string(),
-                                format!("C₀ = ${:02x}, C₁ = ${:02x}", old_value, new_value)
-                                    .to_string(),
-                            );
-                            self.set_c(new_value);
-                            self.set_z_flag(new_value == 0);
-                            self.set_n_flag(false);
-                            self.set_h_flag(old_value > new_value);
-                        }
-                        0x14 => {
-                            let old_value = self.d();
-                            let new_value = old_value + 1;
-                            self.print_current_code(
-                                "INC D".to_string(),
-                                format!("D₀ = ${:02x}, D₁ = ${:02x}", old_value, new_value)
-                                    .to_string(),
-                            );
-                            self.set_d(new_value);
-                            self.set_z_flag(new_value == 0);
-                            self.set_n_flag(false);
-                            self.set_h_flag(old_value > new_value);
-                        }
-                        0x1C => {
-                            let old_value = self.e();
-                            let new_value = old_value + 1;
-                            self.print_current_code(
-                                "INC E".to_string(),
-                                format!("E₀ = ${:02x}, E₁ = ${:02x}", old_value, new_value)
-                                    .to_string(),
-                            );
-                            self.set_e(new_value);
-                            self.set_z_flag(new_value == 0);
-                            self.set_n_flag(false);
-                            self.set_h_flag(old_value > new_value);
-                        }
-                        0x24 => {
-                            let old_value = self.h();
-                            let new_value = old_value + 1;
-                            self.print_current_code(
-                                "INC H".to_string(),
-                                format!("H₀ = ${:02x}, H₁ = ${:02x}", old_value, new_value)
-                                    .to_string(),
-                            );
-                            self.set_h(new_value);
-                            self.set_z_flag(new_value == 0);
-                            self.set_n_flag(false);
-                            self.set_h_flag(old_value > new_value);
-                        }
-                        0x2C => {
-                            let old_value = self.l();
-                            let new_value = old_value + 1;
-                            self.print_current_code(
-                                "INC L".to_string(),
-                                format!("L₀ = ${:02x}, L₁ = ${:02x}", old_value, new_value)
-                                    .to_string(),
-                            );
-                            self.set_l(new_value);
-                            self.set_z_flag(new_value == 0);
-                            self.set_n_flag(false);
-                            self.set_h_flag(old_value > new_value);
-                        }
-
-                        _ => {
-                            self.print_current_code(
-                                format!("; ERROR: unsupported opcode"),
-                                format!(""),
-                            );
-                            panic!("unsupported opcode: ${:02x}", opcode);
-                        }
-                    }
-
-                    self.t += 1;
-                }
-            }
-        }
-    }
-
-    // Register Access
-
-    fn a(&self) -> u8 {
-        return self.main_registers[0];
-    }
-
-    fn set_a(&mut self, value: u8) {
-        self.main_registers[0] = value;
-    }
-
-    fn flags(&self) -> u8 {
-        return self.main_registers[1];
-    }
-
-    fn set_flags(&mut self, value: u8) {
-        self.main_registers[1] = value;
-    }
-
-    fn b(&self) -> u8 {
-        return self.main_registers[2];
-    }
-
-    fn set_b(&mut self, value: u8) {
-        self.main_registers[2] = value;
-    }
-
-    fn c(&self) -> u8 {
-        return self.main_registers[3];
-    }
-
-    fn set_c(&mut self, value: u8) {
-        self.main_registers[3] = value;
-    }
-
-    fn d(&self) -> u8 {
-        return self.main_registers[4];
-    }
-
-    fn set_d(&mut self, value: u8) {
-        self.main_registers[4] = value;
-    }
-
-    fn e(&self) -> u8 {
-        return self.main_registers[5];
-    }
-
-    fn set_e(&mut self, value: u8) {
-        self.main_registers[5] = value;
-    }
-
-    fn h(&self) -> u8 {
-        return self.main_registers[6];
-    }
-
-    fn set_h(&mut self, value: u8) {
-        self.main_registers[6] = value;
-    }
-
-    fn l(&self) -> u8 {
-        return self.main_registers[7];
-    }
-
-    fn set_l(&mut self, value: u8) {
-        self.main_registers[7] = value;
-    }
-
-    fn sp_s(&self) -> u8 {
-        return self.main_registers[8];
-    }
-
-    fn set_sp_s(&mut self, value: u8) {
-        self.main_registers[8] = value;
-    }
-
-    fn sp_p(&self) -> u8 {
-        return self.main_registers[9];
-    }
-
-    fn set_sp_p(&mut self, value: u8) {
-        self.main_registers[9] = value;
-    }
-
-    fn pc_p(&self) -> u8 {
-        return self.main_registers[10];
-    }
-
-    fn set_pc_p(&mut self, value: u8) {
-        self.main_registers[10] = value;
-    }
-
-    fn pc_c(&self) -> u8 {
-        return self.main_registers[11];
-    }
-
-    fn set_pc_c(&mut self, value: u8) {
-        self.main_registers[11] = value;
-    }
-
-    fn hl(&self) -> u16 {
-        return u8s_to_u16(self.l(), self.h());
-    }
-
-    fn set_hl(&mut self, value: u16) {
-        let (l, h) = u16_to_u8s(value);
-        self.set_h(h);
-        self.set_l(l);
-    }
-
-    fn sp(&self) -> u16 {
-        return u8s_to_u16(self.sp_p(), self.sp_s());
-    }
-
-    fn set_sp(&mut self, value: u16) {
-        let (p, s) = u16_to_u8s(value);
-        self.set_sp_s(s);
-        self.set_sp_p(p);
-    }
-
-    fn pc(&self) -> u16 {
-        return u8s_to_u16(self.pc_c(), self.pc_p());
-    }
-
-    fn set_pc(&mut self, value: u16) {
-        let (c, p) = u16_to_u8s(value);
-        self.set_pc_p(p);
-        self.set_pc_c(c);
-    }
-
-    fn bc(&self) -> u16 {
-        return u8s_to_u16(self.c(), self.b());
-    }
-
-    fn set_bc(&mut self, value: u16) {
-        let (c, b) = u16_to_u8s(value);
-        self.set_b(b);
-        self.set_c(c);
-    }
-
-    fn de(&self) -> u16 {
-        return u8s_to_u16(self.e(), self.d());
-    }
-
-    fn set_de(&mut self, value: u16) {
-        let (e, d) = u16_to_u8s(value);
-        self.set_d(d);
-        self.set_e(e);
-    }
-
-    fn z_flag(&self) -> bool {
-        u8_get_bit(self.flags(), 1)
-    }
-
-    fn set_z_flag(&mut self, value: bool) {
-        let mut flags = self.flags();
-        u8_set_bit(&mut flags, 1, value);
-        self.set_flags(flags);
-    }
-
-    fn n_flag(&self) -> bool {
-        u8_get_bit(self.flags(), 2)
-    }
-
-    fn set_n_flag(&mut self, value: bool) {
-        let mut flags = self.flags();
-        u8_set_bit(&mut flags, 2, value);
-        self.set_flags(flags);
-    }
-
-    fn h_flag(&self) -> bool {
-        u8_get_bit(self.flags(), 3)
-    }
-
-    fn set_h_flag(&mut self, value: bool) {
-        let mut flags = self.flags();
-        u8_set_bit(&mut flags, 3, value);
-        self.set_flags(flags);
-    }
-
-    fn c_flag(&self) -> bool {
-        u8_get_bit(self.flags(), 4)
-    }
-
-    fn set_c_flag(&mut self, value: bool) {
-        let mut flags = self.flags();
-        u8_set_bit(&mut flags, 4, value);
-        self.set_flags(flags);
-    }
-
-    // Memory Access
-
-    fn get_memory(&self, address: u16) -> u8 {
-        let value;
-        if self.boot_rom_mapped && address <= 0x00FF {
-            // boot ROM, until unmapped to expose initial bytes of game ROM
-            value = self.boot_rom[address as usize];
-        } else if address <= 0x7FFF {
-            // first page of game ROM
-            value = self.game_rom[address as usize];
-        } else if 0x8000 <= address && address <= 0x9FFF {
-            let i: usize = (address - 0x8000) as usize;
-            value = self.video_ram[i];
-        } else if 0xFF80 <= address && address <= 0xFFFE {
-            let i: usize = (address - 0xFF80) as usize;
-            value = self.high_ram[i];
-        } else {
-            panic!("I don't know how to get memory address ${:04x}.", address);
-        }
-
-        {
-            let mut frame_buffer = self.frame_buffer.lock().unwrap();
-            let i = (address as usize) % frame_buffer.len();
-            frame_buffer[i] = value;
-        }
-
-        value
-    }
-
-    fn set_memory(&mut self, address: u16, value: u8) {
-        if 0x8000 <= address && address <= 0x9FFF {
-            let i: usize = (address - 0x8000) as usize;
-            self.video_ram[i] = value;
-            println!("  ; video_ram[${:04x}] = ${:02x}", i, value);
-        } else if 0xFF80 <= address && address <= 0xFFFE {
-            let i: usize = (address - 0xFF80) as usize;
-            self.high_ram[i] = value;
-            println!("  ; high_ram[${:04x}] = ${:02x}", i, value);
-        } else if 0xFF10 <= address && address <= 0xFF26 {
-            println!("  ; skipping write to sound control memory -- not implemented");
-        } else if address == 0xFF47 {
-            self.bg_palette = value;
-            println!("  ; updated background palette");
-        } else {
-            panic!("I don't know how to set memory address ${:04x}.", address);
-        }
-
-        {
-            let mut frame_buffer = self.frame_buffer.lock().unwrap();
-            let i = (address as usize) % frame_buffer.len();
-            frame_buffer[i] = value;
-        }
-    }
-}
-
-fn u8s_to_u16(a: u8, b: u8) -> u16 {
-    return a as u16 + ((b as u16) << 8);
-}
-
-fn u16_to_u8s(x: u16) -> (u8, u8) {
-    (x as u8, (x >> 8) as u8)
-}
-
-fn u8_get_bit(x: u8, offset: u8) -> bool {
-    if offset > 7 {
-        panic!();
-    }
-
-    (x >> offset) & 1 == 1
-}
-
-fn u8_set_bit(x: &mut u8, offset: u8, value: bool) {
-    if offset > 7 {
-        panic!();
-    }
-
-    let mask = 1 << offset;
-    if value {
-        *x |= mask;
-    } else {
-        *x &= !mask;
-    }
 }
 
 fn load_boot_rom() -> Vec<u8> {
