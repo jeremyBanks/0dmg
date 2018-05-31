@@ -153,6 +153,46 @@ impl CPU {
         self.sp = sp1;
         value
     }
+
+    fn bc(&self) -> u16 {
+        return u8s_to_u16(self.c, self.b);
+    }
+
+    fn set_bc(&mut self, value: u16) {
+        let (c, b) = u16_to_u8s(value);
+        self.b = b;
+        self.c = c;
+    }
+
+    fn hl(&self) -> u16 {
+        return u8s_to_u16(self.l, self.h);
+    }
+
+    fn set_hl(&mut self, value: u16) {
+        let (l, h) = u16_to_u8s(value);
+        self.h = h;
+        self.l = l;
+    }
+
+    fn af(&self) -> u16 {
+        return u8s_to_u16(self.f, self.a);
+    }
+
+    fn set_af(&mut self, value: u16) {
+        let (f, a) = u16_to_u8s(value);
+        self.a = a;
+        self.f = f;
+    }
+
+    fn de(&self) -> u16 {
+        return u8s_to_u16(self.e, self.d);
+    }
+
+    fn set_de(&mut self, value: u16) {
+        let (e, d) = u16_to_u8s(value);
+        self.d = d;
+        self.e = e;
+    }
 }
 
 fn u8s_to_u16(a: u8, b: u8) -> u16 {
