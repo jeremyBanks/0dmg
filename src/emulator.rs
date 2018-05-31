@@ -1316,7 +1316,7 @@ fn get_operations() -> (HashMap<u8, Operation>, HashMap<u8, Operation>) {
                 gb.set_sp(sp1);
                 (
                     format!("LOAD SP, ${:04x}", sp1),
-                    format!("SP₁ = ${:04x}", sp0),
+                    format!("SP₀ = ${:04x}", sp0),
                 )
             });
 
@@ -1336,39 +1336,91 @@ fn get_operations() -> (HashMap<u8, Operation>, HashMap<u8, Operation>) {
             // Push register pair nn onto stack.
             // Decrement Stack Pointer (SP) twice.
             op(0xF5, 4, |gb| {
-                let sp0 = gb.sp();
                 let af = gb.af();
                 gb.stack_push(af);
                 (
                     format!("PUSH AF"),
-                    format!("SP₀ = ${:04x}, AF = ${:04x}", sp0, af),
+                    format!("SP₁ = ${:04x}, AF = ${:04x}", gb.sp(), af),
                 )
             });
             op(0xC5, 4, |gb| {
-                let sp0 = gb.sp();
                 let bc = gb.bc();
                 gb.stack_push(bc);
                 (
                     format!("PUSH BC"),
-                    format!("SP₀ = ${:04x}, BC = ${:04x}", sp0, bc),
+                    format!("SP₁ = ${:04x}, BC = ${:04x}", gb.sp(), bc),
                 )
             });
             op(0xD5, 4, |gb| {
-                let sp0 = gb.sp();
                 let de = gb.de();
                 gb.stack_push(de);
                 (
                     format!("PUSH DE"),
-                    format!("SP₀ = ${:04x}, DE = ${:04x}", sp0, de),
+                    format!("SP₁ = ${:04x}, DE = ${:04x}", gb.sp(), de),
                 )
             });
             op(0xE5, 4, |gb| {
-                let sp0 = gb.sp();
                 let hl = gb.hl();
                 gb.stack_push(hl);
                 (
                     format!("PUSH hl"),
-                    format!("SP₀ = ${:04x}, HL = ${:04x}", sp0, hl),
+                    format!("SP₁ = ${:04x}, HL = ${:04x}", gb.sp(), hl),
+                )
+            });
+
+            // 7. POP nn
+            // Push two bytes off stack into register pair nn.
+            // Increment Stack Pointer (SP) twice.
+            op(0xF1, 3, |gb| {
+                let af0 = gb.af();
+                let af1 = gb.stack_pop();
+                (
+                    format!("POP AF"),
+                    format!(
+                        "SP₁ = ${:04x}, AF₀ = ${:04x}, AF₁ = ${:04x}",
+                        gb.sp(),
+                        af0,
+                        af1
+                    ),
+                )
+            });
+            op(0xC1, 3, |gb| {
+                let bc0 = gb.bc();
+                let bc1 = gb.stack_pop();
+                (
+                    format!("POP BC"),
+                    format!(
+                        "SP₁ = ${:04x}, BC₀ = ${:04x}, BC₁ = ${:04x}",
+                        gb.sp(),
+                        bc0,
+                        bc1
+                    ),
+                )
+            });
+            op(0xD1, 3, |gb| {
+                let de0 = gb.de();
+                let de1 = gb.stack_pop();
+                (
+                    format!("POP DE"),
+                    format!(
+                        "SP₁ = ${:04x}, DE₀ = ${:04x}, DE₁ = ${:04x}",
+                        gb.sp(),
+                        de0,
+                        de1
+                    ),
+                )
+            });
+            op(0xE1, 3, |gb| {
+                let hl0 = gb.hl();
+                let hl1 = gb.stack_pop();
+                (
+                    format!("POP HL"),
+                    format!(
+                        "SP₁ = ${:04x}, HL₀ = ${:04x}, HL₁ = ${:04x}",
+                        gb.sp(),
+                        hl0,
+                        hl1
+                    ),
                 )
             });
         }
@@ -1380,78 +1432,94 @@ fn get_operations() -> (HashMap<u8, Operation>, HashMap<u8, Operation>) {
         }
 
         // 3.3.6. Rotates & Shifts
-        // 6. RL n
-        // Rotate n left through Carry flag.
-        op_cb(0x17, 2, |gb| {
-            let a0 = gb.a();
-            let a1 = a0 << 1;
-            gb.set_a(a1);
-            gb.set_z_flag(a1 == 0);
-            gb.set_c_flag(a0 & 0b10000000 > 0);
-            gb.set_n_flag(false);
-            gb.set_h_flag(false);
-            (format!("RL A"), format!("A₀ = {}", a0))
-        });
-        op_cb(0x10, 2, |gb| {
-            let b0 = gb.b();
-            let b1 = b0 << 1;
-            gb.set_b(b1);
-            gb.set_z_flag(b1 == 0);
-            gb.set_c_flag(b0 & 0b10000000 > 0);
-            gb.set_n_flag(false);
-            gb.set_h_flag(false);
-            (format!("RL B"), format!("B₀ = {}", b0))
-        });
-        op_cb(0x11, 2, |gb| {
-            let c0 = gb.c();
-            let c1 = c0 << 1;
-            gb.set_c(c1);
-            gb.set_z_flag(c1 == 0);
-            gb.set_c_flag(c0 & 0b10000000 > 0);
-            gb.set_n_flag(false);
-            gb.set_h_flag(false);
-            (format!("RL C"), format!("C₀ = {}", c0))
-        });
-        op_cb(0x12, 2, |gb| {
-            let d0 = gb.d();
-            let d1 = d0 << 1;
-            gb.set_d(d1);
-            gb.set_z_flag(d1 == 0);
-            gb.set_c_flag(d0 & 0b10000000 > 0);
-            gb.set_n_flag(false);
-            gb.set_h_flag(false);
-            (format!("RL D"), format!("D₀ = {}", d0))
-        });
-        op_cb(0x13, 2, |gb| {
-            let e0 = gb.e();
-            let e1 = e0 << 1;
-            gb.set_e(e1);
-            gb.set_z_flag(e1 == 0);
-            gb.set_c_flag(e0 & 0b10000000 > 0);
-            gb.set_n_flag(false);
-            gb.set_h_flag(false);
-            (format!("RL E"), format!("E₀ = {}", e0))
-        });
-        op_cb(0x14, 2, |gb| {
-            let h0 = gb.h();
-            let h1 = h0 << 1;
-            gb.set_h(h1);
-            gb.set_z_flag(h1 == 0);
-            gb.set_c_flag(h0 & 0b10000000 > 0);
-            gb.set_n_flag(false);
-            gb.set_h_flag(false);
-            (format!("RL H"), format!("H₀ = {}", h0))
-        });
-        op_cb(0x15, 2, |gb| {
-            let l0 = gb.l();
-            let l1 = l0 << 1;
-            gb.set_l(l1);
-            gb.set_z_flag(l1 == 0);
-            gb.set_c_flag(l0 & 0b10000000 > 0);
-            gb.set_n_flag(false);
-            gb.set_h_flag(false);
-            (format!("RL L"), format!("L₀ = {}", l0))
-        });
+        {
+            // 2. RLA
+            // Rotate A left through Carry flag.
+            // This, 0x17, is the same as 0xCB17 below.
+            op(0x17, 2, |gb| {
+                let a0 = gb.a();
+                let a1 = (a0 << 1) + if gb.c_flag() { 1 } else { 0 };
+                gb.set_a(a1);
+                gb.set_z_flag(a1 == 0);
+                gb.set_c_flag(a0 & 0b10000000 > 0);
+                gb.set_n_flag(false);
+                gb.set_h_flag(false);
+                (format!("RLA"), format!("A₀ = {}", a0))
+            });
+
+            // 6. RL n
+            // Rotate n left through Carry flag.
+            op_cb(0x17, 2, |gb| {
+                let a0 = gb.a();
+                let a1 = a0 << 1 + if gb.c_flag() { 1 } else { 0 };
+                gb.set_a(a1);
+                gb.set_z_flag(a1 == 0);
+                gb.set_c_flag(a0 & 0b10000000 > 0);
+                gb.set_n_flag(false);
+                gb.set_h_flag(false);
+                (format!("RL A"), format!("A₀ = {}", a0))
+            });
+            op_cb(0x10, 2, |gb| {
+                let b0 = gb.b();
+                let b1 = b0 << 1 + if gb.c_flag() { 1 } else { 0 };
+                gb.set_b(b1);
+                gb.set_z_flag(b1 == 0);
+                gb.set_c_flag(b0 & 0b10000000 > 0);
+                gb.set_n_flag(false);
+                gb.set_h_flag(false);
+                (format!("RL B"), format!("B₀ = {}", b0))
+            });
+            op_cb(0x11, 2, |gb| {
+                let c0 = gb.c();
+                let c1 = c0 << 1 + if gb.c_flag() { 1 } else { 0 };
+                gb.set_c(c1);
+                gb.set_z_flag(c1 == 0);
+                gb.set_c_flag(c0 & 0b10000000 > 0);
+                gb.set_n_flag(false);
+                gb.set_h_flag(false);
+                (format!("RL C"), format!("C₀ = {}", c0))
+            });
+            op_cb(0x12, 2, |gb| {
+                let d0 = gb.d();
+                let d1 = d0 << 1 + if gb.c_flag() { 1 } else { 0 };
+                gb.set_d(d1);
+                gb.set_z_flag(d1 == 0);
+                gb.set_c_flag(d0 & 0b10000000 > 0);
+                gb.set_n_flag(false);
+                gb.set_h_flag(false);
+                (format!("RL D"), format!("D₀ = {}", d0))
+            });
+            op_cb(0x13, 2, |gb| {
+                let e0 = gb.e();
+                let e1 = e0 << 1 + if gb.c_flag() { 1 } else { 0 };
+                gb.set_e(e1);
+                gb.set_z_flag(e1 == 0);
+                gb.set_c_flag(e0 & 0b10000000 > 0);
+                gb.set_n_flag(false);
+                gb.set_h_flag(false);
+                (format!("RL E"), format!("E₀ = {}", e0))
+            });
+            op_cb(0x14, 2, |gb| {
+                let h0 = gb.h();
+                let h1 = h0 << 1 + if gb.c_flag() { 1 } else { 0 };
+                gb.set_h(h1);
+                gb.set_z_flag(h1 == 0);
+                gb.set_c_flag(h0 & 0b10000000 > 0);
+                gb.set_n_flag(false);
+                gb.set_h_flag(false);
+                (format!("RL H"), format!("H₀ = {}", h0))
+            });
+            op_cb(0x15, 2, |gb| {
+                let l0 = gb.l();
+                let l1 = l0 << 1 + if gb.c_flag() { 1 } else { 0 };
+                gb.set_l(l1);
+                gb.set_z_flag(l1 == 0);
+                gb.set_c_flag(l0 & 0b10000000 > 0);
+                gb.set_n_flag(false);
+                gb.set_h_flag(false);
+                (format!("RL L"), format!("L₀ = {}", l0))
+            });
+        }
 
         // 3.3.7. Bit Opcodes
         {
@@ -1557,7 +1625,7 @@ fn get_operations() -> (HashMap<u8, Operation>, HashMap<u8, Operation>) {
 
         // 3.3.9. Calls
         {
-            // 1. Call nn
+            // 1. CALL nn
             // Push address of next instruction onto stack and
             // then jump to address nn.
 

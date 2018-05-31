@@ -26,6 +26,9 @@
 - Why did I spend 1.5 months creating a Gameboy emulator?  
   <http://blog.rekawek.eu/2017/02/09/coffee-gb/>  
   <https://news.ycombinator.com/item?id=17134668>
+- z80 Heaven: Instruction Set  
+  Opcodes are different, but this has good descriptions of similar operations.  
+  <http://z80-heaven.wikidot.com/instructions-set>
 
 ---
 
