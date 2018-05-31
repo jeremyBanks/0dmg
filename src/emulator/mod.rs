@@ -2,24 +2,19 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 pub struct GameBoy {
-    // time/ticks since start
-    t: u64,
-    // instruction pointer/index
-    i: u16,
     main_ram: [u8; 8192],
     video_ram: [u8; 8192],
     stack_ram: [u8; 127],
-    main_registers: [u8; 12],
     boot_rom: Vec<u8>,
     game_rom: Vec<u8>,
     // the 4-item one-byte 2-bit-greyscale color table at $FF47
     bg_palette: u8,
     debug_current_op_addr: u16,
     debug_current_code: Vec<u8>,
-
     boot_rom_mapped: bool,
-
     frame_buffer: Arc<Mutex<Vec<u8>>>,
+
+    cpu: CPU,
 }
 
 impl GameBoy {
