@@ -166,6 +166,11 @@ impl GameBoy {
             operations.len(),
             (operations.len() as f32 / 2.55)
         );
+        println!(
+            "; {:3} two-byte opcodes implemented (~{:3.0}%).",
+            operations_cb.len(),
+            (operations_cb.len() as f32 / 2.55)
+        );
         println!();
 
         println!("; assembly:                        addr:   t/μs:   codes:       flags:");
@@ -188,160 +193,10 @@ impl GameBoy {
                     self.t += op.cycles as u64;
                 }
                 None => {
-                    match opcode {
-                        0x77 => {
-                            // Put A into memory address HL.
-                            self.print_current_code(
-                                "LD (HL), A".to_string(),
-                                format!("HL = ${:04x}, A = ${:02x}", self.hl(), self.a()),
-                            );
-                            let mut hl = self.hl();
-                            let a = self.a();
-                            self.set_memory(hl, a);
-                        }
-
-                        0x32 => {
-                            // Put A into memory address HL.
-                            self.print_current_code(
-                                "LD (HL-), A".to_string(),
-                                format!("HL₀ = ${:04x}, A = ${:02x}", self.hl(), self.a()),
-                            );
-                            let mut hl = self.hl();
-                            let a = self.a();
-                            self.set_memory(hl, a);
-                            //  Decrement HL.
-                            hl -= 1;
-                            self.set_hl(hl);
-                        }
-
-                        0xE2 => {
-                            // Put A into memory address 0xFF00 + C.
-                            self.print_current_code(
-                                "LD ($FF00 + C), A ".to_string(),
-                                format!("A = ${:02x}, C = ${:02x}", self.a(), self.c()),
-                            );
-                            let a = self.a();
-                            let address = 0xFF00 + (self.c() as u16);
-                            self.set_memory(address, a);
-                        }
-
-                        0xAF => {
-                            self.print_current_code(
-                                "XOR A A".to_string(),
-                                format!("A₀ = ${:02x}, A₁ = $00", self.a()).to_string(),
-                            );
-                            self.set_a(0);
-                        }
-
-                        // 8-Bit Arithmatic
-                        // Increment the value in register n.
-                        // Z flag set iff result is 0.
-                        // N flag cleared.
-                        // H flag set iff value overflows and wraps.
-                        0x3C => {
-                            let old_value = self.a();
-                            let new_value = old_value + 1;
-                            self.print_current_code(
-                                "INC A".to_string(),
-                                format!("A₀ = ${:02x}, A₁ = ${:02x}", old_value, new_value)
-                                    .to_string(),
-                            );
-                            self.set_a(new_value);
-                            self.set_z_flag(new_value == 0);
-                            self.set_n_flag(false);
-                            self.set_h_flag(old_value > new_value);
-                        }
-                        0x04 => {
-                            let old_value = self.b();
-                            let new_value = old_value + 1;
-                            self.print_current_code(
-                                "INC B".to_string(),
-                                format!("B₀ = ${:02x}, B₁ = ${:02x}", old_value, new_value)
-                                    .to_string(),
-                            );
-                            self.set_b(new_value);
-                            self.set_z_flag(new_value == 0);
-                            self.set_n_flag(false);
-                            self.set_h_flag(old_value > new_value);
-                        }
-                        0x0C => {
-                            let old_value = self.c();
-                            let new_value = old_value + 1;
-                            self.print_current_code(
-                                "INC C".to_string(),
-                                format!("C₀ = ${:02x}, C₁ = ${:02x}", old_value, new_value)
-                                    .to_string(),
-                            );
-                            self.set_c(new_value);
-                            self.set_z_flag(new_value == 0);
-                            self.set_n_flag(false);
-                            self.set_h_flag(old_value > new_value);
-                        }
-                        0x14 => {
-                            let old_value = self.d();
-                            let new_value = old_value + 1;
-                            self.print_current_code(
-                                "INC D".to_string(),
-                                format!("D₀ = ${:02x}, D₁ = ${:02x}", old_value, new_value)
-                                    .to_string(),
-                            );
-                            self.set_d(new_value);
-                            self.set_z_flag(new_value == 0);
-                            self.set_n_flag(false);
-                            self.set_h_flag(old_value > new_value);
-                        }
-                        0x1C => {
-                            let old_value = self.e();
-                            let new_value = old_value + 1;
-                            self.print_current_code(
-                                "INC E".to_string(),
-                                format!("E₀ = ${:02x}, E₁ = ${:02x}", old_value, new_value)
-                                    .to_string(),
-                            );
-                            self.set_e(new_value);
-                            self.set_z_flag(new_value == 0);
-                            self.set_n_flag(false);
-                            self.set_h_flag(old_value > new_value);
-                        }
-                        0x24 => {
-                            let old_value = self.h();
-                            let new_value = old_value + 1;
-                            self.print_current_code(
-                                "INC H".to_string(),
-                                format!("H₀ = ${:02x}, H₁ = ${:02x}", old_value, new_value)
-                                    .to_string(),
-                            );
-                            self.set_h(new_value);
-                            self.set_z_flag(new_value == 0);
-                            self.set_n_flag(false);
-                            self.set_h_flag(old_value > new_value);
-                        }
-                        0x2C => {
-                            let old_value = self.l();
-                            let new_value = old_value + 1;
-                            self.print_current_code(
-                                "INC L".to_string(),
-                                format!("L₀ = ${:02x}, L₁ = ${:02x}", old_value, new_value)
-                                    .to_string(),
-                            );
-                            self.set_l(new_value);
-                            self.set_z_flag(new_value == 0);
-                            self.set_n_flag(false);
-                            self.set_h_flag(old_value > new_value);
-                        }
-
-                        _ => {
-                            self.print_current_code(
-                                format!("; ERROR: unsupported opcode"),
-                                format!(""),
-                            );
-                            panic!("unsupported opcode");
-                        }
-                    }
-
-                    self.t += 1;
+                    self.print_current_code(format!("; ERROR: unsupported opcode"), format!(""));
+                    panic!("unsupported opcode");
                 }
-            }
+            };
         }
     }
 
@@ -1210,7 +1065,7 @@ fn get_operations() -> (HashMap<u8, Operation>, HashMap<u8, Operation>) {
             // 4. LD n, A
             // Put value A into n.
             {
-                op(0x47, 2, |gb| {
+                op(0x47, 1, |gb| {
                     let b0 = gb.b();
                     let a = gb.a();
                     gb.set_b(a);
@@ -1219,7 +1074,7 @@ fn get_operations() -> (HashMap<u8, Operation>, HashMap<u8, Operation>) {
                         format!("B₀ = ${:02x}, A = ${:02x}", b0, a),
                     )
                 });
-                op(0x4F, 2, |gb| {
+                op(0x4F, 1, |gb| {
                     let c0 = gb.c();
                     let a = gb.a();
                     gb.set_b(a);
@@ -1228,7 +1083,7 @@ fn get_operations() -> (HashMap<u8, Operation>, HashMap<u8, Operation>) {
                         format!("C₀ = ${:02x}, A = ${:02x}", c0, a),
                     )
                 });
-                op(0x57, 2, |gb| {
+                op(0x57, 1, |gb| {
                     let d0 = gb.d();
                     let a = gb.a();
                     gb.set_d(a);
@@ -1237,7 +1092,7 @@ fn get_operations() -> (HashMap<u8, Operation>, HashMap<u8, Operation>) {
                         format!("D₀ = ${:02x}, A = ${:02x}", d0, a),
                     )
                 });
-                op(0x5F, 2, |gb| {
+                op(0x5F, 1, |gb| {
                     let e0 = gb.e();
                     let a = gb.a();
                     gb.set_e(a);
@@ -1246,7 +1101,7 @@ fn get_operations() -> (HashMap<u8, Operation>, HashMap<u8, Operation>) {
                         format!("E₀ = ${:02x}, A = ${:02x}", e0, a),
                     )
                 });
-                op(0x67, 2, |gb| {
+                op(0x67, 1, |gb| {
                     let h0 = gb.h();
                     let a = gb.a();
                     gb.set_h(a);
@@ -1255,7 +1110,7 @@ fn get_operations() -> (HashMap<u8, Operation>, HashMap<u8, Operation>) {
                         format!("H₀ = ${:02x}, A = ${:02x}", h0, a),
                     )
                 });
-                op(0x6F, 2, |gb| {
+                op(0x6F, 1, |gb| {
                     let l0 = gb.l();
                     let a = gb.a();
                     gb.set_l(a);
@@ -1264,7 +1119,60 @@ fn get_operations() -> (HashMap<u8, Operation>, HashMap<u8, Operation>) {
                         format!("L₀ = ${:02x}, A = ${:02x}", l0, a),
                     )
                 });
+                op(0x02, 2, |gb| {
+                    let bc = gb.bc();
+                    let a = gb.a();
+                    gb.set_memory(bc, a);
+                    (
+                        format!("LD (BC), A"),
+                        format!("BC = ${:04x}, A = ${:02x}", bc, gb.a()),
+                    )
+                });
+                op(0x12, 2, |gb| {
+                    let de = gb.de();
+                    let a = gb.a();
+                    gb.set_memory(de, a);
+                    (
+                        format!("LD (DE), A"),
+                        format!("DE = ${:04x}, A = ${:02x}", de, gb.a()),
+                    )
+                });
+                op(0x77, 2, |gb| {
+                    let hl = gb.hl();
+                    let a = gb.a();
+                    gb.set_memory(hl, a);
+                    (
+                        format!("LD (HL), A"),
+                        format!("HL = ${:04x}, A = ${:02x}", hl, gb.a()),
+                    )
+                });
             }
+
+            // 6. LD ($FF00 + C), A
+            op(0xE2, 2, |gb| {
+                let a = gb.a();
+                let address = 0xFF00 + (gb.c() as u16);
+                gb.set_memory(address, a);
+                (
+                    format!("LD ($FF00 + C), A "),
+                    format!("A = ${:02x}, C = ${:02x}", gb.a(), gb.c()),
+                )
+            });
+
+            // 12. LD (HL-), A
+            // Put A into memory address HL.
+            // Decrement HL.
+            op(0x32, 2, |gb| {
+                let hl0 = gb.hl();
+                let hl1 = hl0 - 1;
+                let a = gb.a();
+                gb.set_memory(hl0, a);
+                gb.set_hl(hl1);
+                (
+                    format!("LD (HL-), A"),
+                    format!("HL₀ = ${:04x}, A = ${:02x}", hl0, a),
+                )
+            });
 
             // 19. LDH (n), A
             op(0xE0, 3, |gb| {
@@ -1421,6 +1329,198 @@ fn get_operations() -> (HashMap<u8, Operation>, HashMap<u8, Operation>) {
                         hl0,
                         hl1
                     ),
+                )
+            });
+        }
+
+        // 3.3.3. 8-Bit ALU
+        {
+            // 7. XOR n
+            {
+                op(0xAF, 1, |gb| {
+                    let a0 = gb.a();
+                    let a1 = a0 ^ a0;
+                    gb.set_a(a1);
+                    gb.set_z_flag(a1 == 0);
+                    gb.set_n_flag(false);
+                    gb.set_h_flag(false);
+                    gb.set_c_flag(false);
+                    (
+                        format!("XOR A"),
+                        format!("A₀ = ${:02x}, A₁ = ${:02x}", a0, a1),
+                    )
+                });
+                op(0xA8, 1, |gb| {
+                    let b = gb.b();
+                    let a0 = gb.a();
+                    let a1 = a0 ^ b;
+                    gb.set_a(a1);
+                    gb.set_z_flag(a1 == 0);
+                    gb.set_n_flag(false);
+                    gb.set_h_flag(false);
+                    gb.set_c_flag(false);
+                    (
+                        format!("XOR B"),
+                        format!("A₀ = ${:02x}, B = ${:02x} A₁ = ${:02x}", a0, b, a1),
+                    )
+                });
+
+                op(0xA9, 1, |gb| {
+                    let c = gb.c();
+                    let a0 = gb.a();
+                    let a1 = a0 ^ c;
+                    gb.set_a(a1);
+                    gb.set_z_flag(a1 == 0);
+                    gb.set_n_flag(false);
+                    gb.set_h_flag(false);
+                    gb.set_c_flag(false);
+                    (
+                        format!("XOR C"),
+                        format!("A₀ = ${:02x}, C = ${:02x} A₁ = ${:02x}", a0, c, a1),
+                    )
+                });
+                op(0xAA, 1, |gb| {
+                    let d = gb.d();
+                    let a0 = gb.a();
+                    let a1 = a0 ^ d;
+                    gb.set_a(a1);
+                    gb.set_z_flag(a1 == 0);
+                    gb.set_n_flag(false);
+                    gb.set_h_flag(false);
+                    gb.set_c_flag(false);
+                    (
+                        format!("XOR D"),
+                        format!("A₀ = ${:02x}, D = ${:02x} A₁ = ${:02x}", a0, d, a1),
+                    )
+                });
+
+                op(0xAB, 1, |gb| {
+                    let e = gb.e();
+                    let a0 = gb.a();
+                    let a1 = a0 ^ e;
+                    gb.set_a(a1);
+                    gb.set_z_flag(a1 == 0);
+                    gb.set_n_flag(false);
+                    gb.set_h_flag(false);
+                    gb.set_c_flag(false);
+                    (
+                        format!("XOR E"),
+                        format!("A₀ = ${:02x}, E = ${:02x} A₁ = ${:02x}", a0, e, a1),
+                    )
+                });
+                op(0xAC, 1, |gb| {
+                    let h = gb.h();
+                    let a0 = gb.a();
+                    let a1 = a0 ^ h;
+                    gb.set_a(a1);
+                    gb.set_z_flag(a1 == 0);
+                    gb.set_n_flag(false);
+                    gb.set_h_flag(false);
+                    gb.set_c_flag(false);
+                    (
+                        format!("XOR B"),
+                        format!("A₀ = ${:02x}, H = ${:02x} A₁ = ${:02x}", a0, h, a1),
+                    )
+                });
+                op(0xAD, 1, |gb| {
+                    let l = gb.l();
+                    let a0 = gb.a();
+                    let a1 = a0 ^ l;
+                    gb.set_a(a1);
+                    gb.set_z_flag(a1 == 0);
+                    gb.set_n_flag(false);
+                    gb.set_h_flag(false);
+                    gb.set_c_flag(false);
+                    (
+                        format!("XOR L"),
+                        format!("A₀ = ${:02x}, L = ${:02x} A₁ = ${:02x}", a0, l, a1),
+                    )
+                });
+            }
+
+            // 9. INC n
+            op(0x3C, 1, |gb| {
+                let a0 = gb.a();
+                let a1 = a0 + 1;
+                gb.set_a(a1);
+                gb.set_z_flag(a1 == 0);
+                gb.set_n_flag(false);
+                gb.set_h_flag(a0 > a1);
+                (
+                    format!("INC A"),
+                    format!("A₀ = ${:02x}, A₁ = ${:02x}", a0, a1),
+                )
+            });
+            op(0x04, 1, |gb| {
+                let b0 = gb.b();
+                let b1 = b0 + 1;
+                gb.set_a(b1);
+                gb.set_z_flag(b1 == 0);
+                gb.set_n_flag(false);
+                gb.set_h_flag(b0 > b1);
+                (
+                    format!("INC B"),
+                    format!("B₀ = ${:02x}, B₁ = ${:02x}", b0, b1),
+                )
+            });
+            op(0x0C, 1, |gb| {
+                let c0 = gb.c();
+                let c1 = c0 + 1;
+                gb.set_a(c1);
+                gb.set_z_flag(c1 == 0);
+                gb.set_n_flag(false);
+                gb.set_h_flag(c0 > c1);
+                (
+                    format!("INC C"),
+                    format!("C₀ = ${:02x}, C₁ = ${:02x}", c0, c1),
+                )
+            });
+            op(0x14, 1, |gb| {
+                let d0 = gb.d();
+                let d1 = d0 + 1;
+                gb.set_a(d1);
+                gb.set_z_flag(d1 == 0);
+                gb.set_n_flag(false);
+                gb.set_h_flag(d0 > d1);
+                (
+                    format!("INC D"),
+                    format!("D₀ = ${:02x}, D₁ = ${:02x}", d0, d1),
+                )
+            });
+            op(0x1C, 1, |gb| {
+                let e0 = gb.e();
+                let e1 = e0 + 1;
+                gb.set_a(e1);
+                gb.set_z_flag(e1 == 0);
+                gb.set_n_flag(false);
+                gb.set_h_flag(e0 > e1);
+                (
+                    format!("INC E"),
+                    format!("E₀ = ${:02x}, E₁ = ${:02x}", e0, e1),
+                )
+            });
+            op(0x24, 1, |gb| {
+                let h0 = gb.h();
+                let h1 = h0 + 1;
+                gb.set_a(h1);
+                gb.set_z_flag(h1 == 0);
+                gb.set_n_flag(false);
+                gb.set_h_flag(h0 > h1);
+                (
+                    format!("INC H"),
+                    format!("H₀ = ${:02x}, H₁ = ${:02x}", h0, h1),
+                )
+            });
+            op(0x2C, 1, |gb| {
+                let l0 = gb.l();
+                let l1 = l0 + 1;
+                gb.set_a(l1);
+                gb.set_z_flag(l1 == 0);
+                gb.set_n_flag(false);
+                gb.set_h_flag(l0 > l1);
+                (
+                    format!("INC L"),
+                    format!("L₀ = ${:02x}, L₁ = ${:02x}", l0, l1),
                 )
             });
         }
