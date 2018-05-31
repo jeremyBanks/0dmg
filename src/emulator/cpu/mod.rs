@@ -193,6 +193,54 @@ impl CPU {
         self.d = d;
         self.e = e;
     }
+
+    fn c_flag(&self) -> bool {
+        (self.f & 0x10) == 0x10
+    }
+
+    fn set_c_flag(&mut self, value: bool) {
+        if value {
+            self.f |= 0x10;
+        } else {
+            self.f &= !0x10;
+        }
+    }
+
+    fn h_flag(&self) -> bool {
+        (self.f & 0x20) == 0x20
+    }
+
+    fn set_h_flag(&mut self, value: bool) {
+        if value {
+            self.f |= 0x20;
+        } else {
+            self.f &= !0x20;
+        }
+    }
+
+    fn n_flag(&self) -> bool {
+        (self.f & 0x40) == 0x40
+    }
+
+    fn set_n_flag(&mut self, value: bool) {
+        if value {
+            self.f |= 0x40;
+        } else {
+            self.f &= !0x40;
+        }
+    }
+
+    fn z_flag(&self) -> bool {
+        (self.f & 0x80) == 0x80
+    }
+
+    fn set_z_flag(&mut self, value: bool) {
+        if value {
+            self.f |= 0x80;
+        } else {
+            self.f &= !0x80;
+        }
+    }
 }
 
 fn u8s_to_u16(a: u8, b: u8) -> u16 {

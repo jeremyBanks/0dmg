@@ -96,7 +96,16 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     },
     |_1f, _cpu, _mem| unimplemented!("opcode 0x1F not implemented"),
     |_20, _cpu, _mem| unimplemented!("opcode 0x20 not implemented"),
-    |_21, _cpu, _mem| unimplemented!("opcode 0x21 not implemented"),
+    |_21, cpu, mem| {
+        let hl0 = cpu.hl();
+        let hl1 = cpu.read_immediate_u16(mem);
+        cpu.set_hl(hl1);
+        op_execution!{
+            cycles: 3;
+            asm: "LOAD HL, ${:04x}", hl1;
+            debug: "hl₁ = ${:04x}", hl0;
+        }
+    },
     |_22, _cpu, _mem| unimplemented!("opcode 0x22 not implemented"),
     |_23, _cpu, _mem| unimplemented!("opcode 0x23 not implemented"),
     |_24, _cpu, _mem| unimplemented!("opcode 0x24 not implemented"),
@@ -233,13 +242,75 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         }
     },
     |_47, _cpu, _mem| unimplemented!("opcode 0x47 not implemented"),
-    |_48, _cpu, _mem| unimplemented!("opcode 0x48 not implemented"),
-    |_49, _cpu, _mem| unimplemented!("opcode 0x49 not implemented"),
-    |_4a, _cpu, _mem| unimplemented!("opcode 0x4A not implemented"),
-    |_4b, _cpu, _mem| unimplemented!("opcode 0x4B not implemented"),
-    |_4c, _cpu, _mem| unimplemented!("opcode 0x4C not implemented"),
-    |_4d, _cpu, _mem| unimplemented!("opcode 0x4D not implemented"),
-    |_4e, _cpu, _mem| unimplemented!("opcode 0x4E not implemented"),
+    |_48, cpu, _mem| {
+        let c0 = cpu.c;
+        let b = cpu.b;
+        cpu.c = b;
+        op_execution!{
+            cycles: 1;
+            asm: "LD C, B";
+            debug: "C₀ = ${:02x}, B = ${:02x}", c0, b;
+        }
+    },
+    |_49, cpu, _mem| {
+        let c = cpu.c;
+        op_execution!{
+            cycles: 1;
+            asm: "LD C, C";
+            debug: "C = ${:02x}", c;
+        }
+    },
+    |_4a, cpu, _mem| {
+        let c0 = cpu.c;
+        let d = cpu.d;
+        cpu.c = d;
+        op_execution!{
+            cycles: 1;
+            asm: "LD C, D";
+            debug: "C₀ = ${:02x}, D = ${:02x}", c0, d;
+        }
+    },
+    |_4b, cpu, _mem| {
+        let c0 = cpu.c;
+        let e = cpu.e;
+        cpu.c = e;
+        op_execution!{
+            cycles: 1;
+            asm: "LD C, E";
+            debug: "C₀ = ${:02x}, E = ${:02x}", c0, e;
+        }
+    },
+    |_4c, cpu, _mem| {
+        let c0 = cpu.c;
+        let h = cpu.h;
+        cpu.c = h;
+        op_execution!{
+            cycles: 1;
+            asm: "LD C, H";
+            debug: "C₀ = ${:02x}, H = ${:02x}", c0, h;
+        }
+    },
+    |_4d, cpu, _mem| {
+        let c0 = cpu.c;
+        let l = cpu.l;
+        cpu.c = l;
+        op_execution!{
+            cycles: 1;
+            asm: "LD C, L";
+            debug: "C₀ = ${:02x}, L = ${:02x}", c0, l;
+        }
+    },
+    |_4e, cpu, mem| {
+        let c0 = cpu.c;
+        let hl = cpu.hl();
+        let c1 = mem.get(hl);
+        cpu.c = c1;
+        op_execution!{
+            cycles: 2;
+            asm: "LD C, (HL)";
+            debug: "C₀ = ${:02x}, HL = ${:04x}, (HL) = ${:04x}", c0, hl, c1;
+        }
+    },
     |_4f, _cpu, _mem| unimplemented!("opcode 0x4F not implemented"),
     |_50, _cpu, _mem| unimplemented!("opcode 0x50 not implemented"),
     |_51, _cpu, _mem| unimplemented!("opcode 0x51 not implemented"),
@@ -400,14 +471,111 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     |_a5, _cpu, _mem| unimplemented!("opcode 0xA5 not implemented"),
     |_a6, _cpu, _mem| unimplemented!("opcode 0xA6 not implemented"),
     |_a7, _cpu, _mem| unimplemented!("opcode 0xA7 not implemented"),
-    |_a8, _cpu, _mem| unimplemented!("opcode 0xA8 not implemented"),
-    |_a9, _cpu, _mem| unimplemented!("opcode 0xA9 not implemented"),
-    |_aa, _cpu, _mem| unimplemented!("opcode 0xAA not implemented"),
-    |_ab, _cpu, _mem| unimplemented!("opcode 0xAB not implemented"),
-    |_ac, _cpu, _mem| unimplemented!("opcode 0xAC not implemented"),
-    |_ad, _cpu, _mem| unimplemented!("opcode 0xAD not implemented"),
+    |_a8, cpu, _mem| {
+        let b = cpu.b;
+        let a0 = cpu.a;
+        let a1 = a0 ^ b;
+        cpu.a = a1;
+        cpu.set_z_flag(a1 == 0);
+        cpu.set_n_flag(false);
+        cpu.set_h_flag(false);
+        cpu.set_c_flag(false);
+        op_execution!{
+            cycles: 1;
+            asm: "XOR B";
+            debug: "A₀ = ${:02x}, B = ${:02x} A₁ = ${:02x}", a0, b, a1;
+        }
+    },
+    |_a9, cpu, _mem| {
+        let c = cpu.c;
+        let a0 = cpu.a;
+        let a1 = a0 ^ c;
+        cpu.a = a1;
+        cpu.set_z_flag(a1 == 0);
+        cpu.set_n_flag(false);
+        cpu.set_h_flag(false);
+        cpu.set_c_flag(false);
+        op_execution!{
+            cycles: 1;
+            asm: "XOR C";
+            debug: "A₀ = ${:02x}, C = ${:02x} A₁ = ${:02x}", a0, c, a1;
+        }
+    },
+    |_aa, cpu, _mem| {
+        let d = cpu.d;
+        let a0 = cpu.a;
+        let a1 = a0 ^ d;
+        cpu.a = a1;
+        cpu.set_z_flag(a1 == 0);
+        cpu.set_n_flag(false);
+        cpu.set_h_flag(false);
+        cpu.set_c_flag(false);
+        op_execution!{
+            cycles: 1;
+            asm: "XOR D";
+            debug: "A₀ = ${:02x}, D = ${:02x} A₁ = ${:02x}", a0, d, a1;
+        }
+    },
+    |_ab, cpu, _mem| {
+        let e = cpu.e;
+        let a0 = cpu.a;
+        let a1 = a0 ^ e;
+        cpu.a = a1;
+        cpu.set_z_flag(a1 == 0);
+        cpu.set_n_flag(false);
+        cpu.set_h_flag(false);
+        cpu.set_c_flag(false);
+        op_execution!{
+            cycles: 1;
+            asm: "XOR E";
+            debug: "A₀ = ${:02x}, E = ${:02x} A₁ = ${:02x}", a0, e, a1;
+        }
+    },
+    |_ac, cpu, _mem| {
+        let h = cpu.h;
+        let a0 = cpu.a;
+        let a1 = a0 ^ h;
+        cpu.a = a1;
+        cpu.set_z_flag(a1 == 0);
+        cpu.set_n_flag(false);
+        cpu.set_h_flag(false);
+        cpu.set_c_flag(false);
+        op_execution!{
+            cycles: 1;
+            asm: "XOR B";
+            debug: "A₀ = ${:02x}, H = ${:02x} A₁ = ${:02x}", a0, h, a1;
+        }
+    },
+    |_ad, cpu, _mem| {
+        let l = cpu.l;
+        let a0 = cpu.a;
+        let a1 = a0 ^ l;
+        cpu.a = a1;
+        cpu.set_z_flag(a1 == 0);
+        cpu.set_n_flag(false);
+        cpu.set_h_flag(false);
+        cpu.set_c_flag(false);
+        op_execution!{
+            cycles: 1;
+            asm: "XOR L";
+            debug: "A₀ = ${:02x}, L = ${:02x} A₁ = ${:02x}", a0, l, a1;
+        }
+    },
     |_ae, _cpu, _mem| unimplemented!("opcode 0xAE not implemented"),
-    |_af, _cpu, _mem| unimplemented!("opcode 0xAF not implemented"),
+    |_af, cpu, _mem| {
+        let a0 = cpu.a;
+        let a1 = a0 ^ a0;
+        cpu.a = a1;
+        cpu.set_z_flag(a1 == 0);
+        cpu.set_n_flag(false);
+        cpu.set_h_flag(false);
+        cpu.set_c_flag(false);
+        op_execution!{
+            cycles: 1;
+            asm: "XOR A";
+            debug: "A₀ = ${:02x}, A₁ = ${:02x}", a0, a1;
+        }
+    },
     |_b0, _cpu, _mem| unimplemented!("opcode 0xB0 not implemented"),
     |_b1, _cpu, _mem| unimplemented!("opcode 0xB1 not implemented"),
     |_b2, _cpu, _mem| unimplemented!("opcode 0xB2 not implemented"),

@@ -39,78 +39,7 @@ impl GameBoy {
 
     // LD B, *
     // LD C, *
-    |_48, cpu, _mem| {
-        1,
-        let c0 = cpu.c();
-        let b = cpu.b;
-        cpu.set_c(b);
-        op_execution!{
-            cycles: 000000000;
-            asm: "LD C, B"
-            debug: "C₀ = ${:02x}, B = ${:02x}", c0, b,
-        }
-    },
-    |_49, cpu, _mem| {
-        1,
-        let c = cpu.c();
-        (format!("LD C, C"), format!("C = ${:02x}", c)}
-    },
-    |_4a, cpu, _mem| {
-        1,
-        let c0 = cpu.c();
-        let d = cpu.d;
-        cpu.set_c(d);
-        op_execution!{
-            cycles: 000000000;
-            asm: "LD C, D"
-            debug: "C₀ = ${:02x}, D = ${:02x}", c0, d,
-        }
-    },
-    |_4b, cpu, _mem| {
-        1,
-        let c0 = cpu.c();
-        let e = cpu.e;
-        cpu.set_c(e);
-        op_execution!{
-            cycles: 000000000;
-            asm: "LD C, E"
-            debug: "C₀ = ${:02x}, E = ${:02x}", c0, e,
-        }
-    },
-    |_4c, cpu, _mem| {
-        1,
-        let c0 = cpu.c();
-        let h = cpu.h();
-        cpu.set_c(h);
-        op_execution!{
-            cycles: 000000000;
-            asm: "LD C, H"
-            debug: "C₀ = ${:02x}, H = ${:02x}", c0, h,
-        }
-    },
-    |_4d, cpu, _mem| {
-        1,
-        let c0 = cpu.c();
-        let l = cpu.l;
-        cpu.set_c(l);
-        op_execution!{
-            cycles: 000000000;
-            asm: "LD C, L"
-            debug: "C₀ = ${:02x}, L = ${:02x}", c0, l,
-        }
-    },
-    |_4e, cpu, _mem| {
-        2,
-        let c0 = cpu.c();
-        let hl = cpu.hl();
-        let c1 = mem.get(hl);
-        cpu.set_c(c1);
-        op_execution!{
-            cycles: 000000000;
-            asm: "LD C, (HL)"
-            debug: "C₀ = ${:02x}, HL = ${:04x}, (HL) = ${:04x}", c0, hl, c1,
-        }
-    },
+    
     // LD D, *
     |_50, cpu, _mem| {
         1,
@@ -785,21 +714,6 @@ impl GameBoy {
 {
 // 7. XOR n
 {
-    |_af, cpu, _mem| {
-        1,
-        let a0 = cpu.a;
-        let a1 = a0 ^ a0;
-        cpu.a = (a1);
-        cpu.set_z_flag(a1 == 0);
-        cpu.set_n_flag(false);
-        cpu.set_h_flag(false);
-        cpu.set_c_flag(false);
-        op_execution!{
-            cycles: 000000000;
-            asm: "XOR A"
-            debug: "A₀ = ${:02x}, A₁ = ${:02x}", a0, a1,
-        }
-    },
     |_a8, cpu, _mem| {
         1,
         let b = cpu.b;
