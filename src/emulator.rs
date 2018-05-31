@@ -160,7 +160,7 @@ impl GameBoy {
 
     pub fn run(&mut self) {
         println!();
-        let operations = get_operations();
+        let (operations, operations_cb) = get_operations();
         println!(
             "; {:3} one-byte opcodes implemented (~{:3.0}%).",
             operations.len(),
@@ -174,7 +174,13 @@ impl GameBoy {
         loop {
             let opcode = self.read_instruction();
 
-            let op = operations.get(&opcode);
+            let op = if opcode != 0xCB {
+                operations.get(&opcode)
+            } else {
+                let opcode_2 = self.read_immediate_u8();
+                operations_cb.get(&opcode_2)
+            };
+
             match op {
                 Some(op) => {
                     let (asm, debug) = (op.execute)(self);
@@ -329,7 +335,7 @@ impl GameBoy {
                                 format!("; ERROR: unsupported opcode"),
                                 format!(""),
                             );
-                            panic!("unsupported opcode: ${:02x}", opcode);
+                            panic!("unsupported opcode");
                         }
                     }
 
@@ -573,8 +579,9 @@ struct Operation {
     execute: fn(gb: &mut GameBoy) -> (String, String),
 }
 
-fn get_operations() -> HashMap<u8, Operation> {
+fn get_operations() -> (HashMap<u8, Operation>, HashMap<u8, Operation>) {
     let mut operations = HashMap::new();
+    let mut operations_cb = HashMap::new();
 
     {
         let mut op = |code: u8, cycles: u8, execute: fn(gb: &mut GameBoy) -> (String, String)| {
@@ -588,6 +595,18 @@ fn get_operations() -> HashMap<u8, Operation> {
                 None => {}
             }
         };
+        let mut op_cb =
+            |code: u8, cycles: u8, execute: fn(gb: &mut GameBoy) -> (String, String)| {
+                let operation = Operation {
+                    code: code,
+                    cycles: cycles,
+                    execute: execute,
+                };
+                match operations_cb.insert(operation.code, operation) {
+                    Some(_existing_op) => panic!("duplicate opcode"),
+                    None => {}
+                }
+            };
 
         // 3.1.1. 8-bit Loads
         {
@@ -1360,6 +1379,91 @@ fn get_operations() -> HashMap<u8, Operation> {
             op(0x00, 1, |_gb| (format!("NOP"), format!("")));
         }
 
+        // 3.3.6. Rotates & Shifts
+        // 6. RL n
+        // Rotate n left through Carry flag.
+        op_cb(0x17, 2, |gb| {
+            let a0 = gb.a();
+            let a1 = a0 << 1;
+            gb.set_a(a1);
+            gb.set_z_flag(a1 == 0);
+            gb.set_c_flag(a0 & 0b10000000 > 0);
+            gb.set_n_flag(false);
+            gb.set_h_flag(false);
+            (format!("RL A"), format!("A₀ = {}", a0))
+        });
+        op_cb(0x10, 2, |gb| {
+            let b0 = gb.b();
+            let b1 = b0 << 1;
+            gb.set_b(b1);
+            gb.set_z_flag(b1 == 0);
+            gb.set_c_flag(b0 & 0b10000000 > 0);
+            gb.set_n_flag(false);
+            gb.set_h_flag(false);
+            (format!("RL B"), format!("B₀ = {}", b0))
+        });
+        op_cb(0x11, 2, |gb| {
+            let c0 = gb.c();
+            let c1 = c0 << 1;
+            gb.set_c(c1);
+            gb.set_z_flag(c1 == 0);
+            gb.set_c_flag(c0 & 0b10000000 > 0);
+            gb.set_n_flag(false);
+            gb.set_h_flag(false);
+            (format!("RL C"), format!("C₀ = {}", c0))
+        });
+        op_cb(0x12, 2, |gb| {
+            let d0 = gb.d();
+            let d1 = d0 << 1;
+            gb.set_d(d1);
+            gb.set_z_flag(d1 == 0);
+            gb.set_c_flag(d0 & 0b10000000 > 0);
+            gb.set_n_flag(false);
+            gb.set_h_flag(false);
+            (format!("RL D"), format!("D₀ = {}", d0))
+        });
+        op_cb(0x13, 2, |gb| {
+            let e0 = gb.e();
+            let e1 = e0 << 1;
+            gb.set_e(e1);
+            gb.set_z_flag(e1 == 0);
+            gb.set_c_flag(e0 & 0b10000000 > 0);
+            gb.set_n_flag(false);
+            gb.set_h_flag(false);
+            (format!("RL E"), format!("E₀ = {}", e0))
+        });
+        op_cb(0x14, 2, |gb| {
+            let h0 = gb.h();
+            let h1 = h0 << 1;
+            gb.set_h(h1);
+            gb.set_z_flag(h1 == 0);
+            gb.set_c_flag(h0 & 0b10000000 > 0);
+            gb.set_n_flag(false);
+            gb.set_h_flag(false);
+            (format!("RL H"), format!("H₀ = {}", h0))
+        });
+        op_cb(0x15, 2, |gb| {
+            let l0 = gb.l();
+            let l1 = l0 << 1;
+            gb.set_l(l1);
+            gb.set_z_flag(l1 == 0);
+            gb.set_c_flag(l0 & 0b10000000 > 0);
+            gb.set_n_flag(false);
+            gb.set_h_flag(false);
+            (format!("RL L"), format!("L₀ = {}", l0))
+        });
+
+        // 3.3.7. Bit Opcodes
+        {
+            op_cb(0x7C, 2, |gb| {
+                let result = !u8_get_bit(gb.h(), 7);
+                gb.set_z_flag(result);
+                gb.set_n_flag(false);
+                gb.set_h_flag(true);
+                (format!("BIT 7, H"), format!("Z₁ = {}", result))
+            });
+        }
+
         // 3.3.8. Jumps
         {
             // 1. JP nn
@@ -1468,105 +1572,9 @@ fn get_operations() -> HashMap<u8, Operation> {
                 )
             });
         }
-
-        // Two-Byte Operations
-        {
-            op(0xCB, 0, |gb| {
-                let opcode_2 = gb.read_immediate_u8();
-
-                match opcode_2 {
-                    0x7C => {
-                        let result = !u8_get_bit(gb.h(), 7);
-                        gb.set_z_flag(result);
-                        gb.set_n_flag(false);
-                        gb.set_h_flag(true);
-                        (format!("BIT 7, H"), format!("Z₁ = {}", result))
-                    }
-
-                    // 3.3.6. Rotates & Shifts
-                    // 6. RL n
-                    // Rotate n left through Carry flag.
-                    0x17 => {
-                        let a0 = gb.a();
-                        let a1 = a0 << 1;
-                        gb.set_a(a1);
-                        gb.set_z_flag(a1 == 0);
-                        gb.set_c_flag(a0 & 0b10000000 > 0);
-                        gb.set_n_flag(false);
-                        gb.set_h_flag(false);
-                        (format!("RL A"), format!("A₀ = {}", a0))
-                    }
-                    0x10 => {
-                        let b0 = gb.b();
-                        let b1 = b0 << 1;
-                        gb.set_b(b1);
-                        gb.set_z_flag(b1 == 0);
-                        gb.set_c_flag(b0 & 0b10000000 > 0);
-                        gb.set_n_flag(false);
-                        gb.set_h_flag(false);
-                        (format!("RL B"), format!("B₀ = {}", b0))
-                    }
-                    0x11 => {
-                        let c0 = gb.c();
-                        let c1 = c0 << 1;
-                        gb.set_c(c1);
-                        gb.set_z_flag(c1 == 0);
-                        gb.set_c_flag(c0 & 0b10000000 > 0);
-                        gb.set_n_flag(false);
-                        gb.set_h_flag(false);
-                        (format!("RL C"), format!("C₀ = {}", c0))
-                    }
-                    0x12 => {
-                        let d0 = gb.d();
-                        let d1 = d0 << 1;
-                        gb.set_d(d1);
-                        gb.set_z_flag(d1 == 0);
-                        gb.set_c_flag(d0 & 0b10000000 > 0);
-                        gb.set_n_flag(false);
-                        gb.set_h_flag(false);
-                        (format!("RL D"), format!("D₀ = {}", d0))
-                    }
-                    0x13 => {
-                        let e0 = gb.e();
-                        let e1 = e0 << 1;
-                        gb.set_e(e1);
-                        gb.set_z_flag(e1 == 0);
-                        gb.set_c_flag(e0 & 0b10000000 > 0);
-                        gb.set_n_flag(false);
-                        gb.set_h_flag(false);
-                        (format!("RL E"), format!("E₀ = {}", e0))
-                    }
-                    0x14 => {
-                        let h0 = gb.h();
-                        let h1 = h0 << 1;
-                        gb.set_h(h1);
-                        gb.set_z_flag(h1 == 0);
-                        gb.set_c_flag(h0 & 0b10000000 > 0);
-                        gb.set_n_flag(false);
-                        gb.set_h_flag(false);
-                        (format!("RL H"), format!("H₀ = {}", h0))
-                    }
-                    0x15 => {
-                        let l0 = gb.l();
-                        let l1 = l0 << 1;
-                        gb.set_l(l1);
-                        gb.set_z_flag(l1 == 0);
-                        gb.set_c_flag(l0 & 0b10000000 > 0);
-                        gb.set_n_flag(false);
-                        gb.set_h_flag(false);
-                        (format!("RL L"), format!("L₀ = {}", l0))
-                    }
-
-                    _ => {
-                        gb.print_current_code(format!("; ERROR: unsupported opcode"), format!(""));
-                        panic!("unsupported opcode: $CB ${:02x}", opcode_2);
-                    }
-                }
-            });
-        }
     }
 
-    operations
+    (operations, operations_cb)
 }
 
 fn load_boot_rom() -> Vec<u8> {
