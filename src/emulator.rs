@@ -8,7 +8,7 @@ pub struct GameBoy {
     i: u16,
     main_ram: [u8; 8192],
     video_ram: [u8; 8192],
-    high_ram: [u8; 127],
+    stack_ram: [u8; 127],
     main_registers: [u8; 12],
     boot_rom: Vec<u8>,
     game_rom: Vec<u8>,
@@ -29,7 +29,7 @@ impl GameBoy {
             i: 0,
             main_ram: [0u8; 8192],
             video_ram: [0u8; 8192],
-            high_ram: [0u8; 127],
+            stack_ram: [0u8; 127],
             main_registers: [0u8; 12],
             boot_rom: load_boot_rom(),
             boot_rom_mapped: true,
@@ -100,7 +100,7 @@ impl GameBoy {
             value = self.video_ram[i];
         } else if 0xFF80 <= address && address <= 0xFFFE {
             let i: usize = (address - 0xFF80) as usize;
-            value = self.high_ram[i];
+            value = self.stack_ram[i];
         } else {
             panic!("I don't know how to get memory address ${:04x}.", address);
         }
@@ -121,8 +121,8 @@ impl GameBoy {
             println!("  ; video_ram[${:04x}] = ${:02x}", i, value);
         } else if 0xFF80 <= address && address <= 0xFFFE {
             let i: usize = (address - 0xFF80) as usize;
-            self.high_ram[i] = value;
-            println!("  ; high_ram[${:04x}] = ${:02x}", i, value);
+            self.stack_ram[i] = value;
+            println!("  ; stack_ram[${:02x}] = ${:02x}", i, value);
         } else if 0xFF10 <= address && address <= 0xFF26 {
             println!("  ; skipping write to sound control memory -- not implemented");
         } else if address == 0xFF47 {
@@ -349,11 +349,11 @@ impl GameBoy {
         self.main_registers[0] = value;
     }
 
-    fn flags(&self) -> u8 {
+    fn f(&self) -> u8 {
         return self.main_registers[1];
     }
 
-    fn set_flags(&mut self, value: u8) {
+    fn set_f(&mut self, value: u8) {
         self.main_registers[1] = value;
     }
 
@@ -447,6 +447,16 @@ impl GameBoy {
         self.set_l(l);
     }
 
+    fn af(&self) -> u16 {
+        return u8s_to_u16(self.f(), self.a());
+    }
+
+    fn set_af(&mut self, value: u16) {
+        let (f, a) = u16_to_u8s(value);
+        self.set_a(a);
+        self.set_f(f);
+    }
+
     fn sp(&self) -> u16 {
         return u8s_to_u16(self.sp_p(), self.sp_s());
     }
@@ -488,43 +498,43 @@ impl GameBoy {
     }
 
     fn z_flag(&self) -> bool {
-        u8_get_bit(self.flags(), 1)
+        u8_get_bit(self.f(), 1)
     }
 
     fn set_z_flag(&mut self, value: bool) {
-        let mut flags = self.flags();
+        let mut flags = self.f();
         u8_set_bit(&mut flags, 1, value);
-        self.set_flags(flags);
+        self.set_f(flags);
     }
 
     fn n_flag(&self) -> bool {
-        u8_get_bit(self.flags(), 2)
+        u8_get_bit(self.f(), 2)
     }
 
     fn set_n_flag(&mut self, value: bool) {
-        let mut flags = self.flags();
+        let mut flags = self.f();
         u8_set_bit(&mut flags, 2, value);
-        self.set_flags(flags);
+        self.set_f(flags);
     }
 
     fn h_flag(&self) -> bool {
-        u8_get_bit(self.flags(), 3)
+        u8_get_bit(self.f(), 3)
     }
 
     fn set_h_flag(&mut self, value: bool) {
-        let mut flags = self.flags();
+        let mut flags = self.f();
         u8_set_bit(&mut flags, 3, value);
-        self.set_flags(flags);
+        self.set_f(flags);
     }
 
     fn c_flag(&self) -> bool {
-        u8_get_bit(self.flags(), 4)
+        u8_get_bit(self.f(), 4)
     }
 
     fn set_c_flag(&mut self, value: bool) {
-        let mut flags = self.flags();
+        let mut flags = self.f();
         u8_set_bit(&mut flags, 4, value);
-        self.set_flags(flags);
+        self.set_f(flags);
     }
 }
 
@@ -1302,6 +1312,46 @@ fn get_operations() -> HashMap<u8, Operation> {
                     format!("SP₀ = ${:04x}, HL = ${:02x}", sp0, hl),
                 )
             });
+
+            // 5. PUSH nn
+            // Push register pair nn onto stack.
+            // Decrement Stack Pointer (SP) twice.
+            op(0xF5, 4, |gb| {
+                let sp0 = gb.sp();
+                let af = gb.af();
+                gb.stack_push(af);
+                (
+                    format!("PUSH AF"),
+                    format!("SP₀ = ${:04x}, AF = ${:04x}", sp0, af),
+                )
+            });
+            op(0xC5, 4, |gb| {
+                let sp0 = gb.sp();
+                let bc = gb.bc();
+                gb.stack_push(bc);
+                (
+                    format!("PUSH BC"),
+                    format!("SP₀ = ${:04x}, BC = ${:04x}", sp0, bc),
+                )
+            });
+            op(0xD5, 4, |gb| {
+                let sp0 = gb.sp();
+                let de = gb.de();
+                gb.stack_push(de);
+                (
+                    format!("PUSH DE"),
+                    format!("SP₀ = ${:04x}, DE = ${:04x}", sp0, de),
+                )
+            });
+            op(0xE5, 4, |gb| {
+                let sp0 = gb.sp();
+                let hl = gb.hl();
+                gb.stack_push(hl);
+                (
+                    format!("PUSH hl"),
+                    format!("SP₀ = ${:04x}, HL = ${:04x}", sp0, hl),
+                )
+            });
         }
 
         // 3.3.5. Miscellaneous
@@ -1431,6 +1481,80 @@ fn get_operations() -> HashMap<u8, Operation> {
                         gb.set_n_flag(false);
                         gb.set_h_flag(true);
                         (format!("BIT 7, H"), format!("Z₁ = {}", result))
+                    }
+
+                    // 3.3.6. Rotates & Shifts
+                    // 6. RL n
+                    // Rotate n left through Carry flag.
+                    0x17 => {
+                        let a0 = gb.a();
+                        let a1 = a0 << 1;
+                        gb.set_a(a1);
+                        gb.set_z_flag(a1 == 0);
+                        gb.set_c_flag(a0 & 0b10000000 > 0);
+                        gb.set_n_flag(false);
+                        gb.set_h_flag(false);
+                        (format!("RL A"), format!("A₀ = {}", a0))
+                    }
+                    0x10 => {
+                        let b0 = gb.b();
+                        let b1 = b0 << 1;
+                        gb.set_b(b1);
+                        gb.set_z_flag(b1 == 0);
+                        gb.set_c_flag(b0 & 0b10000000 > 0);
+                        gb.set_n_flag(false);
+                        gb.set_h_flag(false);
+                        (format!("RL B"), format!("B₀ = {}", b0))
+                    }
+                    0x11 => {
+                        let c0 = gb.c();
+                        let c1 = c0 << 1;
+                        gb.set_c(c1);
+                        gb.set_z_flag(c1 == 0);
+                        gb.set_c_flag(c0 & 0b10000000 > 0);
+                        gb.set_n_flag(false);
+                        gb.set_h_flag(false);
+                        (format!("RL C"), format!("C₀ = {}", c0))
+                    }
+                    0x12 => {
+                        let d0 = gb.d();
+                        let d1 = d0 << 1;
+                        gb.set_d(d1);
+                        gb.set_z_flag(d1 == 0);
+                        gb.set_c_flag(d0 & 0b10000000 > 0);
+                        gb.set_n_flag(false);
+                        gb.set_h_flag(false);
+                        (format!("RL D"), format!("D₀ = {}", d0))
+                    }
+                    0x13 => {
+                        let e0 = gb.e();
+                        let e1 = e0 << 1;
+                        gb.set_e(e1);
+                        gb.set_z_flag(e1 == 0);
+                        gb.set_c_flag(e0 & 0b10000000 > 0);
+                        gb.set_n_flag(false);
+                        gb.set_h_flag(false);
+                        (format!("RL E"), format!("E₀ = {}", e0))
+                    }
+                    0x14 => {
+                        let h0 = gb.h();
+                        let h1 = h0 << 1;
+                        gb.set_h(h1);
+                        gb.set_z_flag(h1 == 0);
+                        gb.set_c_flag(h0 & 0b10000000 > 0);
+                        gb.set_n_flag(false);
+                        gb.set_h_flag(false);
+                        (format!("RL H"), format!("H₀ = {}", h0))
+                    }
+                    0x15 => {
+                        let l0 = gb.l();
+                        let l1 = l0 << 1;
+                        gb.set_l(l1);
+                        gb.set_z_flag(l1 == 0);
+                        gb.set_c_flag(l0 & 0b10000000 > 0);
+                        gb.set_n_flag(false);
+                        gb.set_h_flag(false);
+                        (format!("RL L"), format!("L₀ = {}", l0))
                     }
 
                     _ => {
