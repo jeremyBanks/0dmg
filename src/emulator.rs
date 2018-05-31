@@ -1364,7 +1364,6 @@ fn get_operations() -> (HashMap<u8, Operation>, HashMap<u8, Operation>) {
                         format!("A₀ = ${:02x}, B = ${:02x} A₁ = ${:02x}", a0, b, a1),
                     )
                 });
-
                 op(0xA9, 1, |gb| {
                     let c = gb.c();
                     let a0 = gb.a();
@@ -1393,7 +1392,6 @@ fn get_operations() -> (HashMap<u8, Operation>, HashMap<u8, Operation>) {
                         format!("A₀ = ${:02x}, D = ${:02x} A₁ = ${:02x}", a0, d, a1),
                     )
                 });
-
                 op(0xAB, 1, |gb| {
                     let e = gb.e();
                     let a0 = gb.a();
@@ -1439,90 +1437,180 @@ fn get_operations() -> (HashMap<u8, Operation>, HashMap<u8, Operation>) {
             }
 
             // 9. INC n
-            op(0x3C, 1, |gb| {
-                let a0 = gb.a();
-                let a1 = a0 + 1;
-                gb.set_a(a1);
-                gb.set_z_flag(a1 == 0);
-                gb.set_n_flag(false);
-                gb.set_h_flag(a0 > a1);
-                (
-                    format!("INC A"),
-                    format!("A₀ = ${:02x}, A₁ = ${:02x}", a0, a1),
-                )
-            });
-            op(0x04, 1, |gb| {
-                let b0 = gb.b();
-                let b1 = b0 + 1;
-                gb.set_a(b1);
-                gb.set_z_flag(b1 == 0);
-                gb.set_n_flag(false);
-                gb.set_h_flag(b0 > b1);
-                (
-                    format!("INC B"),
-                    format!("B₀ = ${:02x}, B₁ = ${:02x}", b0, b1),
-                )
-            });
-            op(0x0C, 1, |gb| {
-                let c0 = gb.c();
-                let c1 = c0 + 1;
-                gb.set_a(c1);
-                gb.set_z_flag(c1 == 0);
-                gb.set_n_flag(false);
-                gb.set_h_flag(c0 > c1);
-                (
-                    format!("INC C"),
-                    format!("C₀ = ${:02x}, C₁ = ${:02x}", c0, c1),
-                )
-            });
-            op(0x14, 1, |gb| {
-                let d0 = gb.d();
-                let d1 = d0 + 1;
-                gb.set_a(d1);
-                gb.set_z_flag(d1 == 0);
-                gb.set_n_flag(false);
-                gb.set_h_flag(d0 > d1);
-                (
-                    format!("INC D"),
-                    format!("D₀ = ${:02x}, D₁ = ${:02x}", d0, d1),
-                )
-            });
-            op(0x1C, 1, |gb| {
-                let e0 = gb.e();
-                let e1 = e0 + 1;
-                gb.set_a(e1);
-                gb.set_z_flag(e1 == 0);
-                gb.set_n_flag(false);
-                gb.set_h_flag(e0 > e1);
-                (
-                    format!("INC E"),
-                    format!("E₀ = ${:02x}, E₁ = ${:02x}", e0, e1),
-                )
-            });
-            op(0x24, 1, |gb| {
-                let h0 = gb.h();
-                let h1 = h0 + 1;
-                gb.set_a(h1);
-                gb.set_z_flag(h1 == 0);
-                gb.set_n_flag(false);
-                gb.set_h_flag(h0 > h1);
-                (
-                    format!("INC H"),
-                    format!("H₀ = ${:02x}, H₁ = ${:02x}", h0, h1),
-                )
-            });
-            op(0x2C, 1, |gb| {
-                let l0 = gb.l();
-                let l1 = l0 + 1;
-                gb.set_a(l1);
-                gb.set_z_flag(l1 == 0);
-                gb.set_n_flag(false);
-                gb.set_h_flag(l0 > l1);
-                (
-                    format!("INC L"),
-                    format!("L₀ = ${:02x}, L₁ = ${:02x}", l0, l1),
-                )
-            });
+            {
+                op(0x3C, 1, |gb| {
+                    let a0 = gb.a();
+                    let a1 = a0 + 1;
+                    gb.set_a(a1);
+                    gb.set_z_flag(a1 == 0);
+                    gb.set_n_flag(false);
+                    gb.set_h_flag(a0 > a1);
+                    (
+                        format!("INC A"),
+                        format!("A₀ = ${:02x}, A₁ = ${:02x}", a0, a1),
+                    )
+                });
+                op(0x04, 1, |gb| {
+                    let b0 = gb.b();
+                    let b1 = b0 + 1;
+                    gb.set_b(b1);
+                    gb.set_z_flag(b1 == 0);
+                    gb.set_n_flag(false);
+                    gb.set_h_flag(b0 > b1);
+                    (
+                        format!("INC B"),
+                        format!("B₀ = ${:02x}, B₁ = ${:02x}", b0, b1),
+                    )
+                });
+                op(0x0C, 1, |gb| {
+                    let c0 = gb.c();
+                    let c1 = c0 + 1;
+                    gb.set_c(c1);
+                    gb.set_z_flag(c1 == 0);
+                    gb.set_n_flag(false);
+                    gb.set_h_flag(c0 > c1);
+                    (
+                        format!("INC C"),
+                        format!("C₀ = ${:02x}, C₁ = ${:02x}", c0, c1),
+                    )
+                });
+                op(0x14, 1, |gb| {
+                    let d0 = gb.d();
+                    let d1 = d0 + 1;
+                    gb.set_d(d1);
+                    gb.set_z_flag(d1 == 0);
+                    gb.set_n_flag(false);
+                    gb.set_h_flag(d0 > d1);
+                    (
+                        format!("INC D"),
+                        format!("D₀ = ${:02x}, D₁ = ${:02x}", d0, d1),
+                    )
+                });
+                op(0x1C, 1, |gb| {
+                    let e0 = gb.e();
+                    let e1 = e0 + 1;
+                    gb.set_e(e1);
+                    gb.set_z_flag(e1 == 0);
+                    gb.set_n_flag(false);
+                    gb.set_h_flag(e0 > e1);
+                    (
+                        format!("INC E"),
+                        format!("E₀ = ${:02x}, E₁ = ${:02x}", e0, e1),
+                    )
+                });
+                op(0x24, 1, |gb| {
+                    let h0 = gb.h();
+                    let h1 = h0 + 1;
+                    gb.set_h(h1);
+                    gb.set_z_flag(h1 == 0);
+                    gb.set_n_flag(false);
+                    gb.set_h_flag(h0 > h1);
+                    (
+                        format!("INC H"),
+                        format!("H₀ = ${:02x}, H₁ = ${:02x}", h0, h1),
+                    )
+                });
+                op(0x2C, 1, |gb| {
+                    let l0 = gb.l();
+                    let l1 = l0 + 1;
+                    gb.set_l(l1);
+                    gb.set_z_flag(l1 == 0);
+                    gb.set_n_flag(false);
+                    gb.set_h_flag(l0 > l1);
+                    (
+                        format!("INC L"),
+                        format!("L₀ = ${:02x}, L₁ = ${:02x}", l0, l1),
+                    )
+                });
+            }
+
+            // 10. DEC n
+            {
+                op(0x3D, 1, |gb| {
+                    let a0 = gb.a();
+                    let a1 = a0 - 1;
+                    gb.set_a(a1);
+                    gb.set_z_flag(a1 == 0);
+                    gb.set_n_flag(false);
+                    gb.set_h_flag(a0 < a1);
+                    (
+                        format!("DEC A"),
+                        format!("A₀ = ${:02x}, A₁ = ${:02x}", a0, a1),
+                    )
+                });
+                op(0x05, 1, |gb| {
+                    let b0 = gb.b();
+                    let b1 = b0 - 1;
+                    gb.set_b(b1);
+                    gb.set_z_flag(b1 == 0);
+                    gb.set_n_flag(false);
+                    gb.set_h_flag(b0 < b1);
+                    (
+                        format!("DEC A"),
+                        format!("A₀ = ${:02x}, A₁ = ${:02x}", b0, b1),
+                    )
+                });
+                op(0x0D, 1, |gb| {
+                    let c0 = gb.a();
+                    let c1 = c0 - 1;
+                    gb.set_c(c1);
+                    gb.set_z_flag(c1 == 0);
+                    gb.set_n_flag(false);
+                    gb.set_h_flag(c0 < c1);
+                    (
+                        format!("DEC C"),
+                        format!("C₀ = ${:02x}, C₁ = ${:02x}", c0, c1),
+                    )
+                });
+                op(0x15, 1, |gb| {
+                    let d0 = gb.d();
+                    let d1 = d0 - 1;
+                    gb.set_d(d1);
+                    gb.set_z_flag(d1 == 0);
+                    gb.set_n_flag(false);
+                    gb.set_h_flag(d0 < d1);
+                    (
+                        format!("DEC D"),
+                        format!("D₀ = ${:02x}, D₁ = ${:02x}", d0, d1),
+                    )
+                });
+                op(0x1D, 1, |gb| {
+                    let e0 = gb.e();
+                    let e1 = e0 - 1;
+                    gb.set_e(e1);
+                    gb.set_z_flag(e1 == 0);
+                    gb.set_n_flag(false);
+                    gb.set_h_flag(e0 < e1);
+                    (
+                        format!("DEC A"),
+                        format!("E₀ = ${:02x}, E₁ = ${:02x}", e0, e1),
+                    )
+                });
+                op(0x25, 1, |gb| {
+                    let h0 = gb.h();
+                    let h1 = h0 - 1;
+                    gb.set_h(h1);
+                    gb.set_z_flag(h1 == 0);
+                    gb.set_n_flag(false);
+                    gb.set_h_flag(h0 < h1);
+                    (
+                        format!("DEC H"),
+                        format!("H₀ = ${:02x}, H₁ = ${:02x}", h0, h1),
+                    )
+                });
+                op(0x2D, 1, |gb| {
+                    let l0 = gb.l();
+                    let l1 = 0 - 1;
+                    gb.set_l(l1);
+                    gb.set_z_flag(l1 == 0);
+                    gb.set_n_flag(false);
+                    gb.set_h_flag(0 < l1);
+                    (
+                        format!("DEC L"),
+                        format!("A₀ = ${:02x}, A₁ = ${:02x}", 0, l1),
+                    )
+                });
+            }
         }
 
         // 3.3.5. Miscellaneous
