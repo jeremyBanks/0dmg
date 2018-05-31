@@ -217,7 +217,16 @@
 
       let data = g2d.getImageData(0, 0, gbWidth, gbHeight);
       while (true) {
-        const bytes = new Uint8Array(await (await fetch('/frame')).arrayBuffer());
+        let bytes;
+        try {
+          bytes = new Uint8Array(await (await fetch('/frame')).arrayBuffer());
+        } catch (error) {
+          console.error(error);
+          g2d.clearRect(0, 0, gbWidth, gbHeight);
+          await sleep(500);
+          continue;
+        }
+
 
         for (let i = 0; i < bytes.length; i++) {
           for (let j = 0; j < 4; j++) {
@@ -243,7 +252,7 @@
         }
         g2d.putImageData(data, 0, 0);
         
-        await sleep(1000);
+        await sleep(125);
       }
     };
 
