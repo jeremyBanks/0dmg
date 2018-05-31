@@ -14,7 +14,6 @@ pub fn main() {
 
 pub fn try_main() -> Result<(), String> {
     let frame_buffer = Arc::new(Mutex::new(vec![0u8; 160 * 144 / 4]));
-    let frame_buffer_also = frame_buffer.clone();
 
     let http_server_thread = thread::spawn(move || {
         let frame_buffer = frame_buffer.clone();
@@ -31,8 +30,7 @@ pub fn try_main() -> Result<(), String> {
     });
 
     let emulator_thread = thread::spawn(move || {
-        let frame_buffer = frame_buffer_also.clone();
-        let mut gameboy = emulator::GameBoy::new(frame_buffer);
+        let mut gameboy = emulator::GameBoy::new();
         gameboy.run();
     });
 
