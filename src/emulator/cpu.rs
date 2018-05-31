@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 #[derive(Debug)]
 pub struct CPU {
     // clock ticks
@@ -26,17 +24,35 @@ pub struct CPU {
     pc: u16,
 }
 
+impl CPU {
+    pub fn new() -> Self {
+        CPU {
+            t: 0x00,
+            i: 0x00,
+            a: 0x00,
+            f: 0x00,
+            b: 0x00,
+            c: 0x00,
+            d: 0x00,
+            e: 0x00,
+            h: 0x00,
+            l: 0x00,
+            sp: 0x0000,
+            pc: 0x0000,
+        }
+    }
+}
+
 type OperationFn = fn(
     opcode: u8,
     cpu: &mut CPU,
     mem: &mut MemoryMap,
 ) -> Result<OperationExecution, ()>;
 
-#[derive(Debug)]
-struct OperationExecution {
+struct OperationExecution<'a> {
     dt: u64, // number of cycles elapsed
     asm: str, // generated pseudo-asm
-    debug: Optional<str>, // some readable debug data
+    debug: Option<str>, // human-readable debug data
 }
 
 // supported one-byte opcodes
