@@ -3,6 +3,7 @@ use emulator::memory::MemoryController;
 
 pub type OpFn = fn(opcode: u8, cpu: &mut CPU, mem: &mut MemoryController) -> Execution;
 
+#[derive(Debug)]
 pub struct Execution {
     pub cycles: u64,           // number of cycles elapsed
     pub asm: Option<String>,   // generated pseudo-asm

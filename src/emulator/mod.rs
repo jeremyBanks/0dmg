@@ -584,16 +584,7 @@ impl GameBoy {
         format!("DE₁ = ${:04x}", de0),
     )
 });
-|_21, cpu, _mem| {
-        3,
-    let hl0 = cpu.hl();
-    let hl1 = cpu.read_immediate_u16(mem);
-    cpu.set_hl(hl1);
-    (
-        format!("LOAD HL, ${:04x}", hl1),
-        format!("hl₁ = ${:04x}", hl0),
-    )
-});
+);
 
 
 // 2. LD SP, HL
@@ -713,104 +704,6 @@ impl GameBoy {
 // 3.3.3. 8-Bit ALU
 {
 // 7. XOR n
-{
-    |_a8, cpu, _mem| {
-        1,
-        let b = cpu.b;
-        let a0 = cpu.a;
-        let a1 = a0 ^ b;
-        cpu.a = (a1);
-        cpu.set_z_flag(a1 == 0);
-        cpu.set_n_flag(false);
-        cpu.set_h_flag(false);
-        cpu.set_c_flag(false);
-        op_execution!{
-            cycles: 000000000;
-            asm: "XOR B"
-            debug: "A₀ = ${:02x}, B = ${:02x} A₁ = ${:02x}", a0, b, a1,
-        }
-    },
-    |_a9, cpu, _mem| {
-        1,
-        let c = cpu.c();
-        let a0 = cpu.a;
-        let a1 = a0 ^ c;
-        cpu.a = (a1);
-        cpu.set_z_flag(a1 == 0);
-        cpu.set_n_flag(false);
-        cpu.set_h_flag(false);
-        cpu.set_c_flag(false);
-        op_execution!{
-            cycles: 000000000;
-            asm: "XOR C"
-            debug: "A₀ = ${:02x}, C = ${:02x} A₁ = ${:02x}", a0, c, a1,
-        }
-    },
-    |_aa, cpu, _mem| {
-        1,
-        let d = cpu.d;
-        let a0 = cpu.a;
-        let a1 = a0 ^ d;
-        cpu.a = (a1);
-        cpu.set_z_flag(a1 == 0);
-        cpu.set_n_flag(false);
-        cpu.set_h_flag(false);
-        cpu.set_c_flag(false);
-        op_execution!{
-            cycles: 000000000;
-            asm: "XOR D"
-            debug: "A₀ = ${:02x}, D = ${:02x} A₁ = ${:02x}", a0, d, a1,
-        }
-    },
-    |_ab, cpu, _mem| {
-        1,
-        let e = cpu.e;
-        let a0 = cpu.a;
-        let a1 = a0 ^ e;
-        cpu.a = (a1);
-        cpu.set_z_flag(a1 == 0);
-        cpu.set_n_flag(false);
-        cpu.set_h_flag(false);
-        cpu.set_c_flag(false);
-        op_execution!{
-            cycles: 000000000;
-            asm: "XOR E"
-            debug: "A₀ = ${:02x}, E = ${:02x} A₁ = ${:02x}", a0, e, a1,
-        }
-    },
-    |_ac, cpu, _mem| {
-        1,
-        let h = cpu.h();
-        let a0 = cpu.a;
-        let a1 = a0 ^ h;
-        cpu.a = (a1);
-        cpu.set_z_flag(a1 == 0);
-        cpu.set_n_flag(false);
-        cpu.set_h_flag(false);
-        cpu.set_c_flag(false);
-        op_execution!{
-            cycles: 000000000;
-            asm: "XOR B"
-            debug: "A₀ = ${:02x}, H = ${:02x} A₁ = ${:02x}", a0, h, a1,
-        }
-    },
-    |_ad, cpu, _mem| {
-        1,
-        let l = cpu.l;
-        let a0 = cpu.a;
-        let a1 = a0 ^ l;
-        cpu.a = (a1);
-        cpu.set_z_flag(a1 == 0);
-        cpu.set_n_flag(false);
-        cpu.set_h_flag(false);
-        cpu.set_c_flag(false);
-        op_execution!{
-            cycles: 000000000;
-            asm: "XOR L"
-            debug: "A₀ = ${:02x}, L = ${:02x} A₁ = ${:02x}", a0, l, a1,
-        }
-    },
-}
 
 // 9. INC n
 {

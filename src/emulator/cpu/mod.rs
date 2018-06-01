@@ -137,7 +137,7 @@ impl CPU {
 
     fn stack_push(&mut self, mem: &mut MemoryController, value: u16) {
         let sp0 = self.sp;
-        let (value_low, value_high) = u16_to_u8s(sp0);
+        let (value_low, value_high) = u16_to_u8s(value);
         mem.set(sp0 - 0, value_low);
         mem.set(sp0 - 1, value_high);
         let sp1 = sp0 - 2;
