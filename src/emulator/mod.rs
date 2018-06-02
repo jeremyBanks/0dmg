@@ -4,31 +4,22 @@ mod memory;
 mod roms;
 mod video;
 
-use self::cpu::{CPU,CPUData};
+use self::audio::AudioData;
+use self::cpu::{CPUController, CPUData};
+use self::memory::MemoryData;
 
 pub struct GameBoy {
     cpu: CPUData,
-
-    // === MemoryController
-    main_ram: [u8; 0x2000],
-    video_ram: [u8; 0x2000],
-    stack_ram: [u8; 0x80],
-    boot_rom: [u8; 0x100],
-    game_rom: Vec<u8>,
-    boot_rom_mapped: bool,
+    mem: MemoryData,
+    aud: AudioData,
 }
 
 impl GameBoy {
     pub fn new() -> Self {
         Self {
             cpu: CPUData::new(),
-            // MemoryController
-            main_ram: [0x00; 0x2000],
-            video_ram: [0x00; 0x2000],
-            stack_ram: [0x00; 0x80],
-            boot_rom: roms::BOOT.clone(),
-            game_rom: roms::GAME_STUB.to_vec(),
-            boot_rom_mapped: true,
+            mem: MemoryData::new(),
+            aud: AudioData::new(),
         }
     }
 

@@ -1,6 +1,12 @@
-pub struct AudioController;
-impl AudioController {
+use super::GameBoy;
+pub struct AudioData;
+
+impl AudioData {
     pub fn new() -> Self {
-        AudioController {}
+        Self {}
     }
 }
+
+pub trait AudioController {}
+
+impl AudioController for GameBoy {}
