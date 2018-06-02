@@ -1,6 +1,5 @@
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time;
 
 extern crate hyper;
 use hyper::server::Http;
@@ -14,6 +13,11 @@ pub fn main() {
 
 pub fn try_main() -> Result<(), String> {
     let frame_buffer = Arc::new(Mutex::new(vec![0u8; 160 * 144 / 4]));
+
+    let emulator_thread = thread::spawn(move || {
+        let mut gameboy = emulator::GameBoy::new();
+        gameboy.run();
+    });
 
     let http_server_thread = thread::spawn(move || {
         let frame_buffer = frame_buffer.clone();
@@ -29,15 +33,8 @@ pub fn try_main() -> Result<(), String> {
             .unwrap();
     });
 
-    let emulator_thread = thread::spawn(move || {
-        let mut gameboy = emulator::GameBoy::new();
-        gameboy.run();
-    });
-
     if let Err(_error) = emulator_thread.join() {
         println!("; emulator thread panicked");
-        println!("; killing process in 2 seconds");
-        thread::sleep(time::Duration::from_secs(2));
         return Err(format!("emulator thread panicked"));
     }
 

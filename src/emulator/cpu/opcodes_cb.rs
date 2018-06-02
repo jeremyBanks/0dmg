@@ -18,12 +18,90 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     |_0d, _cpu, _mem| unimplemented!("opcode 0xCB0D not implemented"),
     |_0e, _cpu, _mem| unimplemented!("opcode 0xCB0E not implemented"),
     |_0f, _cpu, _mem| unimplemented!("opcode 0xCB0F not implemented"),
-    |_10, _cpu, _mem| unimplemented!("opcode 0xCB10 not implemented"),
-    |_11, _cpu, _mem| unimplemented!("opcode 0xCB11 not implemented"),
-    |_12, _cpu, _mem| unimplemented!("opcode 0xCB12 not implemented"),
-    |_13, _cpu, _mem| unimplemented!("opcode 0xCB13 not implemented"),
-    |_14, _cpu, _mem| unimplemented!("opcode 0xCB14 not implemented"),
-    |_15, _cpu, _mem| unimplemented!("opcode 0xCB15 not implemented"),
+    |_10, cpu, _mem| {
+        let b0 = cpu.b;
+        let b1 = b0 << 1 + if cpu.c_flag() { 1 } else { 0 };
+        cpu.b = b1;
+        cpu.set_z_flag(b1 == 0);
+        cpu.set_c_flag(b0 & 0b10000000 > 0);
+        cpu.set_n_flag(false);
+        cpu.set_h_flag(false);
+        op_execution!{
+            cycles: 2;
+            asm: "RL B";
+            trace: "B₀ = {}", b0;
+        }
+    },
+    |_11, cpu, _mem| {
+        let c0 = cpu.c;
+        let c1 = c0 << 1 + if cpu.c_flag() { 1 } else { 0 };
+        cpu.c = c1;
+        cpu.set_z_flag(c1 == 0);
+        cpu.set_c_flag(c0 & 0b10000000 > 0);
+        cpu.set_n_flag(false);
+        cpu.set_h_flag(false);
+        op_execution!{
+            cycles: 2;
+            asm: "RL C";
+            trace: "C₀ = {}", c0;
+        }
+    },
+    |_12, cpu, _mem| {
+        let d0 = cpu.d;
+        let d1 = d0 << 1 + if cpu.c_flag() { 1 } else { 0 };
+        cpu.d = d1;
+        cpu.set_z_flag(d1 == 0);
+        cpu.set_c_flag(d0 & 0b10000000 > 0);
+        cpu.set_n_flag(false);
+        cpu.set_h_flag(false);
+        op_execution!{
+            cycles: 2;
+            asm: "RL D";
+            trace: "D₀ = {}", d0;
+        }
+    },
+    |_13, cpu, _mem| {
+        let e0 = cpu.e;
+        let e1 = e0 << 1 + if cpu.c_flag() { 1 } else { 0 };
+        cpu.e = e1;
+        cpu.set_z_flag(e1 == 0);
+        cpu.set_c_flag(e0 & 0b10000000 > 0);
+        cpu.set_n_flag(false);
+        cpu.set_h_flag(false);
+        op_execution!{
+            cycles: 2;
+            asm: "RL E";
+            trace: "E₀ = {}", e0;
+        }
+    },
+    |_14, cpu, _mem| {
+        let h0 = cpu.h;
+        let h1 = h0 << 1 + if cpu.c_flag() { 1 } else { 0 };
+        cpu.h = h1;
+        cpu.set_z_flag(h1 == 0);
+        cpu.set_c_flag(h0 & 0b10000000 > 0);
+        cpu.set_n_flag(false);
+        cpu.set_h_flag(false);
+        op_execution!{
+            cycles: 2;
+            asm: "RL H";
+            trace: "H₀ = {}", h0;
+        }
+    },
+    |_15, cpu, _mem| {
+        let l0 = cpu.l;
+        let l1 = l0 << 1 + if cpu.c_flag() { 1 } else { 0 };
+        cpu.l = l1;
+        cpu.set_z_flag(l1 == 0);
+        cpu.set_c_flag(l0 & 0b10000000 > 0);
+        cpu.set_n_flag(false);
+        cpu.set_h_flag(false);
+        op_execution!{
+            cycles: 2;
+            asm: "RL L";
+            trace: "L₀ = {}", l0;
+        }
+    },
     |_16, _cpu, _mem| unimplemented!("opcode 0xCB16 not implemented"),
     |_17, _cpu, _mem| unimplemented!("opcode 0xCB17 not implemented"),
     |_18, _cpu, _mem| unimplemented!("opcode 0xCB18 not implemented"),
@@ -126,7 +204,17 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     |_79, _cpu, _mem| unimplemented!("opcode 0xCB79 not implemented"),
     |_7a, _cpu, _mem| unimplemented!("opcode 0xCB7A not implemented"),
     |_7b, _cpu, _mem| unimplemented!("opcode 0xCB7B not implemented"),
-    |_7c, _cpu, _mem| unimplemented!("opcode 0xCB7C not implemented"),
+    |_7c, cpu, _mem| {
+        let result = !u8_get_bit(cpu.h, 7);
+        cpu.set_z_flag(result);
+        cpu.set_n_flag(false);
+        cpu.set_h_flag(true);
+        op_execution!{
+            cycles: 2;
+            asm: "BIT 7, H";
+            trace: "Z₁ = {}", result;
+        }
+    },
     |_7d, _cpu, _mem| unimplemented!("opcode 0xCB7D not implemented"),
     |_7e, _cpu, _mem| unimplemented!("opcode 0xCB7E not implemented"),
     |_7f, _cpu, _mem| unimplemented!("opcode 0xCB7F not implemented"),
@@ -258,3 +346,24 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     |_fd, _cpu, _mem| unimplemented!("opcode 0xCBFD not implemented"),
     |_fe, _cpu, _mem| unimplemented!("opcode 0xCBFE not implemented"),
 ];
+
+fn u8_get_bit(x: u8, offset: u8) -> bool {
+    if offset > 7 {
+        panic!();
+    }
+
+    (x >> offset) & 1 == 1
+}
+
+fn u8_set_bit(x: &mut u8, offset: u8, value: bool) {
+    if offset > 7 {
+        panic!();
+    }
+
+    let mask = 1 << offset;
+    if value {
+        *x |= mask;
+    } else {
+        *x &= !mask;
+    }
+}

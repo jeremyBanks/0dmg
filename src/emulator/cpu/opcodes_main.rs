@@ -12,7 +12,19 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     |_02, _cpu, _mem| unimplemented!("opcode 0x02 not implemented"),
     |_03, _cpu, _mem| unimplemented!("opcode 0x03 not implemented"),
     |_04, _cpu, _mem| unimplemented!("opcode 0x04 not implemented"),
-    |_05, _cpu, _mem| unimplemented!("opcode 0x05 not implemented"),
+    |_05, cpu, _mem| {
+        let b0 = cpu.b;
+        let b1 = b0 - 1;
+        cpu.b = b1;
+        cpu.set_z_flag(b1 == 0);
+        cpu.set_n_flag(false);
+        cpu.set_h_flag(b0 < b1);
+        op_execution!{
+            cycles: 1;
+            asm: "DEC A";
+            trace: "A₀ = ${:02x}, A₁ = ${:02x}", b0, b1;
+        }
+    },
     |_06, cpu, mem| {
         let b0 = cpu.b;
         let b1 = cpu.read_immediate_u8(mem);
@@ -20,7 +32,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 2;
             asm: "LD B, ${:02x}", b1;
-            debug: "B₀ = ${:02x}, B₁ = ${:02x}", b0, b1;
+            trace: "B₀ = ${:02x}, B₁ = ${:02x}", b0, b1;
         }
     },
     |_07, _cpu, _mem| unimplemented!("opcode 0x07 not implemented"),
@@ -34,12 +46,36 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 2;
             asm: "LD A, (BC)";
-            debug: "A₀ = ${:02x}, BC = ${:04x}, (BC) = ${:02x}", a0, bc, a1;
+            trace: "A₀ = ${:02x}, BC = ${:04x}, (BC) = ${:02x}", a0, bc, a1;
         }
     },
     |_0b, _cpu, _mem| unimplemented!("opcode 0x0B not implemented"),
-    |_0c, _cpu, _mem| unimplemented!("opcode 0x0C not implemented"),
-    |_0d, _cpu, _mem| unimplemented!("opcode 0x0D not implemented"),
+    |_0c, cpu, _mem| {
+        let c0 = cpu.c;
+        let c1 = c0 + 1;
+        cpu.c = c1;
+        cpu.set_z_flag(c1 == 0);
+        cpu.set_n_flag(false);
+        cpu.set_h_flag(c0 > c1);
+        op_execution!{
+            cycles: 1;
+            asm: "INC C";
+            trace: "C₀ = ${:02x}, C₁ = ${:02x}", c0, c1;
+        }
+    },
+    |_0d, cpu, _mem| {
+        let c0 = cpu.a;
+        let c1 = c0 - 1;
+        cpu.c = c1;
+        cpu.set_z_flag(c1 == 0);
+        cpu.set_n_flag(false);
+        cpu.set_h_flag(c0 < c1);
+        op_execution!{
+            cycles: 1;
+            asm: "DEC C";
+            trace: "C₀ = ${:02x}, C₁ = ${:02x}", c0, c1;
+        }
+    },
     |_0e, cpu, mem| {
         let c0 = cpu.c;
         let c1 = cpu.read_immediate_u8(mem);
@@ -47,16 +83,37 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 2;
             asm: "LD C, ${:02x}", c1;
-            debug: "C₀ = ${:02x}, C₁ = ${:02x}", c0, c1;
+            trace: "C₀ = ${:02x}, C₁ = ${:02x}", c0, c1;
         }
     },
     |_0f, _cpu, _mem| unimplemented!("opcode 0x0F not implemented"),
     |_10, _cpu, _mem| unimplemented!("opcode 0x10 not implemented"),
-    |_11, _cpu, _mem| unimplemented!("opcode 0x11 not implemented"),
+    |_11, cpu, mem| {
+        let de0 = cpu.de();
+        let de1 = cpu.read_immediate_u16(mem);
+        cpu.set_de(de1);
+        op_execution!{
+            cycles: 3;
+            asm: "LOAD DE, ${:04x}", de1;
+            trace: "DE₁ = ${:04x}", de0;
+        }
+    },
     |_12, _cpu, _mem| unimplemented!("opcode 0x12 not implemented"),
     |_13, _cpu, _mem| unimplemented!("opcode 0x13 not implemented"),
     |_14, _cpu, _mem| unimplemented!("opcode 0x14 not implemented"),
-    |_15, _cpu, _mem| unimplemented!("opcode 0x15 not implemented"),
+    |_15, cpu, _mem| {
+        let d0 = cpu.d;
+        let d1 = d0 - 1;
+        cpu.d = d1;
+        cpu.set_z_flag(d1 == 0);
+        cpu.set_n_flag(false);
+        cpu.set_h_flag(d0 < d1);
+        op_execution!{
+            cycles: 1;
+            asm: "DEC D";
+            trace: "D₀ = ${:02x}, D₁ = ${:02x}", d0, d1;
+        }
+    },
     |_16, cpu, mem| {
         let d0 = cpu.d;
         let d1 = cpu.read_immediate_u8(mem);
@@ -64,10 +121,23 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 2;
             asm: "LD D, ${:02x}", d1;
-            debug: "D₀ = ${:02x}, D₁ = ${:02x}", d0, d1;
+            trace: "D₀ = ${:02x}, D₁ = ${:02x}", d0, d1;
         }
     },
-    |_17, _cpu, _mem| unimplemented!("opcode 0x17 not implemented"),
+    |_17, cpu, _mem| {
+        let a0 = cpu.a;
+        let a1 = a0 << 1 + if cpu.c_flag() { 1 } else { 0 };
+        cpu.a = a1;
+        cpu.set_z_flag(a1 == 0);
+        cpu.set_c_flag(a0 & 0b10000000 > 0);
+        cpu.set_n_flag(false);
+        cpu.set_h_flag(false);
+        op_execution!{
+            cycles: 2;
+            asm: "RL A";
+            trace: "A₀ = {}", a0;
+        }
+    },
     |_18, _cpu, _mem| unimplemented!("opcode 0x18 not implemented"),
     |_19, _cpu, _mem| unimplemented!("opcode 0x19 not implemented"),
     |_1a, cpu, mem| {
@@ -78,12 +148,24 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 2;
             asm: "LD A, (DE)";
-            debug: "A₀ = ${:02x}, DE = ${:04x}, (DE) = ${:02x}", a0, de, a1;
+            trace: "A₀ = ${:02x}, DE = ${:04x}, (DE) = ${:02x}", a0, de, a1;
         }
     },
     |_1b, _cpu, _mem| unimplemented!("opcode 0x1B not implemented"),
     |_1c, _cpu, _mem| unimplemented!("opcode 0x1C not implemented"),
-    |_1d, _cpu, _mem| unimplemented!("opcode 0x1D not implemented"),
+    |_1d, cpu, _mem| {
+        let e0 = cpu.e;
+        let e1 = e0 - 1;
+        cpu.e = e1;
+        cpu.set_z_flag(e1 == 0);
+        cpu.set_n_flag(false);
+        cpu.set_h_flag(e0 < e1);
+        op_execution!{
+            cycles: 1;
+            asm: "DEC A";
+            trace: "E₀ = ${:02x}, E₁ = ${:02x}", e0, e1;
+        }
+    },
     |_1e, cpu, mem| {
         let e0 = cpu.e;
         let e1 = cpu.read_immediate_u8(mem);
@@ -91,25 +173,59 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 2;
             asm: "LD E, ${:02x}", e1;
-            debug: "E₀ = ${:02x}, E₁ = ${:02x}", e0, e1;
+            trace: "E₀ = ${:02x}, E₁ = ${:02x}", e0, e1;
         }
     },
     |_1f, _cpu, _mem| unimplemented!("opcode 0x1F not implemented"),
-    |_20, _cpu, _mem| unimplemented!("opcode 0x20 not implemented"),
+    |_20, cpu, mem| {
+        let n = cpu.read_immediate_i8(mem);
+        let z_flag = cpu.z_flag();
+        if z_flag == false {
+            cpu.relative_jump(n);
+        }
+        op_execution!{
+            cycles: 2;
+            asm: "JR NZ, {}", n;
+            trace: "Z = {}", z_flag;
+        }
+    },
     |_21, cpu, mem| {
-        let hl0 = cpu.hl();
+        let _hl0 = cpu.hl();
         let hl1 = cpu.read_immediate_u16(mem);
         cpu.set_hl(hl1);
         op_execution!{
             cycles: 3;
             asm: "LOAD HL, ${:04x}", hl1;
-            debug: "hl₁ = ${:04x}", hl0;
+            trace: "HL₁ = ${:04x}", hl1;
         }
     },
-    |_22, _cpu, _mem| unimplemented!("opcode 0x22 not implemented"),
+    |_22, cpu, mem| {
+        let a = cpu.a;
+        let hl0 = cpu.hl();
+        let hl1 = hl0 + 1;
+        mem.set(hl0, a);
+        cpu.set_hl(hl1);
+        op_execution!{
+            cycles: 2;
+            asm: "LD (HL+), A";
+            trace: "HL₀ = ${:04x}, A = ${:02x}", hl0, a;
+        }
+    },
     |_23, _cpu, _mem| unimplemented!("opcode 0x23 not implemented"),
     |_24, _cpu, _mem| unimplemented!("opcode 0x24 not implemented"),
-    |_25, _cpu, _mem| unimplemented!("opcode 0x25 not implemented"),
+    |_25, cpu, _mem| {
+        let h0 = cpu.h;
+        let h1 = h0 - 1;
+        cpu.h = h1;
+        cpu.set_z_flag(h1 == 0);
+        cpu.set_n_flag(false);
+        cpu.set_h_flag(h0 < h1);
+        op_execution!{
+            cycles: 1;
+            asm: "DEC H";
+            trace: "H₀ = ${:02x}, H₁ = ${:02x}", h0, h1;
+        }
+    },
     |_26, cpu, mem| {
         let h0 = cpu.h;
         let h1 = cpu.read_immediate_u8(mem);
@@ -117,16 +233,39 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 2;
             asm: "LD H, ${:02x}", h1;
-            debug: "H₀ = ${:02x}, H₁ = ${:02x}", h0, h1;
+            trace: "H₀ = ${:02x}, H₁ = ${:02x}", h0, h1;
         }
     },
     |_27, _cpu, _mem| unimplemented!("opcode 0x27 not implemented"),
-    |_28, _cpu, _mem| unimplemented!("opcode 0x28 not implemented"),
+    |_28, cpu, mem| {
+        let n = cpu.read_immediate_i8(mem);
+        let z_flag = cpu.z_flag();
+        if z_flag {
+            cpu.relative_jump(n);
+        }
+        op_execution!{
+            cycles: 2;
+            asm: "JR Z, {}", n;
+            trace: "Z = {}", z_flag;
+        }
+    },
     |_29, _cpu, _mem| unimplemented!("opcode 0x29 not implemented"),
     |_2a, _cpu, _mem| unimplemented!("opcode 0x2A not implemented"),
     |_2b, _cpu, _mem| unimplemented!("opcode 0x2B not implemented"),
     |_2c, _cpu, _mem| unimplemented!("opcode 0x2C not implemented"),
-    |_2d, _cpu, _mem| unimplemented!("opcode 0x2D not implemented"),
+    |_2d, cpu, _mem| {
+        let l0 = cpu.l;
+        let l1 = l0 - 1;
+        cpu.l = l1;
+        cpu.set_z_flag(l1 == 0);
+        cpu.set_n_flag(false);
+        cpu.set_h_flag(0 < l1);
+        op_execution!{
+            cycles: 1;
+            asm: "DEC L";
+            trace: "A₀ = ${:02x}, A₁ = ${:02x}", l0, l1;
+        }
+    },
     |_2e, cpu, mem| {
         let l0 = cpu.l;
         let l1 = cpu.read_immediate_u8(mem);
@@ -134,11 +273,22 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 2;
             asm: "LD L, ${:02x}", l1;
-            debug: "L₀ = ${:02x}, L₁ = ${:02x}", l0, l1;
+            trace: "L₀ = ${:02x}, L₁ = ${:02x}", l0, l1;
         }
     },
     |_2f, _cpu, _mem| unimplemented!("opcode 0x2F not implemented"),
-    |_30, _cpu, _mem| unimplemented!("opcode 0x30 not implemented"),
+    |_30, cpu, mem| {
+        let n = cpu.read_immediate_i8(mem);
+        let c_flag = cpu.c_flag();
+        if c_flag == false {
+            cpu.relative_jump(n);
+        }
+        op_execution!{
+            cycles: 2;
+            asm: "JR NC, {}", n;
+            trace: "C = {}", c_flag;
+        }
+    },
     |_31, cpu, mem| {
         let sp0 = cpu.sp;
         let sp1 = cpu.read_immediate_u16(mem);
@@ -146,21 +296,55 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 3;
             asm: "LOAD SP, ${:04x}", sp1;
-            debug: "SP₀ = ${:04x}", sp0;
+            trace: "SP₀ = ${:04x}", sp0;
         }
     },
-    |_32, _cpu, _mem| unimplemented!("opcode 0x32 not implemented"),
+    |_32, cpu, mem| {
+        let hl0 = cpu.hl();
+        let hl1 = hl0 - 1;
+        let a = cpu.a;
+        mem.set(hl0, a);
+        cpu.set_hl(hl1);
+        op_execution!{
+            cycles: 2;
+            asm: "LD (HL-), A";
+            trace: "HL₀ = ${:04x}, A = ${:02x}", hl0, a;
+        }
+    },
     |_33, _cpu, _mem| unimplemented!("opcode 0x33 not implemented"),
     |_34, _cpu, _mem| unimplemented!("opcode 0x34 not implemented"),
     |_35, _cpu, _mem| unimplemented!("opcode 0x35 not implemented"),
     |_36, _cpu, _mem| unimplemented!("opcode 0x36 not implemented"),
     |_37, _cpu, _mem| unimplemented!("opcode 0x37 not implemented"),
-    |_38, _cpu, _mem| unimplemented!("opcode 0x38 not implemented"),
+    |_38, cpu, mem| {
+        let n = cpu.read_immediate_i8(mem);
+        let c_flag = cpu.c_flag();
+        if c_flag {
+            cpu.relative_jump(n);
+        }
+        op_execution!{
+            cycles: 2;
+            asm: "JR C, {}", n;
+            trace: "C = {}", c_flag;
+        }
+    },
     |_39, _cpu, _mem| unimplemented!("opcode 0x39 not implemented"),
     |_3a, _cpu, _mem| unimplemented!("opcode 0x3A not implemented"),
     |_3b, _cpu, _mem| unimplemented!("opcode 0x3B not implemented"),
     |_3c, _cpu, _mem| unimplemented!("opcode 0x3C not implemented"),
-    |_3d, _cpu, _mem| unimplemented!("opcode 0x3D not implemented"),
+    |_3d, cpu, _mem| {
+        let a0 = cpu.a;
+        let a1 = a0 - 1;
+        cpu.a = a1;
+        cpu.set_z_flag(a1 == 0);
+        cpu.set_n_flag(false);
+        cpu.set_h_flag(a0 < a1);
+        op_execution!{
+            cycles: 1;
+            asm: "DEC A";
+            trace: "A₀ = ${:02x}, A₁ = ${:02x}", a0, a1;
+        }
+    },
     |_3e, cpu, mem| {
         let n = cpu.read_immediate_u8(mem);
         let a0 = cpu.a;
@@ -168,7 +352,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 2;
             asm: "LD A, ${:02x}", n;
-            debug: "A₀ = ${:02x}", a0;
+            trace: "A₀ = ${:02x}", a0;
         }
     },
     |_3f, _cpu, _mem| unimplemented!("opcode 0x3F not implemented"),
@@ -177,7 +361,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 1;
             asm: "LD B, B";
-            debug: "B = ${:02x}", b;
+            trace: "B = ${:02x}", b;
         }
     },
     |_41, cpu, _mem| {
@@ -187,7 +371,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 1;
             asm: "LD B, C";
-            debug: "B₀ = ${:02x}, C = ${:02x}", b0, c;
+            trace: "B₀ = ${:02x}, C = ${:02x}", b0, c;
         }
     },
     |_42, cpu, _mem| {
@@ -197,7 +381,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 1;
             asm: "LD B, D";
-            debug: "B₀ = ${:02x}, D = ${:02x}", b0, d;
+            trace: "B₀ = ${:02x}, D = ${:02x}", b0, d;
         }
     },
     |_43, cpu, _mem| {
@@ -207,7 +391,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 1;
             asm: "LD B, E";
-            debug: "B₀ = ${:02x}, E = ${:02x}", b0, e;
+            trace: "B₀ = ${:02x}, E = ${:02x}", b0, e;
         }
     },
     |_44, cpu, _mem| {
@@ -217,7 +401,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 1;
             asm: "LD B, H";
-            debug: "B₀ = ${:02x}, H = ${:02x}", b0, h;
+            trace: "B₀ = ${:02x}, H = ${:02x}", b0, h;
         }
     },
     |_45, cpu, _mem| {
@@ -227,7 +411,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 1;
             asm: "LD B, L";
-            debug: "B₀ = ${:02x}, L = ${:02x}", b0, l;
+            trace: "B₀ = ${:02x}, L = ${:02x}", b0, l;
         }
     },
     |_46, cpu, mem| {
@@ -238,7 +422,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 2;
             asm: "LD B, (HL)";
-            debug: "B₀ = ${:02x}, HL = ${:04x}, (HL) = ${:04x}", b0, hl, b1;
+            trace: "B₀ = ${:02x}, HL = ${:04x}, (HL) = ${:04x}", b0, hl, b1;
         }
     },
     |_47, _cpu, _mem| unimplemented!("opcode 0x47 not implemented"),
@@ -249,7 +433,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 1;
             asm: "LD C, B";
-            debug: "C₀ = ${:02x}, B = ${:02x}", c0, b;
+            trace: "C₀ = ${:02x}, B = ${:02x}", c0, b;
         }
     },
     |_49, cpu, _mem| {
@@ -257,7 +441,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 1;
             asm: "LD C, C";
-            debug: "C = ${:02x}", c;
+            trace: "C = ${:02x}", c;
         }
     },
     |_4a, cpu, _mem| {
@@ -267,7 +451,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 1;
             asm: "LD C, D";
-            debug: "C₀ = ${:02x}, D = ${:02x}", c0, d;
+            trace: "C₀ = ${:02x}, D = ${:02x}", c0, d;
         }
     },
     |_4b, cpu, _mem| {
@@ -277,7 +461,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 1;
             asm: "LD C, E";
-            debug: "C₀ = ${:02x}, E = ${:02x}", c0, e;
+            trace: "C₀ = ${:02x}, E = ${:02x}", c0, e;
         }
     },
     |_4c, cpu, _mem| {
@@ -287,7 +471,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 1;
             asm: "LD C, H";
-            debug: "C₀ = ${:02x}, H = ${:02x}", c0, h;
+            trace: "C₀ = ${:02x}, H = ${:02x}", c0, h;
         }
     },
     |_4d, cpu, _mem| {
@@ -297,7 +481,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 1;
             asm: "LD C, L";
-            debug: "C₀ = ${:02x}, L = ${:02x}", c0, l;
+            trace: "C₀ = ${:02x}, L = ${:02x}", c0, l;
         }
     },
     |_4e, cpu, mem| {
@@ -308,10 +492,19 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 2;
             asm: "LD C, (HL)";
-            debug: "C₀ = ${:02x}, HL = ${:04x}, (HL) = ${:04x}", c0, hl, c1;
+            trace: "C₀ = ${:02x}, HL = ${:04x}, (HL) = ${:04x}", c0, hl, c1;
         }
     },
-    |_4f, _cpu, _mem| unimplemented!("opcode 0x4F not implemented"),
+    |_4f, cpu, _mem| {
+        let c0 = cpu.c;
+        let a = cpu.a;
+        cpu.b = a;
+        op_execution!{
+            cycles: 1;
+            asm: "LD C, A";
+            trace: "C₀ = ${:02x}, A = ${:02x}", c0, a;
+        }
+    },
     |_50, _cpu, _mem| unimplemented!("opcode 0x50 not implemented"),
     |_51, _cpu, _mem| unimplemented!("opcode 0x51 not implemented"),
     |_52, _cpu, _mem| unimplemented!("opcode 0x52 not implemented"),
@@ -351,7 +544,16 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     |_74, _cpu, _mem| unimplemented!("opcode 0x74 not implemented"),
     |_75, _cpu, _mem| unimplemented!("opcode 0x75 not implemented"),
     |_76, _cpu, _mem| unimplemented!("opcode 0x76 not implemented"),
-    |_77, _cpu, _mem| unimplemented!("opcode 0x77 not implemented"),
+    |_77, cpu, mem| {
+        let hl = cpu.hl();
+        let a = cpu.a;
+        mem.set(hl, a);
+        op_execution!{
+            cycles: 2;
+            asm: "LD (HL), A";
+            trace: "HL = ${:04x}, A = ${:02x}", hl, cpu.a;
+        }
+    },
     |_78, cpu, _mem| {
         let a0 = cpu.a;
         let b = cpu.b;
@@ -359,7 +561,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 1;
             asm: "LD A, B";
-            debug: "A₀ = ${:02x}, B = ${:02x}", a0, b;
+            trace: "A₀ = ${:02x}, B = ${:02x}", a0, b;
         }
     },
     |_79, cpu, _mem| {
@@ -369,7 +571,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 1;
             asm: "LD A, C";
-            debug: "A₀ = ${:02x}, C = ${:02x}", a0, c;
+            trace: "A₀ = ${:02x}, C = ${:02x}", a0, c;
         }
     },
     |_7a, cpu, _mem| {
@@ -379,7 +581,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 1;
             asm: "LD A, D";
-            debug: "A₀ = ${:02x}, D = ${:02x}", a0, d;
+            trace: "A₀ = ${:02x}, D = ${:02x}", a0, d;
         }
     },
     |_7b, cpu, _mem| {
@@ -389,7 +591,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 1;
             asm: "LD A, E";
-            debug: "A₀ = ${:02x}, E = ${:02x}", a0, e;
+            trace: "A₀ = ${:02x}, E = ${:02x}", a0, e;
         }
     },
     |_7c, cpu, _mem| {
@@ -399,7 +601,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 1;
             asm: "LD A, H";
-            debug: "A₀ = ${:02x}, H = ${:02x}", a0, h;
+            trace: "A₀ = ${:02x}, H = ${:02x}", a0, h;
         }
     },
     |_7d, cpu, _mem| {
@@ -409,7 +611,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 1;
             asm: "LD A, L";
-            debug: "A₀ = ${:02x}, L = ${:02x}", a0, l;
+            trace: "A₀ = ${:02x}, L = ${:02x}", a0, l;
         }
     },
     |_7e, cpu, mem| {
@@ -420,7 +622,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 2;
             asm: "LD A, (HL)";
-            debug: "A₀ = ${:02x}, HL = ${:04x}, (HL) = ${:02x}", a0, hl, a1;
+            trace: "A₀ = ${:02x}, HL = ${:04x}, (HL) = ${:02x}", a0, hl, a1;
         }
     },
     |_7f, cpu, _mem| {
@@ -428,7 +630,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 1;
             asm: "LD A, A";
-            debug: "A = ${:02x}", a;
+            trace: "A = ${:02x}", a;
         }
     },
     |_80, _cpu, _mem| unimplemented!("opcode 0x80 not implemented"),
@@ -483,7 +685,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 1;
             asm: "XOR B";
-            debug: "A₀ = ${:02x}, B = ${:02x} A₁ = ${:02x}", a0, b, a1;
+            trace: "A₀ = ${:02x}, B = ${:02x} A₁ = ${:02x}", a0, b, a1;
         }
     },
     |_a9, cpu, _mem| {
@@ -498,7 +700,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 1;
             asm: "XOR C";
-            debug: "A₀ = ${:02x}, C = ${:02x} A₁ = ${:02x}", a0, c, a1;
+            trace: "A₀ = ${:02x}, C = ${:02x} A₁ = ${:02x}", a0, c, a1;
         }
     },
     |_aa, cpu, _mem| {
@@ -513,7 +715,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 1;
             asm: "XOR D";
-            debug: "A₀ = ${:02x}, D = ${:02x} A₁ = ${:02x}", a0, d, a1;
+            trace: "A₀ = ${:02x}, D = ${:02x} A₁ = ${:02x}", a0, d, a1;
         }
     },
     |_ab, cpu, _mem| {
@@ -528,7 +730,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 1;
             asm: "XOR E";
-            debug: "A₀ = ${:02x}, E = ${:02x} A₁ = ${:02x}", a0, e, a1;
+            trace: "A₀ = ${:02x}, E = ${:02x} A₁ = ${:02x}", a0, e, a1;
         }
     },
     |_ac, cpu, _mem| {
@@ -543,7 +745,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 1;
             asm: "XOR B";
-            debug: "A₀ = ${:02x}, H = ${:02x} A₁ = ${:02x}", a0, h, a1;
+            trace: "A₀ = ${:02x}, H = ${:02x} A₁ = ${:02x}", a0, h, a1;
         }
     },
     |_ad, cpu, _mem| {
@@ -558,7 +760,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 1;
             asm: "XOR L";
-            debug: "A₀ = ${:02x}, L = ${:02x} A₁ = ${:02x}", a0, l, a1;
+            trace: "A₀ = ${:02x}, L = ${:02x} A₁ = ${:02x}", a0, l, a1;
         }
     },
     |_ae, _cpu, _mem| unimplemented!("opcode 0xAE not implemented"),
@@ -573,7 +775,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 1;
             asm: "XOR A";
-            debug: "A₀ = ${:02x}, A₁ = ${:02x}", a0, a1;
+            trace: "A₀ = ${:02x}, A₁ = ${:02x}", a0, a1;
         }
     },
     |_b0, _cpu, _mem| unimplemented!("opcode 0xB0 not implemented"),
@@ -593,11 +795,27 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     |_be, _cpu, _mem| unimplemented!("opcode 0xBE not implemented"),
     |_bf, _cpu, _mem| unimplemented!("opcode 0xBF not implemented"),
     |_c0, _cpu, _mem| unimplemented!("opcode 0xC0 not implemented"),
-    |_c1, _cpu, _mem| unimplemented!("opcode 0xC1 not implemented"),
+    |_c1, cpu, mem| {
+        let bc0 = cpu.bc();
+        let bc1 = cpu.stack_pop(mem);
+        op_execution!{
+            cycles: 3;
+            asm: "POP BC";
+            trace: "P₁ = ${:04x}, BC₀ = ${:04x}, BC₁ = ${:04x}", cpu.sp, bc0, bc1;
+        }
+    },
     |_c2, _cpu, _mem| unimplemented!("opcode 0xC2 not implemented"),
     |_c3, _cpu, _mem| unimplemented!("opcode 0xC3 not implemented"),
     |_c4, _cpu, _mem| unimplemented!("opcode 0xC4 not implemented"),
-    |_c5, _cpu, _mem| unimplemented!("opcode 0xC5 not implemented"),
+    |_c5, cpu, mem| {
+        let bc = cpu.bc();
+        cpu.stack_push(mem, bc);
+        op_execution!{
+            cycles: 4;
+            asm: "PUSH BC";
+            trace: "SP₁ = ${:04x}, BC = ${:04x}", cpu.sp, bc;
+        }
+    },
     |_c6, _cpu, _mem| unimplemented!("opcode 0xC6 not implemented"),
     |_c7, _cpu, _mem| unimplemented!("opcode 0xC7 not implemented"),
     |_c8, _cpu, _mem| unimplemented!("opcode 0xC8 not implemented"),
@@ -607,17 +825,43 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         panic!("0xCB prefix is not a complete opcode");
     },
     |_cc, _cpu, _mem| unimplemented!("opcode 0xCC not implemented"),
-    |_cd, _cpu, _mem| unimplemented!("opcode 0xCD not implemented"),
+    |_cd, cpu, mem| {
+        let nn = cpu.read_immediate_u16(mem);
+        let i0 = cpu.i;
+        cpu.stack_push(mem, i0);
+        cpu.i = nn;
+        op_execution!{
+            cycles: 3;
+            asm: "CALL ${:04x}", nn;
+            trace: "SP₁ = {:04x}", cpu.sp;
+        }
+    },
     |_ce, _cpu, _mem| unimplemented!("opcode 0xCE not implemented"),
     |_cf, _cpu, _mem| unimplemented!("opcode 0xCF not implemented"),
     |_d0, _cpu, _mem| unimplemented!("opcode 0xD0 not implemented"),
-    |_d1, _cpu, _mem| unimplemented!("opcode 0xD1 not implemented"),
+    |_d1, cpu, mem| {
+        let de0 = cpu.de();
+        let de1 = cpu.stack_pop(mem);
+        op_execution!{
+            cycles: 3;
+            asm: "POP DE";
+            trace: "SP₁ = ${:04x}, DE₀ = ${:04x}, DE₁ = ${:04x}", cpu.sp, de0, de1;
+        }
+    },
     |_d2, _cpu, _mem| unimplemented!("opcode 0xD2 not implemented"),
     |_d3, _cpu, _mem| {
         panic!("0xD3 is not a valid opcode");
     },
     |_d4, _cpu, _mem| unimplemented!("opcode 0xD4 not implemented"),
-    |_d5, _cpu, _mem| unimplemented!("opcode 0xD5 not implemented"),
+    |_d5, cpu, mem| {
+        let de = cpu.de();
+        cpu.stack_push(mem, de);
+        op_execution!{
+            cycles: 4;
+            asm: "PUSH DE";
+            trace: "SP₁ = ${:04x}, DE = ${:04x}", cpu.sp, de;
+        }
+    },
     |_d6, _cpu, _mem| unimplemented!("opcode 0xD6 not implemented"),
     |_d7, _cpu, _mem| unimplemented!("opcode 0xD7 not implemented"),
     |_d8, _cpu, _mem| unimplemented!("opcode 0xD8 not implemented"),
@@ -632,16 +876,51 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     },
     |_de, _cpu, _mem| unimplemented!("opcode 0xDE not implemented"),
     |_df, _cpu, _mem| unimplemented!("opcode 0xDF not implemented"),
-    |_e0, _cpu, _mem| unimplemented!("opcode 0xE0 not implemented"),
-    |_e1, _cpu, _mem| unimplemented!("opcode 0xE1 not implemented"),
-    |_e2, _cpu, _mem| unimplemented!("opcode 0xE2 not implemented"),
+    |_e0, cpu, mem| {
+        let a = cpu.a;
+        let n = cpu.read_immediate_u8(mem);
+        mem.set(0xFF00 + n as u16, a);
+        op_execution!{
+            cycles: 3;
+            asm: "LD ($ff00 + ${:02x}), A", n;
+            trace: "A = ${:02x}", a;
+        }
+    },
+    |_e1, cpu, mem| {
+        let hl0 = cpu.hl();
+        let hl1 = cpu.stack_pop(mem);
+        op_execution!{
+            cycles: 3;
+            asm: "POP HL";
+            trace: "SP₁ = ${:04x}, HL₀ = ${:04x}, HL₁ = ${:04x}", cpu.sp, hl0, hl1;
+        }
+    },
+    |_e2, cpu, mem| {
+        let a = cpu.a;
+        let c = cpu.c;
+        let address = 0xFF00 + (c as u16);
+        mem.set(address, a);
+        op_execution!{
+            cycles: 2;
+            asm: "LD ($FF00 + C), A ";
+            trace: "A = ${:02x}, C = ${:02x}", a, c;
+        }
+    },
     |_e3, _cpu, _mem| {
         panic!("0xE3 is not a valid opcode");
     },
     |_e4, _cpu, _mem| {
         panic!("0xE4 is not a valid opcode");
     },
-    |_e5, _cpu, _mem| unimplemented!("opcode 0xE5 not implemented"),
+    |_e5, cpu, mem| {
+        let hl = cpu.hl();
+        cpu.stack_push(mem, hl);
+        op_execution!{
+            cycles: 4;
+            asm: "PUSH hl";
+            trace: "SP₁ = ${:04x}, HL = ${:04x}", cpu.sp, hl;
+        }
+    },
     |_e6, _cpu, _mem| unimplemented!("opcode 0xE6 not implemented"),
     |_e7, _cpu, _mem| unimplemented!("opcode 0xE7 not implemented"),
     |_e8, _cpu, _mem| unimplemented!("opcode 0xE8 not implemented"),
@@ -659,13 +938,29 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     |_ee, _cpu, _mem| unimplemented!("opcode 0xEE not implemented"),
     |_ef, _cpu, _mem| unimplemented!("opcode 0xEF not implemented"),
     |_f0, _cpu, _mem| unimplemented!("opcode 0xF0 not implemented"),
-    |_f1, _cpu, _mem| unimplemented!("opcode 0xF1 not implemented"),
+    |_f1, cpu, mem| {
+        let af0 = cpu.af();
+        let af1 = cpu.stack_pop(mem);
+        op_execution!{
+            cycles: 3;
+            asm: "POP AF";
+            trace: "SP₁ = ${:04x}, AF₀ = ${:04x}, AF₁ = ${:04x}", cpu.sp, af0, af1;
+        }
+    },
     |_f2, _cpu, _mem| unimplemented!("opcode 0xF2 not implemented"),
     |_f3, _cpu, _mem| unimplemented!("opcode 0xF3 not implemented"),
     |_f4, _cpu, _mem| {
         panic!("0xF4 is not a valid opcode");
     },
-    |_f5, _cpu, _mem| unimplemented!("opcode 0xF5 not implemented"),
+    |_f5, cpu, mem| {
+        let af = cpu.af();
+        cpu.stack_push(mem, af);
+        op_execution!{
+            cycles: 4;
+            asm: "PUSH AF";
+            trace: "SP₁ = ${:04x}, AF = ${:04x}", cpu.sp, af;
+        }
+    },
     |_f6, _cpu, _mem| unimplemented!("opcode 0xF6 not implemented"),
     |_f7, _cpu, _mem| unimplemented!("opcode 0xF7 not implemented"),
     |_f8, _cpu, _mem| unimplemented!("opcode 0xF8 not implemented"),
@@ -678,7 +973,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         op_execution!{
             cycles: 4;
             asm: "LD A, (${:04x})", nn;
-            debug: "A₀ = ${:02x}, A₁ = ${:04x}", a0, a1;
+            trace: "A₀ = ${:02x}, A₁ = ${:04x}", a0, a1;
         }
     },
     |_fb, _cpu, _mem| unimplemented!("opcode 0xFB not implemented"),

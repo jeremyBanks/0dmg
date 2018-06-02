@@ -1,5 +1,5 @@
 #!/bin/bash
 set -eu
-cargo fmt
+# cargo fmt
+# cargo fix --allow-dirty
 cargo run
-# cargo fix 

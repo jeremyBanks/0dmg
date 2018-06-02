@@ -7,53 +7,53 @@ pub type OpFn = fn(opcode: u8, cpu: &mut CPU, mem: &mut MemoryController) -> Exe
 pub struct Execution {
     pub cycles: u64,           // number of cycles elapsed
     pub asm: Option<String>,   // generated pseudo-asm
-    pub debug: Option<String>, // human-readable debug data
+    pub trace: Option<String>, // human-readable trace data
 }
 
-// Macro for the output of an operation, allowing us to strip the debug info at compile time.
+// Macro for the output of an operation, allowing us to strip the trace info at compile time.
 macro_rules! op_execution {
-    {cycles: $cycles:expr; asm: $($asm:expr),*; debug: $($debug:expr),*;} => (
+    {cycles: $cycles:expr; asm: $($asm:expr),*; trace: $($trace:expr),*;} => (
         if cfg!(debug_assertions) {
             ::emulator::cpu::operation::Execution {
                 cycles: $cycles,
                 asm: Some(format!($($asm),*)),
-                debug: Some(format!($($debug),*)),
+                trace: Some(format!($($trace),*)),
             }
         } else {
             ::emulator::cpu::operation::Execution {
                 cycles: $cycles,
                 asm: None,
-                debug: None,
+                trace: None,
             }
         }
     );
     {cycles: $cycles:expr; asm: $($asm:expr),*;} => (
-        if cfg!(debug_assertions) {
+        if cfg!(trace_assertions) {
             ::emulator::cpu::operation::Execution {
                 cycles: $cycles,
                 asm: Some(format!($($asm),*)),
-                debug: None,
+                trace: None,
             }
         } else {
             ::emulator::cpu::operation::Execution {
                 cycles: $cycles,
                 asm: None,
-                debug: None,
+                trace: None,
             }
         }
     );
-    {cycles: $cycles:expr; debug: $($debug:expr),*;} => (
-    if cfg!(debug_assertions) {
+    {cycles: $cycles:expr; trace: $($trace:expr),*;} => (
+    if cfg!(trace_assertions) {
         ::emulator::cpu::operation::Execution {
             cycles: $cycles,
             asm: None,
-            debug: Some(format!($($debug),*)),
+            trace: Some(format!($($trace),*)),
         }
         } else {
             ::emulator::cpu::operation::Execution {
                 cycles: $cycles,
                 asm: None,
-                debug: None,
+                trace: None,
             }
         }
     );
@@ -61,7 +61,7 @@ macro_rules! op_execution {
         ::emulator::cpu::operation::Execution {
             cycles: $cycles,
             asm: None,
-            debug: None,
+            trace: None,
         }
     };
 }
