@@ -6,6 +6,33 @@ mod opcodes_main;
 use super::GameBoy;
 use super::memory::MemoryController;
 
+pub struct CPUData {
+    // clock ticks
+    t: u64,
+    // instruction pointer
+    i: u16,
+    // A accumulator register
+    a: u8,
+    // F flags register
+    f: u8,
+    // BC register/B and C registers
+    b: u8,
+    c: u8,
+    // DE register/D and E registers
+    d: u8,
+    e: u8,
+    // HL register/H and L registers
+    h: u8,
+    l: u8,
+    // SP stack pointer register
+    sp: u16,
+    // PC program counter register
+    pc: u16,
+    // state only used for logging/debugging
+    debug_current_code: Vec<u8>,
+    debug_current_op_addr: u16,
+}
+
 pub trait CPU {
     fn tick(&mut self) -> operation::Execution;
     fn log_execution(&self, asm: Option<String>, info: Option<String>);
@@ -33,6 +60,14 @@ pub trait CPU {
     fn set_n_flag(&mut self, value: bool);
     fn z_flag(&self) -> bool;
     fn set_z_flag(&mut self, value: bool);
+}
+
+impl CPUData {
+    pub fn new() -> Self {
+        Self {
+
+        }
+    }
 }
 
 impl CPU for GameBoy {

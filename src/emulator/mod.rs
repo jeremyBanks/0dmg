@@ -4,34 +4,10 @@ mod memory;
 mod roms;
 mod video;
 
-use self::cpu::CPU;
+use self::cpu::{CPU,CPUData};
 
 pub struct GameBoy {
-    // === CPU
-    // clock ticks
-    t: u64,
-    // instruction pointer
-    i: u16,
-    // A accumulator register
-    a: u8,
-    // F flags register
-    f: u8,
-    // BC register/B and C registers
-    b: u8,
-    c: u8,
-    // DE register/D and E registers
-    d: u8,
-    e: u8,
-    // HL register/H and L registers
-    h: u8,
-    l: u8,
-    // SP stack pointer register
-    sp: u16,
-    // PC program counter register
-    pc: u16,
-    // state only used for logging/debugging
-    debug_current_code: Vec<u8>,
-    debug_current_op_addr: u16,
+    cpu: CPUData,
 
     // === MemoryController
     main_ram: [u8; 0x2000],
@@ -45,22 +21,7 @@ pub struct GameBoy {
 impl GameBoy {
     pub fn new() -> Self {
         Self {
-            // CPU
-            t: 0x00,
-            i: 0x00,
-            a: 0x00,
-            f: 0x00,
-            b: 0x00,
-            c: 0x00,
-            d: 0x00,
-            e: 0x00,
-            h: 0x00,
-            l: 0x00,
-            sp: 0x0000,
-            pc: 0x0000,
-            debug_current_code: Vec::new(),
-            debug_current_op_addr: 0x0000,
-
+            cpu: CPUData::new(),
             // MemoryController
             main_ram: [0x00; 0x2000],
             video_ram: [0x00; 0x2000],
