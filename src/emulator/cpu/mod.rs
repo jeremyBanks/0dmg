@@ -160,19 +160,19 @@ impl CPUController for GameBoy {
 
     fn stack_push(&mut self, value: u16) {
         let sp0 = self.cpu.sp;
-        let (value_low, value_high) = u16_to_u8s(value);
-        self.set(sp0 - 0, value_low);
-        self.set(sp0 - 1, value_high);
         let sp1 = sp0 - 2;
+        let (value_low, value_high) = u16_to_u8s(value);
+        self.set(sp1 + 1, value_low);
+        self.set(sp1 + 0, value_high);
         self.cpu.sp = sp1;
     }
 
     fn stack_pop(&mut self) -> u16 {
         let sp0 = self.cpu.sp;
-        let value_low = self.get(sp0 + 0);
-        let value_high = self.get(sp0 + 1);
-        let value = u8s_to_u16(value_low, value_high);
         let sp1 = sp0 + 2;
+        let value_low = self.get(sp0 + 1);
+        let value_high = self.get(sp0 + 0);
+        let value = u8s_to_u16(value_low, value_high);
         self.cpu.sp = sp1;
         value
     }

@@ -13,7 +13,16 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     },
     |_01, _gb| unimplemented!("opcode 0x01 not implemented"),
     |_02, _gb| unimplemented!("opcode 0x02 not implemented"),
-    |_03, _gb| unimplemented!("opcode 0x03 not implemented"),
+    |_03, gb| {
+        let bc0 = gb.bc();
+        let bc1 = bc0 + 1;
+        gb.set_bc(bc1);
+        op_execution!{
+            cycles: 2;
+            asm: "INC BC";
+            trace: "BC₀ = ${:04x}, BC₁ = ${:04x}", bc0, bc1;
+        }  
+    },
     |_04, _gb| unimplemented!("opcode 0x04 not implemented"),
     |_05, gb| {
         let b0 = gb.cpu.b;
@@ -102,7 +111,16 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         }
     },
     |_12, _gb| unimplemented!("opcode 0x12 not implemented"),
-    |_13, _gb| unimplemented!("opcode 0x13 not implemented"),
+    |_13, gb| {
+        let de0 = gb.de();
+        let de1 = de0 + 1;
+        gb.set_de(de1);
+        op_execution!{
+            cycles: 2;
+            asm: "INC DE";
+            trace: "DE₀ = ${:04x}, DE₁ = ${:04x}", de0, de1;
+        }  
+    },
     |_14, _gb| unimplemented!("opcode 0x14 not implemented"),
     |_15, gb| {
         let d0 = gb.cpu.d;
@@ -214,7 +232,16 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
             trace: "HL₀ = ${:04x}, A = ${:02x}", hl0, a;
         }
     },
-    |_23, _gb| unimplemented!("opcode 0x23 not implemented"),
+    |_23, gb| {
+        let hl0 = gb.hl();
+        let hl1 = hl0 + 1;
+        gb.set_hl(hl1);
+        op_execution!{
+            cycles: 2;
+            asm: "INC HL";
+            trace: "HL₀ = ${:04x}, HL₁ = ${:04x}", hl0, hl1;
+        }  
+    },
     |_24, _gb| unimplemented!("opcode 0x24 not implemented"),
     |_25, gb| {
         let h0 = gb.cpu.h;
@@ -314,7 +341,16 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
             trace: "HL₀ = ${:04x}, A = ${:02x}", hl0, a;
         }
     },
-    |_33, _gb| unimplemented!("opcode 0x33 not implemented"),
+    |_33, gb| {
+        let sp0 = gb.cpu.sp;
+        let sp1 = sp0 + 1;
+        gb.cpu.sp = sp1;
+        op_execution!{
+            cycles: 2;
+            asm: "INC SP";
+            trace: "SP₀ = ${:04x}, SP₁ = ${:04x}", sp0, sp1;
+        }  
+    },
     |_34, _gb| unimplemented!("opcode 0x34 not implemented"),
     |_35, _gb| unimplemented!("opcode 0x35 not implemented"),
     |_36, _gb| unimplemented!("opcode 0x36 not implemented"),
@@ -822,7 +858,16 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     |_c6, _gb| unimplemented!("opcode 0xC6 not implemented"),
     |_c7, _gb| unimplemented!("opcode 0xC7 not implemented"),
     |_c8, _gb| unimplemented!("opcode 0xC8 not implemented"),
-    |_c9, _gb| unimplemented!("opcode 0xC9 not implemented"),
+    |_c9, gb| {
+        let i1 = gb.stack_pop();
+        let sp1 = gb.cpu.sp;
+        gb.cpu.i = i1;
+        op_execution!{
+            cycles: 8;
+            asm: "RET";
+            trace: "SP₁ = {:04x}", sp1;
+        }
+    },
     |_ca, _gb| unimplemented!("opcode 0xCA not implemented"),
     |_cb, _gb| {
         panic!("0xCB prefix is not a complete opcode");
@@ -832,11 +877,12 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         let nn = gb.read_immediate_u16();
         let i0 = gb.cpu.i;
         gb.stack_push(i0);
+        let sp1 = gb.cpu.sp;
         gb.cpu.i = nn;
         op_execution!{
             cycles: 3;
             asm: "CALL ${:04x}", nn;
-            trace: "SP₁ = {:04x}", gb.cpu.sp;
+            trace: "SP₁ = {:04x}", sp1;
         }
     },
     |_ce, _gb| unimplemented!("opcode 0xCE not implemented"),
