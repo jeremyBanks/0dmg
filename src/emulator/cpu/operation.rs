@@ -1,7 +1,4 @@
-use emulator::cpu::CPU;
-use emulator::memory::MemoryController;
-
-pub type OpFn = fn(opcode: u8, cpu: &mut CPU, mem: &mut MemoryController) -> Execution;
+pub type OpFn = fn(opcode: u8, gb: &mut super::GameBoy) -> Execution;
 
 #[derive(Debug)]
 pub struct Execution {

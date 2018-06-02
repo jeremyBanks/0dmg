@@ -1,27 +1,12 @@
-use super::roms;
+use super::GameBoy;
 
-pub struct MemoryController {
-    main_ram: [u8; 0x2000],
-    video_ram: [u8; 0x2000],
-    stack_ram: [u8; 0x80],
-    boot_rom: [u8; 0x100],
-    game_rom: Vec<u8>,
-    boot_rom_mapped: bool,
+pub trait MemoryController {
+    fn get(&mut self, addr: u16) -> u8;
+    fn set(&mut self, addr: u16, value: u8);
 }
 
-impl MemoryController {
-    pub fn new(game_rom: &[u8]) -> MemoryController {
-        MemoryController {
-            main_ram: [0x00; 0x2000],
-            video_ram: [0x00; 0x2000],
-            stack_ram: [0x00; 0x80],
-            boot_rom: roms::BOOT.clone(),
-            game_rom: game_rom.to_vec(),
-            boot_rom_mapped: true,
-        }
-    }
-
-    pub fn get(&mut self, addr: u16) -> u8 {
+impl MemoryController for GameBoy {
+    fn get(&mut self, addr: u16) -> u8 {
         let value;
         if self.boot_rom_mapped && addr <= 0x00FF {
             // boot ROM, until unmapped to expose initial bytes of game ROM
@@ -42,7 +27,7 @@ impl MemoryController {
         value
     }
 
-    pub fn set(&mut self, addr: u16, value: u8) {
+    fn set(&mut self, addr: u16, value: u8) {
         if 0x8000 <= addr && addr <= 0x9FFF {
             let i: usize = (addr - 0x8000) as usize;
             self.video_ram[i] = value;

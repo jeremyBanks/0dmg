@@ -4,24 +4,70 @@ mod memory;
 mod roms;
 mod video;
 
-use self::audio::AudioController;
-use self::memory::MemoryController;
-use self::video::VideoController;
+use self::cpu::CPU;
 
 pub struct GameBoy {
-    cpu: cpu::CPU,
-    mem: MemoryController,
-    vid: VideoController,
-    aud: AudioController,
+    // === CPU
+    // clock ticks
+    t: u64,
+    // instruction pointer
+    i: u16,
+    // A accumulator register
+    a: u8,
+    // F flags register
+    f: u8,
+    // BC register/B and C registers
+    b: u8,
+    c: u8,
+    // DE register/D and E registers
+    d: u8,
+    e: u8,
+    // HL register/H and L registers
+    h: u8,
+    l: u8,
+    // SP stack pointer register
+    sp: u16,
+    // PC program counter register
+    pc: u16,
+    // state only used for logging/debugging
+    debug_current_code: Vec<u8>,
+    debug_current_op_addr: u16,
+
+    // === MemoryController
+    main_ram: [u8; 0x2000],
+    video_ram: [u8; 0x2000],
+    stack_ram: [u8; 0x80],
+    boot_rom: [u8; 0x100],
+    game_rom: Vec<u8>,
+    boot_rom_mapped: bool,
 }
 
 impl GameBoy {
     pub fn new() -> Self {
-        GameBoy {
-            cpu: cpu::CPU::new(),
-            mem: MemoryController::new(roms::GAME_STUB),
-            vid: VideoController::new(),
-            aud: AudioController::new(),
+        Self {
+            // CPU
+            t: 0x00,
+            i: 0x00,
+            a: 0x00,
+            f: 0x00,
+            b: 0x00,
+            c: 0x00,
+            d: 0x00,
+            e: 0x00,
+            h: 0x00,
+            l: 0x00,
+            sp: 0x0000,
+            pc: 0x0000,
+            debug_current_code: Vec::new(),
+            debug_current_op_addr: 0x0000,
+
+            // MemoryController
+            main_ram: [0x00; 0x2000],
+            video_ram: [0x00; 0x2000],
+            stack_ram: [0x00; 0x80],
+            boot_rom: roms::BOOT.clone(),
+            game_rom: roms::GAME_STUB.to_vec(),
+            boot_rom_mapped: true,
         }
     }
 
@@ -30,7 +76,7 @@ impl GameBoy {
         println!("; ---------                        -----   -----    ------      ------");
 
         loop {
-            self.cpu.tick(&mut self.mem, &mut self.vid, &mut self.aud);
+            self.tick();
         }
     }
 }
