@@ -26,12 +26,12 @@ impl AudioController for GameBoy {
     }
 
     fn audio_register(&self, index: usize) -> u8 {
-        println!("    ; audio_registers[${:02x}] ", index);
+        // println!("    ; audio_registers[${:02x}] ", index);
         self.aud.registers[index]
     }
 
     fn set_audio_register(&mut self, index: usize, value: u8) {
-        println!("    ; audio_registers[${:02x}] = ${:02x}", index, value);
+        // println!("    ; audio_registers[${:02x}] = ${:02x}", index, value);
         self.aud.registers[index] = value;
     }
 }

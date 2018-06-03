@@ -4,16 +4,25 @@ mod memory;
 mod roms;
 mod video;
 
+use std::time::{Duration, Instant};
+use std::thread::sleep;
 use self::audio::{AudioController, AudioData};
-use self::cpu::{CPUController, CPUData};
+use self::cpu::{CPUController, CPUData, OperationExecution};
 use self::memory::MemoryData;
 use self::video::{VideoController, VideoData};
+
+const EXECUTIONS_BUFFER_SIZE: usize = 32;
 
 pub struct GameBoy {
     cpu: CPUData,
     mem: MemoryData,
     aud: AudioData,
     vid: VideoData,
+
+    debug_latest_executions: Vec<OperationExecution>,
+    debug_latest_executions_next_i: usize,
+
+    t: u64,
 }
 
 impl GameBoy {
@@ -23,18 +32,106 @@ impl GameBoy {
             mem: MemoryData::new(),
             aud: AudioData::new(),
             vid: VideoData::new(),
+            t: 0,
+            debug_latest_executions: vec![],
+            debug_latest_executions_next_i: 0,
         }
     }
 
+    fn print_execution(&self, opex: &OperationExecution) { 
+        if let Some(s) = &opex.execution.asm {
+            print!("{:32}", s);
+        } else {
+            print!("{:32}", "");
+        }
+        print!(" ; ${:04x}", opex.operation_address);
+        print!(" ; {:7}", opex.t);
+        let code = opex.operation_code.clone()
+            .into_iter()
+            .map(|c| format!("{:02x}", c))
+            .collect::<Vec<String>>()
+            .join("");
+        print!(" ; ${:8}", code);
+        if let Some(s) = &opex.execution.trace {
+            print!(" ; {}", s);
+        }
+        println!();
+    }
+
+    pub fn print_recent_executions(&self) {
+        println!("; assembly:                        addr:   t/μs:     codes:      flags:");
+        println!("; ---------                        -----   -----     ------      ------");
+
+        let len = self.debug_latest_executions.len();
+        for i in 0..len {
+            let offset_i = (self.debug_latest_executions_next_i + i) % len;
+            let opex = &self.debug_latest_executions[offset_i];
+            self.print_execution(opex);
+        }
+        println!();
+    }
+
     pub fn run(&mut self) -> ! {
-        println!("; assembly:                        addr:   t/μs:    codes:      flags:");
-        println!("; ---------                        -----   -----    ------      ------");
+        let mut last_color: &'static str = "";
+        let green = "\x1b[92m";
+        let red = "\x1b[91m";
+        let blue = "\x1b[94m";
+        
+        let start_time = Instant::now();
+        let sync_time_every_ticks = 1024 * 4;
+        let mut sync_time_at_tick = sync_time_every_ticks;
 
         loop {
-            let elapsed_cycles = self.tick().cycles;
-            for _ in 0..elapsed_cycles {
+            let opex = self.tick();
+            let cycles = opex.execution.cycles;
+            if self.debug_latest_executions.len() < EXECUTIONS_BUFFER_SIZE {
+                self.debug_latest_executions.push(opex);
+            } else {
+                self.debug_latest_executions[self.debug_latest_executions_next_i] = opex;
+            }
+
+            self.debug_latest_executions_next_i = (self.debug_latest_executions_next_i + 1) % EXECUTIONS_BUFFER_SIZE;
+
+            for _ in 0..cycles {
                 self.video_cycle();
                 self.audio_cycle();
+
+                if self.t % (1024*1024*4) == 0 {
+                    self.print_recent_executions();
+                }
+
+                self.t += 1;
+            }
+
+            if self.t >= sync_time_at_tick {
+                sync_time_at_tick = self.t + sync_time_every_ticks;
+
+                // duration by which we allow internal time to slip ahead of real time,
+                // for the sake of doing several operations in a batch, rather than
+                // sleeping between each of them
+                const BATCH_MARGIN:Duration = Duration::from_millis(4);
+                const MAX_LAG:Duration = Duration::from_millis(125);
+
+                let internal_time = start_time + Duration::new(0, (self.t as f32 / 0.0001048576) as u32);
+                let real_time = Instant::now();
+
+                if internal_time > real_time + BATCH_MARGIN {
+                    sleep(internal_time - real_time);
+                    if green != last_color {
+                        last_color = green;
+                        print!("{}", green);
+                    }
+                } else if real_time > internal_time + MAX_LAG {
+                    if red != last_color {
+                        last_color = red;
+                        print!("{}", red);
+                    }
+                } else {
+                    if blue != last_color {
+                        last_color = blue;
+                        print!("{}", blue);
+                    }
+                }
             }
         }
     }

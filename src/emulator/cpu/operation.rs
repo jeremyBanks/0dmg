@@ -2,7 +2,7 @@ use emulator::cpu::{CPUController, OneByteRegister};
 
 pub type Operation = fn(opcode: u8, gb: &mut super::GameBoy) -> Execution;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Execution {
     pub cycles: u64,           // number of cycles elapsed
     pub asm: Option<String>,   // generated pseudo-asm

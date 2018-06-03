@@ -58,7 +58,7 @@ impl VideoController for GameBoy {
     }
 
     fn set_vram(&mut self, index: usize, value: u8) {
-        println!("    ; vram[${:02x}] = ${:02x}", index, value);
+        // println!("    ; vram[${:02x}] = ${:02x}", index, value);
         self.vid.vram[index] = value;
     }
 
@@ -67,7 +67,7 @@ impl VideoController for GameBoy {
     }
 
     fn set_bgp(&mut self, value: u8) {
-        println!("    ; vid bgp = ${:02x}", value);
+        // println!("    ; vid bgp = ${:02x}", value);
         self.vid.bgp = value;
     }
 
@@ -76,7 +76,7 @@ impl VideoController for GameBoy {
     }
 
     fn set_scy(&mut self, value: u8) {
-        println!("    ; vid scy = ${:02x}", value);
+        // println!("    ; vid scy = ${:02x}", value);
         self.vid.scy = value;
     }
 
@@ -85,7 +85,7 @@ impl VideoController for GameBoy {
     }
 
     fn set_scx(&mut self, value: u8) {
-        println!("    ; vid scx = ${:02x}", value);
+        // println!("    ; vid scx = ${:02x}", value);
         self.vid.scx = value;
     }
 
@@ -94,7 +94,7 @@ impl VideoController for GameBoy {
     }
 
     fn set_lcdc(&mut self, value: u8) {
-        println!("    ; vid lcdc = ${:02x}", value);
+        // println!("    ; vid lcdc = ${:02x}", value);
         self.vid.lcdc = value;
     }
 

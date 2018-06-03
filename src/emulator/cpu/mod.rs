@@ -1,7 +1,7 @@
 use std::fmt;
 
 #[macro_use]
-mod operation;
+pub mod operation;
 mod opcodes_cb;
 mod opcodes_main;
 
@@ -30,14 +30,20 @@ pub struct CPUData {
     sp: u16,
     // PC program counter register
     pc: u16,
-    // state only used for logging/debugging
-    debug_current_code: Vec<u8>,
-    debug_current_op_addr: u16,
+    // for debugging:
+    current_operation_address: u16,
+    current_operation_code: Vec<u8>,
+}
+
+pub struct OperationExecution {
+    pub t: u64,
+    pub operation_address: u16,
+    pub operation_code: Vec<u8>, 
+    pub execution: operation::Execution,
 }
 
 pub trait CPUController {
-    fn tick(&mut self) -> operation::Execution;
-    fn log_execution(&self, asm: Option<String>, info: Option<String>);
+    fn tick(&mut self) -> OperationExecution;
     fn read_instruction(&mut self) -> u8;
     fn read_immediate_u8(&mut self) -> u8;
     fn read_immediate_i8(&mut self) -> i8;
@@ -81,14 +87,15 @@ impl CPUData {
             l: 0x00,
             sp: 0x0000,
             pc: 0x0000,
-            debug_current_code: Vec::new(),
-            debug_current_op_addr: 0x0000,
+            current_operation_code: Vec::new(),
+            current_operation_address: 0x0000,
         }
     }
 }
 
 impl CPUController for GameBoy {
-    fn tick(&mut self) -> operation::Execution {
+    fn tick(&mut self) -> OperationExecution {
+        let t = self.cpu.t;
         let opcode = self.read_instruction();
         let opcode_final;
         let op;
@@ -104,42 +111,25 @@ impl CPUController for GameBoy {
 
         let execution = op(opcode_final, self);
         let cycles = execution.cycles;
-        let asm = execution.asm.clone();
-        let debug = execution.trace.clone();
-        self.log_execution(asm, debug);
         self.cpu.t += cycles as u64;
-        execution
-    }
-
-    fn log_execution(&self, asm: Option<String>, info: Option<String>) {
-        print!("{:32}", if let Some(s) = asm { s } else { format!("") });
-        print!(" ; ${:04x}", self.cpu.debug_current_op_addr);
-        let code = self
-            .cpu
-            .debug_current_code
-            .clone()
-            .into_iter()
-            .map(|c| format!("{:02x}", c))
-            .collect::<Vec<String>>()
-            .join("");
-        print!(" ; {:6}", 0 * self.cpu.t);
-        print!(" ; ${:8}", code);
-        if let Some(s) = info {
-            print!(" ; {}", s);
+        OperationExecution {
+            t,
+            execution,
+            operation_address: self.cpu.current_operation_address,
+            operation_code: self.cpu.current_operation_code.clone(),
         }
-        println!();
     }
 
     fn read_instruction(&mut self) -> u8 {
-        self.cpu.debug_current_code.clear();
-        self.cpu.debug_current_op_addr = self.cpu.i;
+        self.cpu.current_operation_code.clear();
+        self.cpu.current_operation_address = self.cpu.i;
         self.read_immediate_u8()
     }
 
     fn read_immediate_u8(&mut self) -> u8 {
         let i = self.cpu.i;
         let value = self.mem(i);
-        self.cpu.debug_current_code.push(value);
+        self.cpu.current_operation_code.push(value);
         self.cpu.i += 1;
         value
     }
