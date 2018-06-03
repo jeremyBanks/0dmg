@@ -62,3 +62,24 @@ macro_rules! op_execution {
         }
     };
 }
+
+pub fn u8_get_bit(x: u8, offset: u8) -> bool {
+    if offset > 7 {
+        panic!();
+    }
+
+    (x >> offset) & 1 == 1
+}
+
+pub fn u8_set_bit(x: &mut u8, offset: u8, value: bool) {
+    if offset > 7 {
+        panic!();
+    }
+
+    let mask = 1 << offset;
+    if value {
+        *x |= mask;
+    } else {
+        *x &= !mask;
+    }
+}

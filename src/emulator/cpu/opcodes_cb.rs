@@ -1,4 +1,5 @@
 use super::operation;
+use super::operation::{u8_get_bit, u8_set_bit};
 
 use emulator::cpu::CPUController;
 
@@ -348,24 +349,3 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     |_fd, _gb| unimplemented!("opcode 0xCBFD not implemented"),
     |_fe, _gb| unimplemented!("opcode 0xCBFE not implemented"),
 ];
-
-fn u8_get_bit(x: u8, offset: u8) -> bool {
-    if offset > 7 {
-        panic!();
-    }
-
-    (x >> offset) & 1 == 1
-}
-
-fn u8_set_bit(x: &mut u8, offset: u8, value: bool) {
-    if offset > 7 {
-        panic!();
-    }
-
-    let mask = 1 << offset;
-    if value {
-        *x |= mask;
-    } else {
-        *x &= !mask;
-    }
-}

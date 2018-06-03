@@ -1,4 +1,5 @@
 use super::operation;
+use super::operation::{u8_get_bit, u8_set_bit};
 
 use emulator::cpu::CPUController;
 use emulator::memory::MemoryController;
@@ -15,18 +16,18 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     |_02, _gb| unimplemented!("opcode 0x02 not implemented"),
     |_03, gb| {
         let bc0 = gb.bc();
-        let bc1 = bc0 + 1;
+        let bc1 = bc0.wrapping_add(1);
         gb.set_bc(bc1);
         op_execution!{
             cycles: 2;
             asm: "INC BC";
             trace: "BC₀ = ${:04x}, BC₁ = ${:04x}", bc0, bc1;
-        }  
+        }
     },
     |_04, _gb| unimplemented!("opcode 0x04 not implemented"),
     |_05, gb| {
         let b0 = gb.cpu.b;
-        let b1 = b0 - 1;
+        let b1 = b0.wrapping_sub(1);
         gb.cpu.b = b1;
         gb.set_z_flag(b1 == 0);
         gb.set_n_flag(false);
@@ -64,7 +65,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     |_0b, _gb| unimplemented!("opcode 0x0B not implemented"),
     |_0c, gb| {
         let c0 = gb.cpu.c;
-        let c1 = c0 + 1;
+        let c1 = c0.wrapping_add(1);
         gb.cpu.c = c1;
         gb.set_z_flag(c1 == 0);
         gb.set_n_flag(false);
@@ -77,7 +78,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     },
     |_0d, gb| {
         let c0 = gb.cpu.a;
-        let c1 = c0 - 1;
+        let c1 = c0.wrapping_sub(1);
         gb.cpu.c = c1;
         gb.set_z_flag(c1 == 0);
         gb.set_n_flag(false);
@@ -113,18 +114,18 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     |_12, _gb| unimplemented!("opcode 0x12 not implemented"),
     |_13, gb| {
         let de0 = gb.de();
-        let de1 = de0 + 1;
+        let de1 = de0.wrapping_add(1);
         gb.set_de(de1);
         op_execution!{
             cycles: 2;
             asm: "INC DE";
             trace: "DE₀ = ${:04x}, DE₁ = ${:04x}", de0, de1;
-        }  
+        }
     },
     |_14, _gb| unimplemented!("opcode 0x14 not implemented"),
     |_15, gb| {
         let d0 = gb.cpu.d;
-        let d1 = d0 - 1;
+        let d1 = d0.wrapping_sub(1);
         gb.cpu.d = d1;
         gb.set_z_flag(d1 == 0);
         gb.set_n_flag(false);
@@ -147,7 +148,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     },
     |_17, gb| {
         let a0 = gb.cpu.a;
-        let a1 = a0 << 1 + if gb.c_flag() { 1 } else { 0 };
+        let a1 = a0 << (1 + if gb.c_flag() { 1 } else { 0 });
         gb.cpu.a = a1;
         gb.set_z_flag(a1 == 0);
         gb.set_c_flag(a0 & 0b10000000 > 0);
@@ -176,7 +177,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     |_1c, _gb| unimplemented!("opcode 0x1C not implemented"),
     |_1d, gb| {
         let e0 = gb.cpu.e;
-        let e1 = e0 - 1;
+        let e1 = e0.wrapping_sub(1);
         gb.cpu.e = e1;
         gb.set_z_flag(e1 == 0);
         gb.set_n_flag(false);
@@ -223,7 +224,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     |_22, gb| {
         let a = gb.cpu.a;
         let hl0 = gb.hl();
-        let hl1 = hl0 + 1;
+        let hl1 = hl0.wrapping_add(1);
         gb.set(hl0, a);
         gb.set_hl(hl1);
         op_execution!{
@@ -234,18 +235,18 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     },
     |_23, gb| {
         let hl0 = gb.hl();
-        let hl1 = hl0 + 1;
+        let hl1 = hl0.wrapping_add(1);
         gb.set_hl(hl1);
         op_execution!{
             cycles: 2;
             asm: "INC HL";
             trace: "HL₀ = ${:04x}, HL₁ = ${:04x}", hl0, hl1;
-        }  
+        }
     },
     |_24, _gb| unimplemented!("opcode 0x24 not implemented"),
     |_25, gb| {
         let h0 = gb.cpu.h;
-        let h1 = h0 - 1;
+        let h1 = h0.wrapping_sub(1);
         gb.cpu.h = h1;
         gb.set_z_flag(h1 == 0);
         gb.set_n_flag(false);
@@ -285,7 +286,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     |_2c, _gb| unimplemented!("opcode 0x2C not implemented"),
     |_2d, gb| {
         let l0 = gb.cpu.l;
-        let l1 = l0 - 1;
+        let l1 = l0.wrapping_sub(1);
         gb.cpu.l = l1;
         gb.set_z_flag(l1 == 0);
         gb.set_n_flag(false);
@@ -331,7 +332,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     },
     |_32, gb| {
         let hl0 = gb.hl();
-        let hl1 = hl0 - 1;
+        let hl1 = hl0.wrapping_sub(1);
         let a = gb.cpu.a;
         gb.set(hl0, a);
         gb.set_hl(hl1);
@@ -343,13 +344,13 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     },
     |_33, gb| {
         let sp0 = gb.cpu.sp;
-        let sp1 = sp0 + 1;
+        let sp1 = sp0.wrapping_add(1);
         gb.cpu.sp = sp1;
         op_execution!{
             cycles: 2;
             asm: "INC SP";
             trace: "SP₀ = ${:04x}, SP₁ = ${:04x}", sp0, sp1;
-        }  
+        }
     },
     |_34, _gb| unimplemented!("opcode 0x34 not implemented"),
     |_35, _gb| unimplemented!("opcode 0x35 not implemented"),
@@ -373,7 +374,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     |_3c, _gb| unimplemented!("opcode 0x3C not implemented"),
     |_3d, gb| {
         let a0 = gb.cpu.a;
-        let a1 = a0 - 1;
+        let a1 = a0.wrapping_sub(1);
         gb.cpu.a = a1;
         gb.set_z_flag(a1 == 0);
         gb.set_n_flag(false);
@@ -1032,5 +1033,18 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     |_fd, _gb| {
         panic!("0xFD is not a valid opcode");
     },
-    |_fe, _gb| unimplemented!("opcode 0xFE not implemented"),
+    |_fe, gb| {
+        let n = gb.read_immediate_u8();
+        let a = gb.cpu.a;
+        let delta = a.wrapping_sub(n);
+        gb.set_z_flag(delta == 0);
+        gb.set_n_flag(true);
+        gb.set_h_flag(u8_get_bit(delta, 4));
+        gb.set_c_flag(a < n);
+        op_execution!{
+            cycles: 2;
+            asm: "CP ${:02x}", n;
+            trace: "A = ${:02x}, F_Z = {}, F_C = {}", a, gb.z_flag(), gb.n_flag();
+        }
+    },
 ];
