@@ -5,55 +5,32 @@ use emulator::cpu::CPUController;
 use emulator::memory::MemoryController;
 
 const INTRA_REGISTER_LOAD: operation::OpFn = |opcode, gb| {
-    // read source
-    let (source_name, source_value, extra_read_cycles) = match opcode & 0b00000111 {
-        0b000 => ("B", gb.cpu.b, 0),
-        0b001 => ("C", gb.cpu.c, 0),
-        0b010 => ("D", gb.cpu.d, 0),
-        0b011 => ("E", gb.cpu.e, 0),
-        0b100 => ("H", gb.cpu.h, 0),
-        0b101 => ("L", gb.cpu.l, 0),
-        0b110 => {
-            let hl = gb.hl();
-            ("(HL)", gb.get(hl), 1)
-        },
-        0b111 => ("A", gb.cpu.a, 0),
-        _ => panic!("logically impossible?"),
-    };
-    // read dest (for debug tracing)
-    let (dest_name, dest_value, extra_write_cycles) = match (opcode & 0b00111000) >> 3 {
-        0b000 => ("B", gb.cpu.b, 0),
-        0b001 => ("C", gb.cpu.c, 0),
-        0b010 => ("D", gb.cpu.d, 0),
-        0b011 => ("E", gb.cpu.e, 0),
-        0b100 => ("H", gb.cpu.h, 0),
-        0b101 => ("L", gb.cpu.l, 0),
-        0b110 => {
-            let hl = gb.hl();
-            ("(HL)", gb.get(hl), 1)
-        },
-        0b111 => ("A", gb.cpu.a, 0),
-        _ => panic!("logically impossible?"),
-    };
-    // write dest
-    match (opcode & 0b00111000) >> 3 {
-        0b000 => { gb.cpu.b = source_value; },
-        0b001 => { gb.cpu.c = source_value; },
-        0b010 => { gb.cpu.d = source_value; },
-        0b011 => { gb.cpu.e = source_value; },
-        0b100 => { gb.cpu.h = source_value; },
-        0b101 => { gb.cpu.l = source_value; },
-        0b110 => {
-            let hl = gb.hl();
-            gb.set(hl, source_value);
-        },
-        0b111 => { gb.cpu.a = source_value; },
-        _ => panic!("logically impossible?"),
-    };
+    let source_code = opcode & 0b111;
+    let dest_code = (opcode >> 3) & 0b111;
+    let (source_name, source_value, extra_read_cycles) = gb.register(source_code);
+    let (_, dest_value, _) = gb.register(dest_code);
+    let (dest_name, extra_write_cycles) = gb.set_register(dest_code, source_value);
     op_execution! {
         cycles: 1 + extra_read_cycles + extra_write_cycles;
         asm: "LD {}, {}", dest_name, source_name;
         trace: "{} = {}, {}₀ = {}", source_name, source_value, dest_name, dest_value;
+    }
+};
+
+const XOR: operation::OpFn = |opcode, gb| {
+    let source_code = opcode & 0b111;
+    let (source_name, source_value, extra_read_cycles) = gb.register(source_code);
+    let a0 = gb.cpu.a;
+    let a1 = a0 ^ source_value;
+    gb.cpu.a = a1;
+    gb.set_z_flag(a1 == 0);
+    gb.set_n_flag(false);
+    gb.set_h_flag(false);
+    gb.set_c_flag(false);
+    op_execution!{
+        cycles: 1 + extra_read_cycles;
+        asm: "XOR B";
+        trace: "A₀ = ${:02x}, {} = ${:02x} A₁ = ${:02x}", a0, source_name, source_value, a1;
     }
 };
 
@@ -107,7 +84,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     |_0a, gb| {
         let a0 = gb.cpu.a;
         let bc = gb.bc();
-        let a1 = gb.get(bc);
+        let a1 = gb.mem(bc);
         gb.cpu.a = a1;
         op_execution!{
             cycles: 2;
@@ -218,7 +195,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     |_1a, gb| {
         let a0 = gb.cpu.a;
         let de = gb.de();
-        let a1 = gb.get(de);
+        let a1 = gb.mem(de);
         gb.cpu.a = a1;
         op_execution!{
             cycles: 2;
@@ -278,7 +255,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         let a = gb.cpu.a;
         let hl0 = gb.hl();
         let hl1 = hl0.wrapping_add(1);
-        gb.set(hl0, a);
+        gb.set_mem(hl0, a);
         gb.set_hl(hl1);
         op_execution!{
             cycles: 2;
@@ -387,7 +364,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         let hl0 = gb.hl();
         let hl1 = hl0.wrapping_sub(1);
         let a = gb.cpu.a;
-        gb.set(hl0, a);
+        gb.set_mem(hl0, a);
         gb.set_hl(hl1);
         op_execution!{
             cycles: 2;
@@ -553,111 +530,14 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     |_a5, _gb| unimplemented!("opcode 0xA5 not implemented"),
     |_a6, _gb| unimplemented!("opcode 0xA6 not implemented"),
     |_a7, _gb| unimplemented!("opcode 0xA7 not implemented"),
-    |_a8, gb| {
-        let b = gb.cpu.b;
-        let a0 = gb.cpu.a;
-        let a1 = a0 ^ b;
-        gb.cpu.a = a1;
-        gb.set_z_flag(a1 == 0);
-        gb.set_n_flag(false);
-        gb.set_h_flag(false);
-        gb.set_c_flag(false);
-        op_execution!{
-            cycles: 1;
-            asm: "XOR B";
-            trace: "A₀ = ${:02x}, B = ${:02x} A₁ = ${:02x}", a0, b, a1;
-        }
-    },
-    |_a9, gb| {
-        let c = gb.cpu.c;
-        let a0 = gb.cpu.a;
-        let a1 = a0 ^ c;
-        gb.cpu.a = a1;
-        gb.set_z_flag(a1 == 0);
-        gb.set_n_flag(false);
-        gb.set_h_flag(false);
-        gb.set_c_flag(false);
-        op_execution!{
-            cycles: 1;
-            asm: "XOR C";
-            trace: "A₀ = ${:02x}, C = ${:02x} A₁ = ${:02x}", a0, c, a1;
-        }
-    },
-    |_aa, gb| {
-        let d = gb.cpu.d;
-        let a0 = gb.cpu.a;
-        let a1 = a0 ^ d;
-        gb.cpu.a = a1;
-        gb.set_z_flag(a1 == 0);
-        gb.set_n_flag(false);
-        gb.set_h_flag(false);
-        gb.set_c_flag(false);
-        op_execution!{
-            cycles: 1;
-            asm: "XOR D";
-            trace: "A₀ = ${:02x}, D = ${:02x} A₁ = ${:02x}", a0, d, a1;
-        }
-    },
-    |_ab, gb| {
-        let e = gb.cpu.e;
-        let a0 = gb.cpu.a;
-        let a1 = a0 ^ e;
-        gb.cpu.a = a1;
-        gb.set_z_flag(a1 == 0);
-        gb.set_n_flag(false);
-        gb.set_h_flag(false);
-        gb.set_c_flag(false);
-        op_execution!{
-            cycles: 1;
-            asm: "XOR E";
-            trace: "A₀ = ${:02x}, E = ${:02x} A₁ = ${:02x}", a0, e, a1;
-        }
-    },
-    |_ac, gb| {
-        let h = gb.cpu.h;
-        let a0 = gb.cpu.a;
-        let a1 = a0 ^ h;
-        gb.cpu.a = a1;
-        gb.set_z_flag(a1 == 0);
-        gb.set_n_flag(false);
-        gb.set_h_flag(false);
-        gb.set_c_flag(false);
-        op_execution!{
-            cycles: 1;
-            asm: "XOR B";
-            trace: "A₀ = ${:02x}, H = ${:02x} A₁ = ${:02x}", a0, h, a1;
-        }
-    },
-    |_ad, gb| {
-        let l = gb.cpu.l;
-        let a0 = gb.cpu.a;
-        let a1 = a0 ^ l;
-        gb.cpu.a = a1;
-        gb.set_z_flag(a1 == 0);
-        gb.set_n_flag(false);
-        gb.set_h_flag(false);
-        gb.set_c_flag(false);
-        op_execution!{
-            cycles: 1;
-            asm: "XOR L";
-            trace: "A₀ = ${:02x}, L = ${:02x} A₁ = ${:02x}", a0, l, a1;
-        }
-    },
-    |_ae, _gb| unimplemented!("opcode 0xAE not implemented"),
-    |_af, gb| {
-        let a0 = gb.cpu.a;
-        let a1 = a0 ^ a0;
-        gb.cpu.a = a1;
-        gb.set_z_flag(a1 == 0);
-        gb.set_n_flag(false);
-        gb.set_h_flag(false);
-        gb.set_c_flag(false);
-        op_execution!{
-            cycles: 1;
-            asm: "XOR A";
-            trace: "A₀ = ${:02x}, A₁ = ${:02x}", a0, a1;
-        }
-    },
+    XOR,
+    XOR,
+    XOR,
+    XOR,
+    XOR,
+    XOR,
+    XOR,
+    XOR,
     |_b0, _gb| unimplemented!("opcode 0xB0 not implemented"),
     |_b1, _gb| unimplemented!("opcode 0xB1 not implemented"),
     |_b2, _gb| unimplemented!("opcode 0xB2 not implemented"),
@@ -769,7 +649,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     |_e0, gb| {
         let a = gb.cpu.a;
         let n = gb.read_immediate_u8();
-        gb.set(0xFF00 + n as u16, a);
+        gb.set_mem(0xFF00 + n as u16, a);
         op_execution!{
             cycles: 3;
             asm: "LD ($ff00 + ${:02x}), A", n;
@@ -789,7 +669,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         let a = gb.cpu.a;
         let c = gb.cpu.c;
         let address = 0xFF00 + (c as u16);
-        gb.set(address, a);
+        gb.set_mem(address, a);
         op_execution!{
             cycles: 2;
             asm: "LD ($FF00 + C), A ";
@@ -815,7 +695,16 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     |_e7, _gb| unimplemented!("opcode 0xE7 not implemented"),
     |_e8, _gb| unimplemented!("opcode 0xE8 not implemented"),
     |_e9, _gb| unimplemented!("opcode 0xE9 not implemented"),
-    |_ea, _gb| unimplemented!("opcode 0xEA not implemented"),
+    |_ea, gb| {
+        let nn = gb.read_immediate_u16();
+        let a = gb.cpu.a;
+        gb.set_mem(nn, a);
+        op_execution!{
+            cycles: 4;
+            asm: "LD (${:02x}), A", nn;
+            trace: "A = {:02x}", a;
+        }
+    },
     |_eb, _gb| {
         panic!("0xEB is not a valid opcode");
     },
@@ -858,7 +747,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     |_fa, gb| {
         let nn = gb.read_immediate_u16();
         let a0 = gb.cpu.a;
-        let a1 = gb.get(nn);
+        let a1 = gb.mem(nn);
         gb.cpu.a = a1;
         op_execution!{
             cycles: 4;

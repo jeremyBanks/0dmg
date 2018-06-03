@@ -33,6 +33,8 @@
   <https://news.ycombinator.com/item?id=17134668>
 - What constitutes a "half-carry"?  
   <https://stackoverflow.com/q/8868396>
+- Game Boy Sound Operation
+  <https://gist.github.com/drhelius/3652407>
 
 ---
 

@@ -60,6 +60,8 @@ pub trait CPUController {
     fn set_n_flag(&mut self, value: bool);
     fn z_flag(&self) -> bool;
     fn set_z_flag(&mut self, value: bool);
+    fn register(&self, code: u8) -> (&'static str, u8, u64);
+    fn set_register(&mut self, code: u8, value: u8) -> (&'static str, u64);
 }
 
 impl CPUData {
@@ -134,7 +136,7 @@ impl CPUController for GameBoy {
 
     fn read_immediate_u8(&mut self) -> u8 {
         let i = self.cpu.i;
-        let value = self.get(i);
+        let value = self.mem(i);
         self.cpu.debug_current_code.push(value);
         self.cpu.i += 1;
         value
@@ -162,16 +164,16 @@ impl CPUController for GameBoy {
         let sp0 = self.cpu.sp;
         let sp1 = sp0 - 2;
         let (value_low, value_high) = u16_to_u8s(value);
-        self.set(sp1 + 1, value_low);
-        self.set(sp1 + 0, value_high);
+        self.set_mem(sp1 + 1, value_low);
+        self.set_mem(sp1 + 0, value_high);
         self.cpu.sp = sp1;
     }
 
     fn stack_pop(&mut self) -> u16 {
         let sp0 = self.cpu.sp;
         let sp1 = sp0 + 2;
-        let value_low = self.get(sp0 + 1);
-        let value_high = self.get(sp0 + 0);
+        let value_low = self.mem(sp0 + 1);
+        let value_high = self.mem(sp0 + 0);
         let value = u8s_to_u16(value_low, value_high);
         self.cpu.sp = sp1;
         value
@@ -262,6 +264,62 @@ impl CPUController for GameBoy {
             self.cpu.f |= 0x80;
         } else {
             self.cpu.f &= !0x80;
+        }
+    }
+
+    fn register(&self, code: u8) -> (&'static str, u8, u64) {
+        match code {
+            0b000 => ("B", self.cpu.b, 0),
+            0b001 => ("C", self.cpu.c, 0),
+            0b010 => ("D", self.cpu.d, 0),
+            0b011 => ("E", self.cpu.e, 0),
+            0b100 => ("H", self.cpu.h, 0),
+            0b101 => ("L", self.cpu.l, 0),
+            0b110 => {
+                let hl = self.hl();
+                ("(HL)", self.mem(hl), 1)
+            }
+            0b111 => ("A", self.cpu.a, 0),
+            _ => panic!("invalid register code {}", code),
+        }
+    }
+
+    fn set_register(&mut self, code: u8, value: u8) -> (&'static str, u64) {
+        match code {
+            0b000 => {
+                self.cpu.b = value;
+                ("B", 0)
+            }
+            0b001 => {
+                self.cpu.c = value;
+                ("C", 0)
+            }
+            0b010 => {
+                self.cpu.d = value;
+                ("D", 0)
+            }
+            0b011 => {
+                self.cpu.e = value;
+                ("E", 0)
+            }
+            0b100 => {
+                self.cpu.h = value;
+                ("H", 0)
+            }
+            0b101 => {
+                self.cpu.l = value;
+                ("L", 0)
+            }
+            0b110 => {
+                let hl = self.hl();
+                self.set_mem(hl, value);
+                ("(HL)", 1)
+            }
+            0b111 => {
+                self.cpu.a = value;
+                ("A", 0)
+            }
+            _ => panic!("invalid register code {}", code),
         }
     }
 }
