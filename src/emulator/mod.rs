@@ -7,11 +7,13 @@ mod video;
 use self::audio::AudioData;
 use self::cpu::{CPUController, CPUData};
 use self::memory::MemoryData;
+use self::video::VideoData;
 
 pub struct GameBoy {
     cpu: CPUData,
     mem: MemoryData,
     aud: AudioData,
+    vid: VideoData,
 }
 
 impl GameBoy {
@@ -20,6 +22,7 @@ impl GameBoy {
             cpu: CPUData::new(),
             mem: MemoryData::new(),
             aud: AudioData::new(),
+            vid: VideoData::new(),
         }
     }
 

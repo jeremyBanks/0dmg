@@ -28,10 +28,10 @@ const INTRA_REGISTER_LOAD: operation::OpFn = |opcode, gb| {
         0b011 => ("E", gb.cpu.e, 0),
         0b100 => ("H", gb.cpu.h, 0),
         0b101 => ("L", gb.cpu.l, 0),
-        // TODO: we should read the real value from (HL) here, but currently there are some
-        //       memory addresses we can only write, but not read, so reading here would
-        //       introduce more crashes.
-        0b110 => ("(HL)", 0x00, 1),
+        0b110 => {
+            let hl = gb.hl();
+            ("(HL)", gb.get(hl), 1)
+        },
         0b111 => ("A", gb.cpu.a, 0),
         _ => panic!("logically impossible?"),
     };
