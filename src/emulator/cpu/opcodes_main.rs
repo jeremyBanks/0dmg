@@ -5,7 +5,7 @@ use emulator::cpu::CPUController;
 use emulator::memory::MemoryController;
 
 // one-byte opcodes
-pub static OPCODES: [operation::OpFn; 0xFF] = [
+pub static OPCODES: [operation::Operation; 0xFF] = [
     |_00, _gb| {
         op_execution!{
             cycles: 1;
@@ -24,7 +24,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
             trace: "BC₀ = ${:04x}, BC₁ = ${:04x}", bc0, bc1;
         }
     },
-    |_04, _gb| unimplemented!("opcode 0x04 not implemented"),
+    operation::INC,
     |_05, gb| {
         let b0 = gb.cpu.b;
         let b1 = b0.wrapping_sub(1);
@@ -63,19 +63,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         }
     },
     |_0b, _gb| unimplemented!("opcode 0x0B not implemented"),
-    |_0c, gb| {
-        let c0 = gb.cpu.c;
-        let c1 = c0.wrapping_add(1);
-        gb.cpu.c = c1;
-        gb.set_z_flag(c1 == 0);
-        gb.set_n_flag(false);
-        gb.set_h_flag(c0 > c1);
-        op_execution!{
-            cycles: 1;
-            asm: "INC C";
-            trace: "C₀ = ${:02x}, C₁ = ${:02x}", c0, c1;
-        }
-    },
+    operation::INC,
     |_0d, gb| {
         let c0 = gb.cpu.a;
         let c1 = c0.wrapping_sub(1);
@@ -122,7 +110,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
             trace: "DE₀ = ${:04x}, DE₁ = ${:04x}", de0, de1;
         }
     },
-    |_14, _gb| unimplemented!("opcode 0x14 not implemented"),
+    operation::INC,
     |_15, gb| {
         let d0 = gb.cpu.d;
         let d1 = d0.wrapping_sub(1);
@@ -160,7 +148,14 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
             trace: "A₀ = {}", a0;
         }
     },
-    |_18, _gb| unimplemented!("opcode 0x18 not implemented"),
+    |_18, gb| {
+        let n = gb.read_immediate_i8();
+        gb.relative_jump(n);
+        op_execution!{
+            cycles: 2;
+            asm: "JR {}", n;
+        }
+    },
     |_19, _gb| unimplemented!("opcode 0x19 not implemented"),
     |_1a, gb| {
         let a0 = gb.cpu.a;
@@ -174,7 +169,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         }
     },
     |_1b, _gb| unimplemented!("opcode 0x1B not implemented"),
-    |_1c, _gb| unimplemented!("opcode 0x1C not implemented"),
+    operation::INC,
     |_1d, gb| {
         let e0 = gb.cpu.e;
         let e1 = e0.wrapping_sub(1);
@@ -243,7 +238,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
             trace: "HL₀ = ${:04x}, HL₁ = ${:04x}", hl0, hl1;
         }
     },
-    |_24, _gb| unimplemented!("opcode 0x24 not implemented"),
+    operation::INC,
     |_25, gb| {
         let h0 = gb.cpu.h;
         let h1 = h0.wrapping_sub(1);
@@ -283,7 +278,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     |_29, _gb| unimplemented!("opcode 0x29 not implemented"),
     |_2a, _gb| unimplemented!("opcode 0x2A not implemented"),
     |_2b, _gb| unimplemented!("opcode 0x2B not implemented"),
-    |_2c, _gb| unimplemented!("opcode 0x2C not implemented"),
+    operation::INC,
     |_2d, gb| {
         let l0 = gb.cpu.l;
         let l1 = l0.wrapping_sub(1);
@@ -352,7 +347,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
             trace: "SP₀ = ${:04x}, SP₁ = ${:04x}", sp0, sp1;
         }
     },
-    |_34, _gb| unimplemented!("opcode 0x34 not implemented"),
+    operation::INC,
     |_35, _gb| unimplemented!("opcode 0x35 not implemented"),
     |_36, _gb| unimplemented!("opcode 0x36 not implemented"),
     |_37, _gb| unimplemented!("opcode 0x37 not implemented"),
@@ -371,7 +366,7 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     |_39, _gb| unimplemented!("opcode 0x39 not implemented"),
     |_3a, _gb| unimplemented!("opcode 0x3A not implemented"),
     |_3b, _gb| unimplemented!("opcode 0x3B not implemented"),
-    |_3c, _gb| unimplemented!("opcode 0x3C not implemented"),
+    operation::INC,
     |_3d, gb| {
         let a0 = gb.cpu.a;
         let a1 = a0.wrapping_sub(1);

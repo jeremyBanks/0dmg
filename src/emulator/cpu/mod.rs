@@ -354,16 +354,20 @@ impl OneByteRegister {
 
 impl fmt::Display for OneByteRegister {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", match self {
-            OneByteRegister::B => "B",
-            OneByteRegister::C => "C",
-            OneByteRegister::D => "D",
-            OneByteRegister::E => "E",
-            OneByteRegister::H => "H",
-            OneByteRegister::L => "L",
-            OneByteRegister::AtHL => "(HL)",
-            OneByteRegister::A => "A",
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                OneByteRegister::B => "B",
+                OneByteRegister::C => "C",
+                OneByteRegister::D => "D",
+                OneByteRegister::E => "E",
+                OneByteRegister::H => "H",
+                OneByteRegister::L => "L",
+                OneByteRegister::AtHL => "(HL)",
+                OneByteRegister::A => "A",
+            }
+        )
     }
 }
 

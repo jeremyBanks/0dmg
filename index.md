@@ -8,6 +8,8 @@
 
 ## Resources
 
+- Awesome Game Boy Development Resources
+  <https://github.com/avivace/awesome-gbdev>
 - CPU Manual  
   <http://marc.rawer.de/Gameboy/Docs/GBCPUman.pdf>
 - Bootstrap ROM  

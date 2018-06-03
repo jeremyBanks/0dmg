@@ -1,6 +1,6 @@
 use emulator::cpu::{CPUController, OneByteRegister};
 
-pub type OpFn = fn(opcode: u8, gb: &mut super::GameBoy) -> Execution;
+pub type Operation = fn(opcode: u8, gb: &mut super::GameBoy) -> Execution;
 
 #[derive(Debug)]
 pub struct Execution {
@@ -43,7 +43,7 @@ macro_rules! op_execution {
     );
 }
 
-pub const INTRA_REGISTER_LOAD: OpFn = |opcode, gb| {
+pub const INTRA_REGISTER_LOAD: Operation = |opcode, gb| {
     let source = OneByteRegister::from(opcode & 0b111);
     let dest = OneByteRegister::from((opcode >> 3) & 0b111);
     let (source_value, extra_read_cycles) = gb.register(source);
@@ -56,7 +56,7 @@ pub const INTRA_REGISTER_LOAD: OpFn = |opcode, gb| {
     }
 };
 
-pub const XOR: OpFn = |opcode, gb| {
+pub const XOR: Operation = |opcode, gb| {
     let source = OneByteRegister::from(opcode & 0b111);
     let (source_value, extra_read_cycles) = gb.register(source);
     let a0 = gb.cpu.a;
@@ -70,6 +70,55 @@ pub const XOR: OpFn = |opcode, gb| {
         cycles: 1 + extra_read_cycles;
         asm: "XOR {}", source;
         trace: "A₀ = ${:02x}, {} = ${:02x} A₁ = ${:02x}", a0, source, source_value, a1;
+    }
+};
+
+pub const AND: Operation = |opcode, gb| {
+    let source = OneByteRegister::from(opcode & 0b111);
+    let (source_value, extra_read_cycles) = gb.register(source);
+    let a0 = gb.cpu.a;
+    let a1 = a0 & source_value;
+    gb.cpu.a = a1;
+    gb.set_z_flag(a1 == 0);
+    gb.set_n_flag(false);
+    gb.set_h_flag(true);
+    gb.set_c_flag(false);
+    op_execution!{
+        cycles: 1 + extra_read_cycles;
+        asm: "AND {}", source;
+        trace: "A₀ = ${:02x}, {} = ${:02x} A₁ = ${:02x}", a0, source, source_value, a1;
+    }
+};
+
+pub const OR: Operation = |opcode, gb| {
+    let source = OneByteRegister::from(opcode & 0b111);
+    let (source_value, extra_read_cycles) = gb.register(source);
+    let a0 = gb.cpu.a;
+    let a1 = a0 | source_value;
+    gb.cpu.a = a1;
+    gb.set_z_flag(a1 == 0);
+    gb.set_n_flag(false);
+    gb.set_h_flag(false);
+    gb.set_c_flag(false);
+    op_execution!{
+        cycles: 1 + extra_read_cycles;
+        asm: "OR {}", source;
+        trace: "A₀ = ${:02x}, {} = ${:02x} A₁ = ${:02x}", a0, source, source_value, a1;
+    }
+};
+
+pub const INC: Operation = |opcode, gb| {
+    let target = OneByteRegister::from((opcode >> 3) & 0b111);
+    let (old_value, extra_read_cycles) = gb.register(target);
+    let new_value = old_value.wrapping_add(1);
+    let extra_write_cycles = gb.set_register(target, new_value);
+    gb.set_z_flag(old_value == 0);
+    gb.set_n_flag(false);
+    gb.set_h_flag(u8_get_bit(new_value, 4));
+    op_execution!{
+        cycles: 1 + extra_read_cycles + extra_write_cycles;
+        asm: "INC {}", target;
+        trace: "{}₀ = ${:02x}, {}₁ = ${:02x}", target, old_value, target, new_value;
     }
 };
 

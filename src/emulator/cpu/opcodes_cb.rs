@@ -4,7 +4,7 @@ use super::operation::{u8_get_bit, u8_set_bit};
 use emulator::cpu::CPUController;
 
 // 0xCB-prefixed two-byte opcodes
-pub static OPCODES: [operation::OpFn; 0xFF] = [
+pub static OPCODES: [operation::Operation; 0xFF] = [
     |_00, _gb| unimplemented!("opcode 0xCB00 not implemented"),
     |_01, _gb| unimplemented!("opcode 0xCB01 not implemented"),
     |_02, _gb| unimplemented!("opcode 0xCB02 not implemented"),

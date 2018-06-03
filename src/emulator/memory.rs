@@ -46,6 +46,12 @@ impl MemoryController for GameBoy {
         } else if 0xFF10 <= addr && addr <= 0xFF26 {
             let i = (addr - 0xFF10) as usize;
             self.audio_register(i)
+        } else if addr == 0xFF40 {
+            self.lcdc()
+        } else if addr == 0xFF42 {
+            self.scy()
+        } else if addr == 0xFF43 {
+            self.scx()
         } else if addr == 0xFF47 {
             self.bgp()
         } else {
@@ -63,6 +69,12 @@ impl MemoryController for GameBoy {
         } else if 0xFF10 <= addr && addr <= 0xFF26 {
             let i = (addr - 0xFF10) as usize;
             self.set_audio_register(i, value);
+        } else if addr == 0xFF40 {
+            self.set_lcdc(value);
+        } else if addr == 0xFF42 {
+            self.set_scy(value);
+        } else if addr == 0xFF43 {
+            self.set_scx(value);
         } else if addr == 0xFF47 {
             self.set_bgp(value);
         } else {
