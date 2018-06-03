@@ -4,36 +4,6 @@ use super::operation::{u8_get_bit, u8_set_bit};
 use emulator::cpu::CPUController;
 use emulator::memory::MemoryController;
 
-const INTRA_REGISTER_LOAD: operation::OpFn = |opcode, gb| {
-    let source_code = opcode & 0b111;
-    let dest_code = (opcode >> 3) & 0b111;
-    let (source_name, source_value, extra_read_cycles) = gb.register(source_code);
-    let (_, dest_value, _) = gb.register(dest_code);
-    let (dest_name, extra_write_cycles) = gb.set_register(dest_code, source_value);
-    op_execution! {
-        cycles: 1 + extra_read_cycles + extra_write_cycles;
-        asm: "LD {}, {}", dest_name, source_name;
-        trace: "{} = {}, {}₀ = {}", source_name, source_value, dest_name, dest_value;
-    }
-};
-
-const XOR: operation::OpFn = |opcode, gb| {
-    let source_code = opcode & 0b111;
-    let (source_name, source_value, extra_read_cycles) = gb.register(source_code);
-    let a0 = gb.cpu.a;
-    let a1 = a0 ^ source_value;
-    gb.cpu.a = a1;
-    gb.set_z_flag(a1 == 0);
-    gb.set_n_flag(false);
-    gb.set_h_flag(false);
-    gb.set_c_flag(false);
-    op_execution!{
-        cycles: 1 + extra_read_cycles;
-        asm: "XOR B";
-        trace: "A₀ = ${:02x}, {} = ${:02x} A₁ = ${:02x}", a0, source_name, source_value, a1;
-    }
-};
-
 // one-byte opcodes
 pub static OPCODES: [operation::OpFn; 0xFF] = [
     |_00, _gb| {
@@ -426,70 +396,70 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         }
     },
     |_3f, _gb| unimplemented!("opcode 0x3F not implemented"),
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
     |_76, _gb| unimplemented!("opcode 0x76, HALT, is not implemented"),
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
-    INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
+    operation::INTRA_REGISTER_LOAD,
     |_80, _gb| unimplemented!("opcode 0x80 not implemented"),
     |_81, _gb| unimplemented!("opcode 0x81 not implemented"),
     |_82, _gb| unimplemented!("opcode 0x82 not implemented"),
@@ -530,14 +500,14 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
     |_a5, _gb| unimplemented!("opcode 0xA5 not implemented"),
     |_a6, _gb| unimplemented!("opcode 0xA6 not implemented"),
     |_a7, _gb| unimplemented!("opcode 0xA7 not implemented"),
-    XOR,
-    XOR,
-    XOR,
-    XOR,
-    XOR,
-    XOR,
-    XOR,
-    XOR,
+    operation::XOR,
+    operation::XOR,
+    operation::XOR,
+    operation::XOR,
+    operation::XOR,
+    operation::XOR,
+    operation::XOR,
+    operation::XOR,
     |_b0, _gb| unimplemented!("opcode 0xB0 not implemented"),
     |_b1, _gb| unimplemented!("opcode 0xB1 not implemented"),
     |_b2, _gb| unimplemented!("opcode 0xB2 not implemented"),

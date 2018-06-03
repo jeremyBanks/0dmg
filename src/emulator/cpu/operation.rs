@@ -1,3 +1,5 @@
+use emulator::cpu::{CPUController, OneByteRegister};
+
 pub type OpFn = fn(opcode: u8, gb: &mut super::GameBoy) -> Execution;
 
 #[derive(Debug)]
@@ -39,29 +41,37 @@ macro_rules! op_execution {
             }
         }
     );
-    {cycles: $cycles:expr; trace: $($trace:expr),*;} => (
-    if cfg!(trace_assertions) {
-        ::emulator::cpu::operation::Execution {
-            cycles: $cycles,
-            asm: None,
-            trace: Some(format!($($trace),*)),
-        }
-        } else {
-            ::emulator::cpu::operation::Execution {
-                cycles: $cycles,
-                asm: None,
-                trace: None,
-            }
-        }
-    );
-    {cycles: $cycles:expr;} => {
-        ::emulator::cpu::operation::Execution {
-            cycles: $cycles,
-            asm: None,
-            trace: None,
-        }
-    };
 }
+
+pub const INTRA_REGISTER_LOAD: OpFn = |opcode, gb| {
+    let source = OneByteRegister::from(opcode & 0b111);
+    let dest = OneByteRegister::from((opcode >> 3) & 0b111);
+    let (source_value, extra_read_cycles) = gb.register(source);
+    let (dest_value, _) = gb.register(dest);
+    let extra_write_cycles = gb.set_register(dest, source_value);
+    op_execution! {
+        cycles: 1 + extra_read_cycles + extra_write_cycles;
+        asm: "LD {}, {}", dest, source;
+        trace: "{} = {}, {}₀ = {}", source, source_value, dest, dest_value;
+    }
+};
+
+pub const XOR: OpFn = |opcode, gb| {
+    let source = OneByteRegister::from(opcode & 0b111);
+    let (source_value, extra_read_cycles) = gb.register(source);
+    let a0 = gb.cpu.a;
+    let a1 = a0 ^ source_value;
+    gb.cpu.a = a1;
+    gb.set_z_flag(a1 == 0);
+    gb.set_n_flag(false);
+    gb.set_h_flag(false);
+    gb.set_c_flag(false);
+    op_execution!{
+        cycles: 1 + extra_read_cycles;
+        asm: "XOR {}", source;
+        trace: "A₀ = ${:02x}, {} = ${:02x} A₁ = ${:02x}", a0, source, source_value, a1;
+    }
+};
 
 pub fn u8_get_bit(x: u8, offset: u8) -> bool {
     if offset > 7 {

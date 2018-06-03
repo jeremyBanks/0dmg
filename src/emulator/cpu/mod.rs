@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[macro_use]
 mod operation;
 mod opcodes_cb;
@@ -60,8 +62,8 @@ pub trait CPUController {
     fn set_n_flag(&mut self, value: bool);
     fn z_flag(&self) -> bool;
     fn set_z_flag(&mut self, value: bool);
-    fn register(&self, code: u8) -> (&'static str, u8, u64);
-    fn set_register(&mut self, code: u8, value: u8) -> (&'static str, u64);
+    fn register(&self, register: OneByteRegister) -> (u8, u64);
+    fn set_register(&mut self, register: OneByteRegister, value: u8) -> (u64);
 }
 
 impl CPUData {
@@ -267,60 +269,101 @@ impl CPUController for GameBoy {
         }
     }
 
-    fn register(&self, code: u8) -> (&'static str, u8, u64) {
-        match code {
-            0b000 => ("B", self.cpu.b, 0),
-            0b001 => ("C", self.cpu.c, 0),
-            0b010 => ("D", self.cpu.d, 0),
-            0b011 => ("E", self.cpu.e, 0),
-            0b100 => ("H", self.cpu.h, 0),
-            0b101 => ("L", self.cpu.l, 0),
-            0b110 => {
+    fn register(&self, register: OneByteRegister) -> (u8, u64) {
+        match register {
+            OneByteRegister::B => (self.cpu.b, 0),
+            OneByteRegister::C => (self.cpu.c, 0),
+            OneByteRegister::D => (self.cpu.d, 0),
+            OneByteRegister::E => (self.cpu.e, 0),
+            OneByteRegister::H => (self.cpu.h, 0),
+            OneByteRegister::L => (self.cpu.l, 0),
+            OneByteRegister::AtHL => {
                 let hl = self.hl();
-                ("(HL)", self.mem(hl), 1)
+                (self.mem(hl), 1)
             }
-            0b111 => ("A", self.cpu.a, 0),
-            _ => panic!("invalid register code {}", code),
+            OneByteRegister::A => (self.cpu.a, 0),
         }
     }
 
-    fn set_register(&mut self, code: u8, value: u8) -> (&'static str, u64) {
-        match code {
-            0b000 => {
+    fn set_register(&mut self, register: OneByteRegister, value: u8) -> u64 {
+        match register {
+            OneByteRegister::B => {
                 self.cpu.b = value;
-                ("B", 0)
+                0
             }
-            0b001 => {
+            OneByteRegister::C => {
                 self.cpu.c = value;
-                ("C", 0)
+                0
             }
-            0b010 => {
+            OneByteRegister::D => {
                 self.cpu.d = value;
-                ("D", 0)
+                0
             }
-            0b011 => {
+            OneByteRegister::E => {
                 self.cpu.e = value;
-                ("E", 0)
+                0
             }
-            0b100 => {
+            OneByteRegister::H => {
                 self.cpu.h = value;
-                ("H", 0)
+                0
             }
-            0b101 => {
+            OneByteRegister::L => {
                 self.cpu.l = value;
-                ("L", 0)
+                0
             }
-            0b110 => {
+            OneByteRegister::AtHL => {
                 let hl = self.hl();
                 self.set_mem(hl, value);
-                ("(HL)", 1)
+                1
             }
-            0b111 => {
+            OneByteRegister::A => {
                 self.cpu.a = value;
-                ("A", 0)
+                0
             }
+        }
+    }
+}
+
+#[derive(Copy, Clone)]
+pub enum OneByteRegister {
+    B,
+    C,
+    D,
+    E,
+    H,
+    L,
+    AtHL,
+    A,
+}
+
+impl OneByteRegister {
+    pub fn from(code: u8) -> OneByteRegister {
+        match code {
+            0b000 => OneByteRegister::B,
+            0b001 => OneByteRegister::C,
+            0b010 => OneByteRegister::D,
+            0b011 => OneByteRegister::E,
+            0b100 => OneByteRegister::H,
+            0b101 => OneByteRegister::L,
+            0b110 => OneByteRegister::AtHL,
+            0b111 => OneByteRegister::A,
             _ => panic!("invalid register code {}", code),
         }
+    }
+}
+
+impl fmt::Display for OneByteRegister {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", match self {
+            OneByteRegister::B => "B",
+            OneByteRegister::C => "C",
+            OneByteRegister::D => "D",
+            OneByteRegister::E => "E",
+            OneByteRegister::H => "H",
+            OneByteRegister::L => "L",
+            OneByteRegister::AtHL => "(HL)",
+            OneByteRegister::A => "A",
+        })
     }
 }
 
