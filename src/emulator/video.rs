@@ -18,9 +18,7 @@ impl VideoData {
         Self {
             vram: [0x00; 0x2000],
             bgp: 0x00,
-            scx:
-            // TODO: This shouldn't be a simple read, it needs to actually
-            // match the drawing rate in some way. 0x00,
+            scx: 0x00,
             scy: 0x00,
             lcdc: 0x00,
             ly: 0x00,
