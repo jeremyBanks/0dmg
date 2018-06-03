@@ -52,6 +52,8 @@ impl MemoryController for GameBoy {
             self.scy()
         } else if addr == 0xFF43 {
             self.scx()
+        } else if addr == 0xFF44 {
+            self.ly()
         } else if addr == 0xFF47 {
             self.bgp()
         } else {
@@ -75,6 +77,8 @@ impl MemoryController for GameBoy {
             self.set_scy(value);
         } else if addr == 0xFF43 {
             self.set_scx(value);
+        } else if addr == 0xFF44 {
+            self.set_ly(value);
         } else if addr == 0xFF47 {
             self.set_bgp(value);
         } else {

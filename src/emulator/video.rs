@@ -9,6 +9,8 @@ pub struct VideoData {
     scy: u8,
     // LCD control register
     lcdc: u8,
+    // LCD Y draw line
+    ly: u8,
 }
 
 impl VideoData {
@@ -16,9 +18,12 @@ impl VideoData {
         Self {
             vram: [0x00; 0x2000],
             bgp: 0x00,
-            scx: 0x00,
+            scx:
+            // TODO: This shouldn't be a simple read, it needs to actually
+            // match the drawing rate in some way. 0x00,
             scy: 0x00,
             lcdc: 0x00,
+            ly: 0x00,
         }
     }
 }
@@ -34,6 +39,8 @@ pub trait VideoController {
     fn set_scx(&mut self, value: u8);
     fn lcdc(&self) -> u8;
     fn set_lcdc(&mut self, value: u8);
+    fn ly(&self) -> u8;
+    fn set_ly(&mut self, value: u8);
 }
 
 impl VideoController for GameBoy {
@@ -80,5 +87,16 @@ impl VideoController for GameBoy {
     fn set_lcdc(&mut self, value: u8) {
         println!("    ; vid lcdc = ${:02x}", value);
         self.vid.lcdc = value;
+    }
+
+    fn ly(&self) -> u8 {
+        // TODO: This shouldn't be a simple read, it needs to actually
+        // match the drawing rate in some way.
+        return self.vid.ly;
+    }
+
+    fn set_ly(&mut self, value: u8) {
+        println!("    ; vid ly = ${:02x}", value);
+        self.vid.ly = value;
     }
 }

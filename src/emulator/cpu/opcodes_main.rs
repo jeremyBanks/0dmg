@@ -617,7 +617,7 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
         gb.set_mem(0xFF00 + n as u16, a);
         op_execution!{
             cycles: 3;
-            asm: "LD ($ff00 + ${:02x}), A", n;
+            asm: "LD ($FF00 + ${:02x}), A", n;
             trace: "A = ${:02x}", a;
         }
     },
@@ -681,7 +681,16 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
     },
     |_ee, _gb| unimplemented!("opcode 0xEE not implemented"),
     |_ef, _gb| unimplemented!("opcode 0xEF not implemented"),
-    |_f0, _gb| unimplemented!("opcode 0xF0 not implemented"),
+    |_f0, gb| {
+        let a0 = gb.cpu.a;
+        let n = gb.read_immediate_u8();
+        let a1 = gb.mem(0xFF00 + n as u16);
+        op_execution!{
+            cycles: 3;
+            asm: "LD A, ($FF00 + ${:02x})", n;
+            trace: "A₀ = ${:02x}, A₁ = ${:04x}", a0, a1;
+        }
+    },
     |_f1, gb| {
         let af0 = gb.af();
         let af1 = gb.stack_pop();
