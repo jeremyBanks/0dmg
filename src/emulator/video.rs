@@ -1,6 +1,10 @@
 use super::GameBoy;
 
+// seems to be the right value to meet the apparent framerate
+const CYCLES_PER_LINE: u64 = 113;
+
 pub struct VideoData {
+    t: u64,
     vram: [u8; 0x2000],
     // background palette register
     bgp: u8,
@@ -16,6 +20,7 @@ pub struct VideoData {
 impl VideoData {
     pub fn new() -> Self {
         Self {
+            t: 0,
             vram: [0x00; 0x2000],
             bgp: 0x00,
             scx: 0x00,
@@ -27,6 +32,7 @@ impl VideoData {
 }
 
 pub trait VideoController {
+    fn video_cycle(&mut self);
     fn vram(&self, index: usize) -> u8;
     fn set_vram(&mut self, index: usize, value: u8);
     fn bgp(&self) -> u8;
@@ -42,6 +48,11 @@ pub trait VideoController {
 }
 
 impl VideoController for GameBoy {
+    fn video_cycle(&mut self) {
+        self.vid.t += 1;
+        self.vid.ly = ((self.vid.t / CYCLES_PER_LINE) % (144 + 10)) as u8;
+    }
+
     fn vram(&self, index: usize) -> u8 {
         self.vid.vram[index]
     }
@@ -88,13 +99,10 @@ impl VideoController for GameBoy {
     }
 
     fn ly(&self) -> u8 {
-        // TODO: This shouldn't be a simple read, it needs to actually
-        // match the drawing rate in some way.
         return self.vid.ly;
     }
 
-    fn set_ly(&mut self, value: u8) {
-        println!("    ; vid ly = ${:02x}", value);
-        self.vid.ly = value;
+    fn set_ly(&mut self, _value: u8) {
+        panic!("writing to LY is not supported");
     }
 }

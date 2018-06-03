@@ -523,6 +523,7 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
     |_c1, gb| {
         let bc0 = gb.bc();
         let bc1 = gb.stack_pop();
+        gb.set_bc(bc1);
         op_execution!{
             cycles: 3;
             asm: "POP BC";
@@ -577,6 +578,7 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
     |_d1, gb| {
         let de0 = gb.de();
         let de1 = gb.stack_pop();
+        gb.set_de(de1);
         op_execution!{
             cycles: 3;
             asm: "POP DE";
@@ -624,6 +626,7 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
     |_e1, gb| {
         let hl0 = gb.hl();
         let hl1 = gb.stack_pop();
+        gb.set_hl(hl1);
         op_execution!{
             cycles: 3;
             asm: "POP HL";
@@ -685,15 +688,17 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
         let a0 = gb.cpu.a;
         let n = gb.read_immediate_u8();
         let a1 = gb.mem(0xFF00 + n as u16);
+        gb.cpu.a = a1;
         op_execution!{
             cycles: 3;
             asm: "LD A, ($FF00 + ${:02x})", n;
-            trace: "A₀ = ${:02x}, A₁ = ${:04x}", a0, a1;
+            trace: "A₀ = ${:02x}, A₁ = ${:02x}", a0, a1;
         }
     },
     |_f1, gb| {
         let af0 = gb.af();
         let af1 = gb.stack_pop();
+        gb.set_af(af1);
         op_execution!{
             cycles: 3;
             asm: "POP AF";

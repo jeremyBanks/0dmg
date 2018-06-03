@@ -4,10 +4,10 @@ mod memory;
 mod roms;
 mod video;
 
-use self::audio::AudioData;
+use self::audio::{AudioController, AudioData};
 use self::cpu::{CPUController, CPUData};
 use self::memory::MemoryData;
-use self::video::VideoData;
+use self::video::{VideoController, VideoData};
 
 pub struct GameBoy {
     cpu: CPUData,
@@ -31,7 +31,11 @@ impl GameBoy {
         println!("; ---------                        -----   -----    ------      ------");
 
         loop {
-            self.tick();
+            let elapsed_cycles = self.tick().cycles;
+            for _ in 0..elapsed_cycles {
+                self.video_cycle();
+                self.audio_cycle();
+            }
         }
     }
 }

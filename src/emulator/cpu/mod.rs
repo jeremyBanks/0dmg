@@ -122,7 +122,7 @@ impl CPUController for GameBoy {
             .map(|c| format!("{:02x}", c))
             .collect::<Vec<String>>()
             .join("");
-        print!(" ; {:6}", self.cpu.t);
+        print!(" ; {:6}", 0 * self.cpu.t);
         print!(" ; ${:8}", code);
         if let Some(s) = info {
             print!(" ; {}", s);
