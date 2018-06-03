@@ -4,6 +4,59 @@ use super::operation::{u8_get_bit, u8_set_bit};
 use emulator::cpu::CPUController;
 use emulator::memory::MemoryController;
 
+const INTRA_REGISTER_LOAD: operation::OpFn = |opcode, gb| {
+    // read source
+    let (source_name, source_value, extra_read_cycles) = match opcode & 0b00000111 {
+        0b000 => ("B", gb.cpu.b, 0),
+        0b001 => ("C", gb.cpu.c, 0),
+        0b010 => ("D", gb.cpu.d, 0),
+        0b011 => ("E", gb.cpu.e, 0),
+        0b100 => ("H", gb.cpu.h, 0),
+        0b101 => ("L", gb.cpu.l, 0),
+        0b110 => {
+            let hl = gb.hl();
+            ("(HL)", gb.get(hl), 1)
+        },
+        0b111 => ("A", gb.cpu.a, 0),
+        _ => panic!("logically impossible?"),
+    };
+    // read dest (for debug tracing)
+    let (dest_name, dest_value, extra_write_cycles) = match (opcode & 0b00111000) >> 3 {
+        0b000 => ("B", gb.cpu.b, 0),
+        0b001 => ("C", gb.cpu.c, 0),
+        0b010 => ("D", gb.cpu.d, 0),
+        0b011 => ("E", gb.cpu.e, 0),
+        0b100 => ("H", gb.cpu.h, 0),
+        0b101 => ("L", gb.cpu.l, 0),
+        // TODO: we should read the real value from (HL) here, but currently there are some
+        //       memory addresses we can only write, but not read, so reading here would
+        //       introduce more crashes.
+        0b110 => ("(HL)", 0x00, 1),
+        0b111 => ("A", gb.cpu.a, 0),
+        _ => panic!("logically impossible?"),
+    };
+    // write dest
+    match (opcode & 0b00111000) >> 3 {
+        0b000 => { gb.cpu.b = source_value; },
+        0b001 => { gb.cpu.c = source_value; },
+        0b010 => { gb.cpu.d = source_value; },
+        0b011 => { gb.cpu.e = source_value; },
+        0b100 => { gb.cpu.h = source_value; },
+        0b101 => { gb.cpu.l = source_value; },
+        0b110 => {
+            let hl = gb.hl();
+            gb.set(hl, source_value);
+        },
+        0b111 => { gb.cpu.a = source_value; },
+        _ => panic!("logically impossible?"),
+    };
+    op_execution! {
+        cycles: 1 + extra_read_cycles + extra_write_cycles;
+        asm: "LD {}, {}", dest_name, source_name;
+        trace: "{} = {}, {}₀ = {}", source_name, source_value, dest_name, dest_value;
+    }
+};
+
 // one-byte opcodes
 pub static OPCODES: [operation::OpFn; 0xFF] = [
     |_00, _gb| {
@@ -396,283 +449,70 @@ pub static OPCODES: [operation::OpFn; 0xFF] = [
         }
     },
     |_3f, _gb| unimplemented!("opcode 0x3F not implemented"),
-    |_40, gb| {
-        let b = gb.cpu.b;
-        op_execution!{
-            cycles: 1;
-            asm: "LD B, B";
-            trace: "B = ${:02x}", b;
-        }
-    },
-    |_41, gb| {
-        let b0 = gb.cpu.b;
-        let c = gb.cpu.c;
-        gb.cpu.b = c;
-        op_execution!{
-            cycles: 1;
-            asm: "LD B, C";
-            trace: "B₀ = ${:02x}, C = ${:02x}", b0, c;
-        }
-    },
-    |_42, gb| {
-        let b0 = gb.cpu.b;
-        let d = gb.cpu.d;
-        gb.cpu.b = d;
-        op_execution!{
-            cycles: 1;
-            asm: "LD B, D";
-            trace: "B₀ = ${:02x}, D = ${:02x}", b0, d;
-        }
-    },
-    |_43, gb| {
-        let b0 = gb.cpu.b;
-        let e = gb.cpu.e;
-        gb.cpu.b = e;
-        op_execution!{
-            cycles: 1;
-            asm: "LD B, E";
-            trace: "B₀ = ${:02x}, E = ${:02x}", b0, e;
-        }
-    },
-    |_44, gb| {
-        let b0 = gb.cpu.b;
-        let h = gb.cpu.h;
-        gb.cpu.b = h;
-        op_execution!{
-            cycles: 1;
-            asm: "LD B, H";
-            trace: "B₀ = ${:02x}, H = ${:02x}", b0, h;
-        }
-    },
-    |_45, gb| {
-        let b0 = gb.cpu.b;
-        let l = gb.cpu.l;
-        gb.cpu.b = l;
-        op_execution!{
-            cycles: 1;
-            asm: "LD B, L";
-            trace: "B₀ = ${:02x}, L = ${:02x}", b0, l;
-        }
-    },
-    |_46, gb| {
-        let b0 = gb.cpu.b;
-        let hl = gb.hl();
-        let b1 = gb.get(hl);
-        gb.cpu.b = b1;
-        op_execution!{
-            cycles: 2;
-            asm: "LD B, (HL)";
-            trace: "B₀ = ${:02x}, HL = ${:04x}, (HL) = ${:04x}", b0, hl, b1;
-        }
-    },
-    |_47, _gb| unimplemented!("opcode 0x47 not implemented"),
-    |_48, gb| {
-        let c0 = gb.cpu.c;
-        let b = gb.cpu.b;
-        gb.cpu.c = b;
-        op_execution!{
-            cycles: 1;
-            asm: "LD C, B";
-            trace: "C₀ = ${:02x}, B = ${:02x}", c0, b;
-        }
-    },
-    |_49, gb| {
-        let c = gb.cpu.c;
-        op_execution!{
-            cycles: 1;
-            asm: "LD C, C";
-            trace: "C = ${:02x}", c;
-        }
-    },
-    |_4a, gb| {
-        let c0 = gb.cpu.c;
-        let d = gb.cpu.d;
-        gb.cpu.c = d;
-        op_execution!{
-            cycles: 1;
-            asm: "LD C, D";
-            trace: "C₀ = ${:02x}, D = ${:02x}", c0, d;
-        }
-    },
-    |_4b, gb| {
-        let c0 = gb.cpu.c;
-        let e = gb.cpu.e;
-        gb.cpu.c = e;
-        op_execution!{
-            cycles: 1;
-            asm: "LD C, E";
-            trace: "C₀ = ${:02x}, E = ${:02x}", c0, e;
-        }
-    },
-    |_4c, gb| {
-        let c0 = gb.cpu.c;
-        let h = gb.cpu.h;
-        gb.cpu.c = h;
-        op_execution!{
-            cycles: 1;
-            asm: "LD C, H";
-            trace: "C₀ = ${:02x}, H = ${:02x}", c0, h;
-        }
-    },
-    |_4d, gb| {
-        let c0 = gb.cpu.c;
-        let l = gb.cpu.l;
-        gb.cpu.c = l;
-        op_execution!{
-            cycles: 1;
-            asm: "LD C, L";
-            trace: "C₀ = ${:02x}, L = ${:02x}", c0, l;
-        }
-    },
-    |_4e, gb| {
-        let c0 = gb.cpu.c;
-        let hl = gb.hl();
-        let c1 = gb.get(hl);
-        gb.cpu.c = c1;
-        op_execution!{
-            cycles: 2;
-            asm: "LD C, (HL)";
-            trace: "C₀ = ${:02x}, HL = ${:04x}, (HL) = ${:04x}", c0, hl, c1;
-        }
-    },
-    |_4f, gb| {
-        let c0 = gb.cpu.c;
-        let a = gb.cpu.a;
-        gb.cpu.b = a;
-        op_execution!{
-            cycles: 1;
-            asm: "LD C, A";
-            trace: "C₀ = ${:02x}, A = ${:02x}", c0, a;
-        }
-    },
-    |_50, _gb| unimplemented!("opcode 0x50 not implemented"),
-    |_51, _gb| unimplemented!("opcode 0x51 not implemented"),
-    |_52, _gb| unimplemented!("opcode 0x52 not implemented"),
-    |_53, _gb| unimplemented!("opcode 0x53 not implemented"),
-    |_54, _gb| unimplemented!("opcode 0x54 not implemented"),
-    |_55, _gb| unimplemented!("opcode 0x55 not implemented"),
-    |_56, _gb| unimplemented!("opcode 0x56 not implemented"),
-    |_57, _gb| unimplemented!("opcode 0x57 not implemented"),
-    |_58, _gb| unimplemented!("opcode 0x58 not implemented"),
-    |_59, _gb| unimplemented!("opcode 0x59 not implemented"),
-    |_5a, _gb| unimplemented!("opcode 0x5A not implemented"),
-    |_5b, _gb| unimplemented!("opcode 0x5B not implemented"),
-    |_5c, _gb| unimplemented!("opcode 0x5C not implemented"),
-    |_5d, _gb| unimplemented!("opcode 0x5D not implemented"),
-    |_5e, _gb| unimplemented!("opcode 0x5E not implemented"),
-    |_5f, _gb| unimplemented!("opcode 0x5F not implemented"),
-    |_60, _gb| unimplemented!("opcode 0x60 not implemented"),
-    |_61, _gb| unimplemented!("opcode 0x61 not implemented"),
-    |_62, _gb| unimplemented!("opcode 0x62 not implemented"),
-    |_63, _gb| unimplemented!("opcode 0x63 not implemented"),
-    |_64, _gb| unimplemented!("opcode 0x64 not implemented"),
-    |_65, _gb| unimplemented!("opcode 0x65 not implemented"),
-    |_66, _gb| unimplemented!("opcode 0x66 not implemented"),
-    |_67, _gb| unimplemented!("opcode 0x67 not implemented"),
-    |_68, _gb| unimplemented!("opcode 0x68 not implemented"),
-    |_69, _gb| unimplemented!("opcode 0x69 not implemented"),
-    |_6a, _gb| unimplemented!("opcode 0x6A not implemented"),
-    |_6b, _gb| unimplemented!("opcode 0x6B not implemented"),
-    |_6c, _gb| unimplemented!("opcode 0x6C not implemented"),
-    |_6d, _gb| unimplemented!("opcode 0x6D not implemented"),
-    |_6e, _gb| unimplemented!("opcode 0x6E not implemented"),
-    |_6f, _gb| unimplemented!("opcode 0x6F not implemented"),
-    |_70, _gb| unimplemented!("opcode 0x70 not implemented"),
-    |_71, _gb| unimplemented!("opcode 0x71 not implemented"),
-    |_72, _gb| unimplemented!("opcode 0x72 not implemented"),
-    |_73, _gb| unimplemented!("opcode 0x73 not implemented"),
-    |_74, _gb| unimplemented!("opcode 0x74 not implemented"),
-    |_75, _gb| unimplemented!("opcode 0x75 not implemented"),
-    |_76, _gb| unimplemented!("opcode 0x76 not implemented"),
-    |_77, gb| {
-        let hl = gb.hl();
-        let a = gb.cpu.a;
-        gb.set(hl, a);
-        op_execution!{
-            cycles: 2;
-            asm: "LD (HL), A";
-            trace: "HL = ${:04x}, A = ${:02x}", hl, gb.cpu.a;
-        }
-    },
-    |_78, gb| {
-        let a0 = gb.cpu.a;
-        let b = gb.cpu.b;
-        gb.cpu.a = b;
-        op_execution!{
-            cycles: 1;
-            asm: "LD A, B";
-            trace: "A₀ = ${:02x}, B = ${:02x}", a0, b;
-        }
-    },
-    |_79, gb| {
-        let a0 = gb.cpu.a;
-        let c = gb.cpu.c;
-        gb.cpu.a = c;
-        op_execution!{
-            cycles: 1;
-            asm: "LD A, C";
-            trace: "A₀ = ${:02x}, C = ${:02x}", a0, c;
-        }
-    },
-    |_7a, gb| {
-        let a0 = gb.cpu.a;
-        let d = gb.cpu.d;
-        gb.cpu.a = d;
-        op_execution!{
-            cycles: 1;
-            asm: "LD A, D";
-            trace: "A₀ = ${:02x}, D = ${:02x}", a0, d;
-        }
-    },
-    |_7b, gb| {
-        let a0 = gb.cpu.a;
-        let e = gb.cpu.e;
-        gb.cpu.a = e;
-        op_execution!{
-            cycles: 1;
-            asm: "LD A, E";
-            trace: "A₀ = ${:02x}, E = ${:02x}", a0, e;
-        }
-    },
-    |_7c, gb| {
-        let a0 = gb.cpu.a;
-        let h = gb.cpu.h;
-        gb.cpu.a = h;
-        op_execution!{
-            cycles: 1;
-            asm: "LD A, H";
-            trace: "A₀ = ${:02x}, H = ${:02x}", a0, h;
-        }
-    },
-    |_7d, gb| {
-        let a0 = gb.cpu.a;
-        let l = gb.cpu.l;
-        gb.cpu.a = l;
-        op_execution!{
-            cycles: 1;
-            asm: "LD A, L";
-            trace: "A₀ = ${:02x}, L = ${:02x}", a0, l;
-        }
-    },
-    |_7e, gb| {
-        let a0 = gb.cpu.a;
-        let hl = gb.hl();
-        let a1 = gb.get(hl);
-        gb.cpu.a = a1;
-        op_execution!{
-            cycles: 2;
-            asm: "LD A, (HL)";
-            trace: "A₀ = ${:02x}, HL = ${:04x}, (HL) = ${:02x}", a0, hl, a1;
-        }
-    },
-    |_7f, gb| {
-        let a = gb.cpu.a;
-        op_execution!{
-            cycles: 1;
-            asm: "LD A, A";
-            trace: "A = ${:02x}", a;
-        }
-    },
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    |_76, _gb| unimplemented!("opcode 0x76, HALT, is not implemented"),
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
+    INTRA_REGISTER_LOAD,
     |_80, _gb| unimplemented!("opcode 0x80 not implemented"),
     |_81, _gb| unimplemented!("opcode 0x81 not implemented"),
     |_82, _gb| unimplemented!("opcode 0x82 not implemented"),
