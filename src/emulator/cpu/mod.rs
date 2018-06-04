@@ -111,7 +111,7 @@ impl CPUController for GameBoy {
 
         let execution = op(opcode_final, self);
         let cycles = execution.cycles;
-        self.cpu.t += cycles as u64;
+        self.cpu.t += cycles;
         OperationExecution {
             t,
             execution,

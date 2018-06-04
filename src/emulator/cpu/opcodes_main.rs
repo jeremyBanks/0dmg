@@ -550,7 +550,7 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
         let sp1 = gb.cpu.sp;
         gb.cpu.i = i1;
         op_execution!{
-            cycles: 8;
+            cycles: 2;
             asm: "RET";
             trace: "SP₁ = {:04x}", sp1;
         }

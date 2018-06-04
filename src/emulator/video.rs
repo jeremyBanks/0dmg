@@ -49,8 +49,8 @@ pub trait VideoController {
 
 impl VideoController for GameBoy {
     fn video_cycle(&mut self) {
-        self.vid.t += 1;
         self.vid.ly = ((self.vid.t / CYCLES_PER_LINE) % (144 + 10)) as u8;
+        self.vid.t += 1;
     }
 
     fn vram(&self, index: usize) -> u8 {
