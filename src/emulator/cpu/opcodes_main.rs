@@ -25,19 +25,7 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
         }
     },
     operation::INC,
-    |_05, gb| {
-        let b0 = gb.cpu.b;
-        let b1 = b0.wrapping_sub(1);
-        gb.cpu.b = b1;
-        gb.set_z_flag(b1 == 0);
-        gb.set_n_flag(false);
-        gb.set_h_flag(b0 < b1);
-        op_execution!{
-            cycles: 1;
-            asm: "DEC A";
-            trace: "A₀ = ${:02x}, A₁ = ${:02x}", b0, b1;
-        }
-    },
+    operation::DEC,
     |_06, gb| {
         let b0 = gb.cpu.b;
         let b1 = gb.read_immediate_u8();
@@ -64,19 +52,7 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
     },
     |_0b, _gb| unimplemented!("opcode 0x0B not implemented"),
     operation::INC,
-    |_0d, gb| {
-        let c0 = gb.cpu.a;
-        let c1 = c0.wrapping_sub(1);
-        gb.cpu.c = c1;
-        gb.set_z_flag(c1 == 0);
-        gb.set_n_flag(false);
-        gb.set_h_flag(c0 < c1);
-        op_execution!{
-            cycles: 1;
-            asm: "DEC C";
-            trace: "C₀ = ${:02x}, C₁ = ${:02x}", c0, c1;
-        }
-    },
+    operation::DEC,
     |_0e, gb| {
         let c0 = gb.cpu.c;
         let c1 = gb.read_immediate_u8();
@@ -111,19 +87,7 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
         }
     },
     operation::INC,
-    |_15, gb| {
-        let d0 = gb.cpu.d;
-        let d1 = d0.wrapping_sub(1);
-        gb.cpu.d = d1;
-        gb.set_z_flag(d1 == 0);
-        gb.set_n_flag(false);
-        gb.set_h_flag(d0 < d1);
-        op_execution!{
-            cycles: 1;
-            asm: "DEC D";
-            trace: "D₀ = ${:02x}, D₁ = ${:02x}", d0, d1;
-        }
-    },
+    operation::DEC,
     |_16, gb| {
         let d0 = gb.cpu.d;
         let d1 = gb.read_immediate_u8();
@@ -170,19 +134,7 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
     },
     |_1b, _gb| unimplemented!("opcode 0x1B not implemented"),
     operation::INC,
-    |_1d, gb| {
-        let e0 = gb.cpu.e;
-        let e1 = e0.wrapping_sub(1);
-        gb.cpu.e = e1;
-        gb.set_z_flag(e1 == 0);
-        gb.set_n_flag(false);
-        gb.set_h_flag(e0 < e1);
-        op_execution!{
-            cycles: 1;
-            asm: "DEC A";
-            trace: "E₀ = ${:02x}, E₁ = ${:02x}", e0, e1;
-        }
-    },
+    operation::DEC,
     |_1e, gb| {
         let e0 = gb.cpu.e;
         let e1 = gb.read_immediate_u8();
@@ -239,19 +191,7 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
         }
     },
     operation::INC,
-    |_25, gb| {
-        let h0 = gb.cpu.h;
-        let h1 = h0.wrapping_sub(1);
-        gb.cpu.h = h1;
-        gb.set_z_flag(h1 == 0);
-        gb.set_n_flag(false);
-        gb.set_h_flag(h0 < h1);
-        op_execution!{
-            cycles: 1;
-            asm: "DEC H";
-            trace: "H₀ = ${:02x}, H₁ = ${:02x}", h0, h1;
-        }
-    },
+    operation::DEC,
     |_26, gb| {
         let h0 = gb.cpu.h;
         let h1 = gb.read_immediate_u8();
@@ -279,19 +219,7 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
     |_2a, _gb| unimplemented!("opcode 0x2A not implemented"),
     |_2b, _gb| unimplemented!("opcode 0x2B not implemented"),
     operation::INC,
-    |_2d, gb| {
-        let l0 = gb.cpu.l;
-        let l1 = l0.wrapping_sub(1);
-        gb.cpu.l = l1;
-        gb.set_z_flag(l1 == 0);
-        gb.set_n_flag(false);
-        gb.set_h_flag(0 < l1);
-        op_execution!{
-            cycles: 1;
-            asm: "DEC L";
-            trace: "A₀ = ${:02x}, A₁ = ${:02x}", l0, l1;
-        }
-    },
+    operation::DEC,
     |_2e, gb| {
         let l0 = gb.cpu.l;
         let l1 = gb.read_immediate_u8();
@@ -348,7 +276,7 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
         }
     },
     operation::INC,
-    |_35, _gb| unimplemented!("opcode 0x35 not implemented"),
+    operation::DEC,
     |_36, _gb| unimplemented!("opcode 0x36 not implemented"),
     |_37, _gb| unimplemented!("opcode 0x37 not implemented"),
     |_38, gb| {
@@ -367,19 +295,7 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
     |_3a, _gb| unimplemented!("opcode 0x3A not implemented"),
     |_3b, _gb| unimplemented!("opcode 0x3B not implemented"),
     operation::INC,
-    |_3d, gb| {
-        let a0 = gb.cpu.a;
-        let a1 = a0.wrapping_sub(1);
-        gb.cpu.a = a1;
-        gb.set_z_flag(a1 == 0);
-        gb.set_n_flag(false);
-        gb.set_h_flag(a0 < a1);
-        op_execution!{
-            cycles: 1;
-            asm: "DEC A";
-            trace: "A₀ = ${:02x}, A₁ = ${:02x}", a0, a1;
-        }
-    },
+    operation::DEC,
     |_3e, gb| {
         let n = gb.read_immediate_u8();
         let a0 = gb.cpu.a;

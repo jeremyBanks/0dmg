@@ -112,12 +112,27 @@ pub const INC: Operation = |opcode, gb| {
     let (old_value, extra_read_cycles) = gb.register(target);
     let new_value = old_value.wrapping_add(1);
     let extra_write_cycles = gb.set_register(target, new_value);
-    gb.set_z_flag(old_value == 0);
+    gb.set_z_flag(new_value == 0);
     gb.set_n_flag(false);
     gb.set_h_flag(u8_get_bit(new_value, 4));
     op_execution!{
         cycles: 1 + extra_read_cycles + extra_write_cycles;
         asm: "INC {}", target;
+        trace: "{}₀ = ${:02x}, {}₁ = ${:02x}", target, old_value, target, new_value;
+    }
+};
+
+pub const DEC: Operation = |opcode, gb| {
+    let target = OneByteRegister::from((opcode >> 3) & 0b111);
+    let (old_value, extra_read_cycles) = gb.register(target);
+    let new_value = old_value.wrapping_sub(1);
+    let extra_write_cycles = gb.set_register(target, new_value);
+    gb.set_z_flag(new_value == 0);
+    gb.set_n_flag(true);
+    gb.set_h_flag(u8_get_bit(new_value, 4));
+    op_execution!{
+        cycles: 1 + extra_read_cycles + extra_write_cycles;
+        asm: "DEC {}", target;
         trace: "{}₀ = ${:02x}, {}₁ = ${:02x}", target, old_value, target, new_value;
     }
 };
