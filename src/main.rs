@@ -35,7 +35,7 @@ pub fn try_main() -> Result<(), String> {
 
     if let Err(_error) = emulator_thread.join() {
         println!("; emulator thread panicked");
-        thread::sleep_ms(5000);
+        thread::sleep_ms(125);
         return Err(format!("emulator thread panicked"));
     }
 

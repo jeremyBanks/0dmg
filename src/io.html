@@ -245,7 +245,7 @@
           powerLight.classList.add('on');
         } catch (error) {
           console.error(error);
-          canvas.style.opacity = 0.25;
+          canvas.style.opacity = 0.5;
           powerLight.classList.remove('on');
           await sleep(500);
           continue;
@@ -256,15 +256,15 @@
           for (let j = 0; j < 4; j++) {
             const frameIndex = (i * 4 + j); 
             const frameX = frameIndex % gbWidth;
-            const frameY = (frameIndex / gbWidth) % gbHeight
-            
+            const frameY = frameIndex / gbWidth;
+
             const colorIndex = (bytes[i] >> (j * 2)) & 3;
             
             const color = [
-              [8, 16, 8],
-              [92, 100, 92],
-              [170, 200, 170],
               [220, 255, 220],
+              [170, 200, 170],
+              [92, 100, 92],
+              [8, 16, 8],
             ][colorIndex];
 
             const offset = frameIndex * 4;

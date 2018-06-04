@@ -45,12 +45,19 @@ pub trait VideoController {
     fn set_lcdc(&mut self, value: u8);
     fn ly(&self) -> u8;
     fn set_ly(&mut self, value: u8);
+    fn draw_frame_buffer(&mut self);
+    fn draw_character(&mut self, index: usize, frame_buffer: &mut Vec<u8>);
 }
 
 impl VideoController for GameBoy {
     fn video_cycle(&mut self) {
-        self.vid.ly = ((self.vid.t / CYCLES_PER_LINE) % (144 + 10)) as u8;
         self.vid.t += 1;
+        self.vid.ly = ((self.vid.t / CYCLES_PER_LINE) % (144 + 10)) as u8;
+
+        // after vblank, draw
+        if 0 == self.vid.ly && 0 == self.vid.t % CYCLES_PER_LINE {
+            self.draw_frame_buffer();
+        }
     }
 
     fn vram(&self, index: usize) -> u8 {
@@ -60,6 +67,40 @@ impl VideoController for GameBoy {
     fn set_vram(&mut self, index: usize, value: u8) {
         // println!("    ; vram[${:02x}] = ${:02x}", index, value);
         self.vid.vram[index] = value;
+    }
+
+    fn draw_frame_buffer(&mut self) {
+        // redraw frame buffer because vram was touched!
+        let mut frame_buffer = {
+            self.frame_buffer.lock().unwrap().clone()
+        };
+        let len = frame_buffer.len();
+
+        for i in 0..len {
+            frame_buffer[i] = 0;
+        }
+
+        for i in 0..1024 {
+            let character_index = self.vid.vram[0x1800 + i];
+
+            let character_data_index = character_index as usize * 16;
+            let character_data = &self.vid.vram[character_data_index..character_data_index + 16];
+            for j in 0..16 {
+                // each byte is 4x1 pixels
+                let byte = character_data[j];
+                let x = ((j % 2) + i * 2).wrapping_sub(self.scx() as usize) % (160 / 4);
+                let y = (((j / 2) + (i / (160 / 4)) * 8).wrapping_sub(self.scy() as usize)) % (144);
+                frame_buffer[x + y * (160 / 4)] ^= byte;
+            }
+        }
+        
+        {
+            let mut frame_buffer_for_write = self.frame_buffer.lock().unwrap();
+            frame_buffer_for_write.clone_from(&frame_buffer);
+        };
+    }
+
+    fn draw_character(&mut self, index: usize, frame_buffer: &mut Vec<u8>) {
     }
 
     fn bgp(&self) -> u8 {

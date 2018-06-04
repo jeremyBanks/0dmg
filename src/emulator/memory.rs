@@ -30,7 +30,7 @@ pub trait MemoryController {
 
 impl MemoryController for GameBoy {
     fn mem(&self, addr: u16) -> u8 {
-        if self.mem.boot_rom_mapped && addr <= 0x00FF {
+        let value = if self.mem.boot_rom_mapped && addr <= 0x00FF {
             // boot ROM, until unmapped to expose initial bytes of game ROM
             self.mem.boot_rom[addr as usize]
         } else if addr <= 0x7FFF {
@@ -59,21 +59,12 @@ impl MemoryController for GameBoy {
             if self.mem.boot_rom_mapped { 0x01 } else { 0x00 }
         } else {
             panic!("I don't know how to get memory address ${:04x}.", addr);
-        }
+        };
+
+        value
     }
 
     fn set_mem(&mut self, addr: u16, value: u8) {
-        {
-            let mut frame_buffer = self.frame_buffer.lock().unwrap();
-            let len = frame_buffer.len();
-            let offset = (addr / 4) as usize % len;
-            let bit_offset = (addr % 4) * 2;
-            let mut buffer_value = frame_buffer[offset];
-            let mask = ((value >> 6) | 0b01) << bit_offset;
-            buffer_value ^= mask;
-            frame_buffer[offset] = buffer_value;
-        }
-
         if 0x8000 <= addr && addr <= 0x9FFF {
             let i: usize = (addr - 0x8000) as usize;
             self.set_vram(i, value);
