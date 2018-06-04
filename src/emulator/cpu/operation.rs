@@ -69,7 +69,7 @@ pub const XOR: Operation = |opcode, gb| {
     op_execution!{
         cycles: 1 + extra_read_cycles;
         asm: "XOR {}", source;
-        trace: "A₀ = ${:02x}, {} = ${:02x} A₁ = ${:02x}", a0, source, source_value, a1;
+        trace: "A₀ = ${:02x}, {} = ${:02x}, A₁ = ${:02x}", a0, source, source_value, a1;
     }
 };
 
@@ -80,13 +80,63 @@ pub const AND: Operation = |opcode, gb| {
     let a1 = a0 & source_value;
     gb.cpu.a = a1;
     gb.set_z_flag(a1 == 0);
-    gb.set_n_flag(false);
+    gb.set_n_flag(true);
     gb.set_h_flag(true);
     gb.set_c_flag(false);
     op_execution!{
         cycles: 1 + extra_read_cycles;
         asm: "AND {}", source;
-        trace: "A₀ = ${:02x}, {} = ${:02x} A₁ = ${:02x}", a0, source, source_value, a1;
+        trace: "A₀ = ${:02x}, {} = ${:02x}, A₁ = ${:02x}", a0, source, source_value, a1;
+    }
+};
+
+pub const ADD: Operation = |opcode, gb| {
+    let source = OneByteRegister::from(opcode & 0b111);
+    let (source_value, extra_read_cycles) = gb.register(source);
+    let a0 = gb.cpu.a;
+    let a1 = a0.wrapping_add(source_value);
+    gb.cpu.a = a1;
+    gb.set_z_flag(a1 == 0);
+    gb.set_n_flag(false);
+    gb.set_h_flag(u8_get_bit(a1, 4));
+    gb.set_c_flag(a1 < a0);
+    op_execution!{
+        cycles: 1 + extra_read_cycles;
+        asm: "ADD {}", source;
+        trace: "A₀ = ${:02x}, {} = ${:02x}, A₁ = ${:02x}", a0, source, source_value, a1;
+    }
+};
+
+pub const SUB: Operation = |opcode, gb| {
+    let source = OneByteRegister::from(opcode & 0b111);
+    let (source_value, extra_read_cycles) = gb.register(source);
+    let a0 = gb.cpu.a;
+    let a1 = a0.wrapping_sub(source_value);
+    gb.cpu.a = a1;
+    gb.set_z_flag(a1 == 0);
+    gb.set_n_flag(false);
+    gb.set_h_flag(u8_get_bit(a1, 4));
+    gb.set_c_flag(a1 > a0);
+    op_execution!{
+        cycles: 1 + extra_read_cycles;
+        asm: "SUB {}", source;
+        trace: "A₀ = ${:02x}, {} = ${:02x}, A₁ = ${:02x}", a0, source, source_value, a1;
+    }
+};
+
+pub const CP: Operation = |opcode, gb| {
+    let source = OneByteRegister::from(opcode & 0b111);
+    let (source_value, extra_read_cycles) = gb.register(source);
+    let a = gb.cpu.a;
+    let delta = a.wrapping_sub(source_value);
+    gb.set_z_flag(delta == 0);
+    gb.set_n_flag(false);
+    gb.set_h_flag(u8_get_bit(delta, 4));
+    gb.set_c_flag(delta > a);
+    op_execution!{
+        cycles: 1 + extra_read_cycles;
+        asm: "SUB {}", source;
+        trace: "A = ${:02x}, {} = ${:02x}", a, source, source_value;
     }
 };
 
@@ -103,7 +153,7 @@ pub const OR: Operation = |opcode, gb| {
     op_execution!{
         cycles: 1 + extra_read_cycles;
         asm: "OR {}", source;
-        trace: "A₀ = ${:02x}, {} = ${:02x} A₁ = ${:02x}", a0, source, source_value, a1;
+        trace: "A₀ = ${:02x}, {} = ${:02x}, A₁ = ${:02x}", a0, source, source_value, a1;
     }
 };
 
