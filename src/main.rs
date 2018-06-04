@@ -1,3 +1,5 @@
+#![feature(reverse_bits)]
+
 use std::sync::{Arc, Mutex};
 use std::thread;
 
@@ -35,7 +37,7 @@ pub fn try_main() -> Result<(), String> {
 
     if let Err(_error) = emulator_thread.join() {
         println!("; emulator thread panicked");
-        thread::sleep_ms(125);
+        thread::sleep_ms(50);
         return Err(format!("emulator thread panicked"));
     }
 

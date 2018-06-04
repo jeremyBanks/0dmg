@@ -22,7 +22,7 @@ impl Service for GameBoyIOServer {
     type Future = Box<Future<Item = Self::Response, Error = Self::Error>>;
 
     fn call(&self, req: Request) -> Self::Future {
-        println!("; {} {}", req.method(), req.path());
+        // println!("; {} {}", req.method(), req.path());
 
         match (req.method(), req.path()) {
             (&Get, "/") => {

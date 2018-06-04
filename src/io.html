@@ -241,11 +241,11 @@
         let bytes;
         try {
           bytes = new Uint8Array(await (await fetch('/frame')).arrayBuffer());
-          canvas.style.opacity = 1.00;
+          // canvas.style.opacity = 1.00;
           powerLight.classList.add('on');
         } catch (error) {
           console.error(error);
-          canvas.style.opacity = 0.5;
+          // canvas.style.opacity = 0.75;
           powerLight.classList.remove('on');
           await sleep(500);
           continue;
@@ -276,7 +276,7 @@
         }
         g2d.putImageData(data, 0, 0);
         
-        await sleep(125);
+        await sleep(15);
       }
     };
 

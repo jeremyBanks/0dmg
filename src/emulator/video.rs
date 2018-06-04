@@ -76,21 +76,52 @@ impl VideoController for GameBoy {
         };
         let len = frame_buffer.len();
 
+        // clear frame buffer
         for i in 0..len {
             frame_buffer[i] = 0;
         }
 
+        // draw background
         for i in 0..1024 {
             let character_index = self.vid.vram[0x1800 + i];
-
             let character_data_index = character_index as usize * 16;
             let character_data = &self.vid.vram[character_data_index..character_data_index + 16];
+            
+            let mut new_character_data = vec![0u8; 16];
+            new_character_data.clone_from_slice(character_data);
+
+            for y_offset in 0..8 {
+                let low_byte = new_character_data[y_offset * 2];
+                let high_byte = new_character_data[y_offset * 2 + 1];
+                let first_byte = 
+                    ((high_byte & 0b10000000) >> 0) +
+                    ((high_byte & 0b01000000) >> 1) + 
+                    ((high_byte & 0b00100000) >> 2) + 
+                    ((high_byte & 0b00010000) >> 3) + 
+                    ((low_byte & 0b10000000) >> 1) +
+                    ((low_byte & 0b01000000) >> 2) + 
+                    ((low_byte & 0b00100000) >> 3) + 
+                    ((low_byte & 0b00010000) >> 4);
+                let second_byte = 
+                    ((high_byte & 0b00001000) << 4) +
+                    ((high_byte & 0b00000100) << 3) + 
+                    ((high_byte & 0b00000010) << 1) + 
+                    ((high_byte & 0b00000001) << 1) + 
+                    ((low_byte & 0b00001000) << 3) +
+                    ((low_byte & 0b00000100) << 2) + 
+                    ((low_byte & 0b00000010) << 1) + 
+                    ((low_byte & 0b00000001) << 0);
+                new_character_data[y_offset * 2] = first_byte.reverse_bits();
+                new_character_data[y_offset * 2 + 1] = second_byte.reverse_bits();
+            }
+
             for j in 0..16 {
-                // each byte is 4x1 pixels
-                let byte = character_data[j];
-                let x = ((j % 2) + i * 2).wrapping_sub(self.scx() as usize) % (160 / 4);
-                let y = (((j / 2) + (i / (160 / 4)) * 8).wrapping_sub(self.scy() as usize)) % (144);
-                frame_buffer[x + y * (160 / 4)] ^= byte;
+                let byte = new_character_data[j];
+                let x = ((((j % 2) + i * 2) as u8).wrapping_sub(self.scx())) as usize;
+                if x >= 160 / 4 { continue; }
+                let y = ((((j / 2) + (i / (160 / 4)) * 8) as u8).wrapping_sub(self.scy())) as usize;
+                if y >= 144 { continue; }
+                frame_buffer[x + y * (160 / 4)] = byte;
             }
         }
         
