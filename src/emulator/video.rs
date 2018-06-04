@@ -119,9 +119,9 @@ impl VideoController for GameBoy {
                 let byte = new_character_data[j];
                 let x = ((((j % 2) + i * 2) as u8).wrapping_sub(self.scx())) as usize;
                 if x >= 160 / 4 { continue; }
-                let y = ((((j / 2) + (i / (160 / 4)) * 8) as u8).wrapping_sub(self.scy())) as usize;
+                let y = ((((j / 2) + 8 * (i / 32)) as u8).wrapping_sub(self.scy())) as usize;
                 if y >= 144 { continue; }
-                frame_buffer[x + y * (160 / 4)] = byte;
+                frame_buffer[x + y * (160 / 4)] = byte | (character_index).rotate_right(j as u32);
             }
         }
         
