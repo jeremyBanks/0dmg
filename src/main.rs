@@ -13,9 +13,10 @@ pub fn main() {
 
 pub fn try_main() -> Result<(), String> {
     let frame_buffer = Arc::new(Mutex::new(vec![0u8; 160 * 144 / 4]));
+    let also_frame_buffer = frame_buffer.clone();
 
     let emulator_thread = thread::spawn(move || {
-        let mut gameboy = emulator::GameBoy::new();
+        let mut gameboy = emulator::GameBoy::new(also_frame_buffer.clone());
         gameboy.run();
     });
 
@@ -25,8 +26,7 @@ pub fn try_main() -> Result<(), String> {
         let addr = "127.0.0.1:9898".parse().unwrap();
         Http::new()
             .bind(&addr, move || {
-                let frame_buffer = frame_buffer.clone();
-                Ok(server::GameBoyIOServer { frame_buffer })
+                Ok(server::GameBoyIOServer { frame_buffer: frame_buffer.clone() })
             })
             .unwrap()
             .run()
@@ -35,6 +35,7 @@ pub fn try_main() -> Result<(), String> {
 
     if let Err(_error) = emulator_thread.join() {
         println!("; emulator thread panicked");
+        thread::sleep_ms(5000);
         return Err(format!("emulator thread panicked"));
     }
 

@@ -3,6 +3,7 @@ mod cpu;
 mod memory;
 mod video;
 
+use std::sync::{Arc, Mutex};
 use std::fs::File;
 use std::io::Read;
 use std::time::{Duration, SystemTime};
@@ -24,10 +25,12 @@ pub struct GameBoy {
     debug_latest_executions_next_i: usize,
 
     t: u64,
+
+    pub frame_buffer: Arc<Mutex<Vec<u8>>>,
 }
 
 impl GameBoy {
-    pub fn new() -> Self {
+    pub fn new(frame_buffer: Arc<Mutex<Vec<u8>>>) -> Self {
         let mut f = File::open("./roms/blargg-tests/instr_timing/instr_timing.gb").expect("file not found");
 
         let mut game_rom = vec![];
@@ -42,6 +45,7 @@ impl GameBoy {
             t: 0,
             debug_latest_executions: vec![],
             debug_latest_executions_next_i: 0,
+            frame_buffer: frame_buffer,
         }
     }
 

@@ -63,6 +63,17 @@ impl MemoryController for GameBoy {
     }
 
     fn set_mem(&mut self, addr: u16, value: u8) {
+        {
+            let mut frame_buffer = self.frame_buffer.lock().unwrap();
+            let len = frame_buffer.len();
+            let offset = (addr / 4) as usize % len;
+            let bit_offset = (addr % 4) * 2;
+            let mut buffer_value = frame_buffer[offset];
+            let mask = ((value >> 6) | 0b01) << bit_offset;
+            buffer_value ^= mask;
+            frame_buffer[offset] = buffer_value;
+        }
+
         if 0x8000 <= addr && addr <= 0x9FFF {
             let i: usize = (addr - 0x8000) as usize;
             self.set_vram(i, value);
