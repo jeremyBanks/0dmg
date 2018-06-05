@@ -1,4 +1,7 @@
 #![feature(reverse_bits)]
+extern crate rand;
+
+use rand::{thread_rng, Rng};
 
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -17,7 +20,17 @@ pub fn try_main() -> Result<(), String> {
     let frame_buffer = Arc::new(Mutex::new(vec![0u8; 160 * 144 / 4]));
     let also_frame_buffer = frame_buffer.clone();
 
+    let mut b = {
+        frame_buffer.lock().unwrap().clone()
+    };
+    thread_rng().fill(&mut b[..]);
+    {
+        let mut c = frame_buffer.lock().unwrap();
+        c.clone_from(&b);
+    };
+
     let emulator_thread = thread::spawn(move || {
+        thread::sleep_ms(250);
         let mut gameboy = emulator::GameBoy::new(also_frame_buffer.clone());
         gameboy.run();
     });

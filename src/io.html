@@ -237,7 +237,7 @@
       document.addEventListener('keyup', onKeyUpDown);
 
       let data = g2d.getImageData(0, 0, gbWidth, gbHeight);
-      while (true) {
+      setInterval(async () => {
         let bytes;
         try {
           bytes = new Uint8Array(await (await fetch('/frame')).arrayBuffer());
@@ -247,8 +247,6 @@
           console.error(error);
           // canvas.style.opacity = 0.75;
           powerLight.classList.remove('on');
-          await sleep(500);
-          continue;
         }
 
 
@@ -275,10 +273,8 @@
           }
         }
         g2d.putImageData(data, 0, 0);
-        
-        await sleep(15);
-      }
-    };
+      }, 16);
+    }
 
     const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 

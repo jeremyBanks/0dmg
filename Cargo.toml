@@ -7,3 +7,4 @@ authors = ["Jeremy Banks <_@jeremy.ca>"]
 futures = "*"
 hyper = "*"
 tokio = "*"
+rand = "0.5"

@@ -1,3 +1,5 @@
+use rand::{thread_rng, Rng, random};
+
 use super::GameBoy;
 
 // seems to be the right value to meet the apparent framerate
@@ -86,7 +88,7 @@ impl VideoController for GameBoy {
             let character_index = self.vid.vram[0x1800 + i];
             let character_data_index = character_index as usize * 16;
             let character_data = &self.vid.vram[character_data_index..character_data_index + 16];
-            
+
             let mut new_character_data = vec![0u8; 16];
             new_character_data.clone_from_slice(character_data);
 
@@ -111,17 +113,17 @@ impl VideoController for GameBoy {
                     ((low_byte & 0b00000100) << 2) + 
                     ((low_byte & 0b00000010) << 1) + 
                     ((low_byte & 0b00000001) << 0);
-                new_character_data[y_offset * 2] = first_byte.reverse_bits();
-                new_character_data[y_offset * 2 + 1] = second_byte.reverse_bits();
+                new_character_data[y_offset * 2] = first_byte.reverse_bits() ^ (y_offset as u8);
+                new_character_data[y_offset * 2 + 1] = second_byte.reverse_bits() ^ (y_offset as u8);
             }
 
             for j in 0..16 {
                 let byte = new_character_data[j];
                 let x = ((((j % 2) + i * 2) as u8).wrapping_sub(self.scx())) as usize;
-                if x >= 160 / 4 { continue; }
-                let y = ((((j / 2) + 8 * (i / 32)) as u8).wrapping_sub(self.scy())) as usize;
-                if y >= 144 { continue; }
-                frame_buffer[x + y * (160 / 4)] = byte | (character_index).rotate_right(j as u32);
+                // if x >= 160 / 4 { continue; }
+                let y = ((((j / 2) + 2 * (i / 32)) as u8).wrapping_sub(self.scy())) as usize;
+                // if y >= 144 { continue; }
+                frame_buffer[(x % (160 / 4)) + (y % 144) * (160 / 4)] |= byte;
             }
         }
         
