@@ -8,34 +8,225 @@
   <link rel="icon" href="https://cdn.glitch.com/24a0763e-f0ea-48ec-aeb1-31b95e3ab0fa%2Fgb.png?1527567414683" />
 </head>  
 <body>
-  <div class="frame"><canvas></canvas></div>
-
-  <div class="power-light"></div>
-  
-  <div class="controls">
-    <div class="arrow-filler"></div>
-    <button class="arrowleft-button">◀</button>
-    <button class="arrowright-button">▶</button>
-    <button class="arrowup-button">▲</button>
-    <button class="arrowdown-button">▼</button>
-
-    <button class="a-button">A</button>
-    <button class="b-button">B</button>
-
-    <button class="space-button">SELECT</button>
-    <button class="enter-button">START</button>
+  <zerodmg-gameboy>
+    <div class="frame">
+      <canvas class="display" width="160" height="144"></canvas>
     </div>
+
+    <div class="power-light"></div>
+    
+    <div class="controls">
+      <div class="arrow-filler"></div>
+      <button class="arrowleft-button">◀</button>
+      <button class="arrowright-button">▶</button>
+      <button class="arrowup-button">▲</button>
+      <button class="arrowdown-button">▼</button>
+
+      <button class="a-button">A</button>
+      <button class="b-button">B</button>
+
+      <button class="space-button">SELECT</button>
+      <button class="enter-button">START</button>
+      </div>
+    </div>
+  </zerodmg-gameboy><zerodmg-internals>
+    <section style="height: auto;">
+      <div>
+        <h1>
+          control
+        </h1>
+          <button>pause</button>
+          <button disabled>step</button>
+          <button disabled>step 8192</button>
+      </div>
+      <div>
+        <h1>
+          clock
+        </h1>
+        <input class="clock" value="0">
+      </div>
+    </section>
+    <section style="height: auto;">
+      <section>
+          <h1>
+            SP
+          </h1>
+          <input class="clock" value="0x0000">
+        </section>
+        <section>
+          <h1>
+            PC
+          </h1>
+          <input class="clock" value="0x0000">
+      </section>
+      <div>
+          <h1>
+            last instructions
+          </h1>
+          <textarea class="asm">LOAD HL, $0123;
+LOAD A, (HL);</textarea>
+        </div>
+    </section>
+    <br>
+    <section>
+      <h1>first KiB memory access</h1>
+
+      <canvas class="kb-memory-access" width="32" height="32"></canvas>
+    </section>
+    <section>
+      <h1>all memory access</h1>
+
+      <canvas class="all-memory-access" width="256" height="256"></canvas>
+    </section>
+    <section>
+      <h1>
+        tiles
+      </h1>
+      <canvas class="tiles" width="256" height="256"></canvas>
+    </section>
+    <section>
+      <h1>
+        palettes
+      </h1>
+      
+      <section>
+        <h2>
+          background
+        </h2>
+        <canvas class="bgp" width="4" height="1"></canvas>
+      </section>
+
+      <section>
+        <h2>
+          object 1
+        </h2>
+        <canvas class="obj1" width="3" height="1"></canvas>
+      </section>
+
+      <section>
+        <h2>
+          object 2
+        </h2>
+        <canvas class="obj1" width="3" height="1"></canvas>
+      </section>
+
+      <h1>
+        sprites
+      </h1>
+
+      <canvas class="sprites" width="80" height="64"></canvas>
+    </section>
+    <section>
+      <h1>
+        background 1
+      </h1>
+      <canvas class="background-1" width="256" height="256"></canvas>
+    </section>
+    <section>
+      <h1>
+        background 2
+      </h1>
+      <canvas class="background-2" width="256" height="256"></canvas>
+    </section>
+  </zerodmg-internals>
+
   <style>
     html {
       background: #000;
       text-align: center;
+      font-family: monospace;
     }
-    body {
+    zerodmg-internals {
+      margin-top: 14px;
+      background: #df6ab4;
+      border: 4px outset #b34489;
+      border-radius: 12px;
+      border-top-left-radius: 4px;
+      border-bottom-left-radius: 4px;
+      border-left: 0;
+      position: relative;
+      left: -2px;
+      z-index: 200;
+      display: inline-block;
+      vertical-align: top;
+      text-align: left;
+      padding: 8px;
+      padding-top: 0;
+      position: relative;
+      width: 540px;
+      box-shadow: 0 0 1px 1px rgba(0, 0, 0, 0.75);
+    }
+    zerodmg-internals a {
+      color: inherit;
+    }
+    zerodmg-internals input,
+    zerodmg-internals textarea {
+      font: inherit;
+      background: #c7e6bb;
+      padding: 4px;
+      border: 4px inset #443;
+      width: 127px;
+    }
+    zerodmg-internals input {
+      text-align: right;
+    }
+    zerodmg-internals textarea {
+      width: 192px;
+    }
+    zerodmg-internals > section {
+      display: inline-block;
+      width: 260px;
+      vertical-align: top;
+      margin-left: 4px;
+    }
+    zerodmg-internals > section section {
+      display: inline-block;
+      width: 72px;
+    }
+    zerodmg-internals > section section input {
+      display: inline-block;
+      width: 48px;
+    }
+    zerodmg-internals h1 {
+      font-size: 16px;
+      margin: 0;
+      margin-top: 5px;
+      padding-left: 4px;
+    }
+    zerodmg-internals h2 {
+      font-size: 12px;
+      font-weight: normal;
+      margin: 0;
+      margin-top: 2px;
+    }
+    zerodmg-internals .all-memory-access {
+      width: 256px;
+      height: 256px;
+    }
+    zerodmg-internals .kb-memory-access {
+      width: 256px;
+      height: 256px;
+    }
+    zerodmg-internals .tiles {
+      width: 256px;
+      height: 256px;
+    }
+    zerodmg-internals .sprites {
+      width: 240px;
+      height: 192px;
+    }
+    zerodmg-internals .bgp,
+    zerodmg-internals .obj1,
+    zerodmg-internals .obj2 {
+      height: 16px;
+    }
+
+    zerodmg-gameboy {
+      display: inline-block;
+      vertical-align: top;
       position: relative;
       background: #6ab4df;
       width: 880px;
-      margin: auto;
-      margin-top: 8px;
       padding: 54px 42px;
       padding-bottom: 18px;
       box-sizing: border-box;
@@ -44,6 +235,7 @@
       user-select: none;
       border-radius: 12px;
       border-bottom-right-radius: 92px;
+      z-index: 100;
     }
     .frame {
       background: #222;
@@ -53,9 +245,15 @@
       border-bottom-right-radius: 64px;
     }
     canvas {
-      width: 640px;
       display: block;
       image-rendering: pixelated;
+      background: #879c57;
+      border: 4px inset #443;
+    }
+    canvas.display {
+      width: 640px;
+      height: 576px;
+      display: block;
       margin: auto;
       background: #879c57;
       border: 4px inset #443;
@@ -75,6 +273,16 @@
       border: 4px inset #6A6963;
       background: #292923;
       color: #999;
+      background: #292923;
+    }
+    button[disabled] {
+      color: #888;
+    }
+    zerodmg-internals button {
+      font-size: 12px;
+      padding: 2px;
+      height: auto;
+      min-width: 40px;;
     }
     .power-light {
       position: absolute;
@@ -138,7 +346,6 @@
       width: 66px;
       height: 66px;
       background: #393933;
-      z-index: 100;
     }
     .a-button {
       position: absolute;
@@ -179,10 +386,8 @@
     const main = async () => {
       const gbWidth = 160;
       const gbHeight = 144;
-      const canvas = document.querySelector('canvas');
-      canvas.width = gbWidth;
-      canvas.height = gbHeight;
-
+      const canvas = document.querySelector('canvas.display');
+      
       const powerLight = document.querySelector('.power-light');
       
       const twoBitStyle = () => {

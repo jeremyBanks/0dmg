@@ -462,9 +462,9 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
     |_c7, _gb| unimplemented!("opcode 0xC7 not implemented"),
     |_c8, _gb| unimplemented!("opcode 0xC8 not implemented"),
     |_c9, gb| {
-        let i1 = gb.stack_pop();
+        let pc1 = gb.stack_pop();
         let sp1 = gb.cpu.sp;
-        gb.cpu.i = i1;
+        gb.cpu.pc = pc1;
         op_execution!{
             cycles: 2;
             asm: "RET";
@@ -478,10 +478,10 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
     |_cc, _gb| unimplemented!("opcode 0xCC not implemented"),
     |_cd, gb| {
         let nn = gb.read_immediate_u16();
-        let i0 = gb.cpu.i;
-        gb.stack_push(i0);
+        let pc0 = gb.cpu.pc;
+        gb.stack_push(pc0);
         let sp1 = gb.cpu.sp;
-        gb.cpu.i = nn;
+        gb.cpu.pc = nn;
         op_execution!{
             cycles: 3;
             asm: "CALL ${:04x}", nn;

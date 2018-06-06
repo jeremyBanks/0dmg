@@ -11,8 +11,6 @@ use super::GameBoy;
 pub struct CPUData {
     // clock ticks
     t: u64,
-    // instruction pointer
-    i: u16,
     // A accumulator register
     a: u8,
     // F flags register
@@ -76,7 +74,6 @@ impl CPUData {
     pub fn new() -> Self {
         Self {
             t: 0x00,
-            i: 0x00,
             a: 0x00,
             f: 0x00,
             b: 0x00,
@@ -122,15 +119,15 @@ impl CPUController for GameBoy {
 
     fn read_instruction(&mut self) -> u8 {
         self.cpu.current_operation_code.clear();
-        self.cpu.current_operation_address = self.cpu.i;
+        self.cpu.current_operation_address = self.cpu.pc;
         self.read_immediate_u8()
     }
 
     fn read_immediate_u8(&mut self) -> u8 {
-        let i = self.cpu.i;
+        let i = self.cpu.pc;
         let value = self.mem(i);
         self.cpu.current_operation_code.push(value);
-        self.cpu.i += 1;
+        self.cpu.pc += 1;
         value
     }
 
@@ -145,11 +142,11 @@ impl CPUController for GameBoy {
     }
 
     fn absolute_jump(&mut self, nn: u16) {
-        self.cpu.i = nn;
+        self.cpu.pc = nn;
     }
 
     fn relative_jump(&mut self, n: i8) {
-        self.cpu.i = ((self.cpu.i as i32) + (n as i32)) as u16;
+        self.cpu.pc = ((self.cpu.pc as i32) + (n as i32)) as u16;
     }
 
     fn stack_push(&mut self, value: u16) {
