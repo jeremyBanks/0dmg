@@ -1,6 +1,4 @@
-use rand::{thread_rng, Rng, random};
-
-use super::GameBoy;
+use super::{GameBoy, Output};
 
 // seems to be the right value to meet the apparent framerate
 const CYCLES_PER_LINE: u64 = 113;

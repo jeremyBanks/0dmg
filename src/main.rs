@@ -1,7 +1,4 @@
 #![feature(reverse_bits)]
-extern crate rand;
-
-use rand::{thread_rng, Rng};
 
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -17,31 +14,30 @@ pub fn main() {
 }
 
 pub fn try_main() -> Result<(), String> {
-    let frame_buffer = Arc::new(Mutex::new(vec![0u8; 160 * 144 / 4]));
-    let also_frame_buffer = frame_buffer.clone();
+    let output_buffer = Arc::new(Mutex::new(emulator::Output::new()));
+    let also_output_buffer = output_buffer.clone();
 
     let mut b = {
-        frame_buffer.lock().unwrap().clone()
+        output_buffer.lock().unwrap().clone()
     };
-    thread_rng().fill(&mut b[..]);
     {
-        let mut c = frame_buffer.lock().unwrap();
+        let mut c = output_buffer.lock().unwrap();
         c.clone_from(&b);
     };
 
     let emulator_thread = thread::spawn(move || {
         thread::sleep_ms(250);
-        let mut gameboy = emulator::GameBoy::new(also_frame_buffer.clone());
+        let mut gameboy = emulator::GameBoy::new(also_output_buffer.clone());
         gameboy.run();
     });
 
     let http_server_thread = thread::spawn(move || {
-        let frame_buffer = frame_buffer.clone();
+        let output_buffer = output_buffer.clone();
         println!("; Starting UI server at http://127.0.0.1:9898");
         let addr = "127.0.0.1:9898".parse().unwrap();
         Http::new()
             .bind(&addr, move || {
-                Ok(server::GameBoyIOServer { frame_buffer: frame_buffer.clone() })
+                Ok(server::GameBoyIOServer { output_buffer: output_buffer.clone() })
             })
             .unwrap()
             .run()

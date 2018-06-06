@@ -15,6 +15,8 @@ use self::memory::MemoryData;
 use self::video::{VideoController, VideoData};
 
 const EXECUTIONS_BUFFER_SIZE: usize = 32;
+extern crate image;
+use self::image::{GenericImage, DynamicImage, ImageBuffer};
 
 pub struct GameBoy {
     cpu: CPUData,
@@ -27,11 +29,77 @@ pub struct GameBoy {
 
     t: u64,
 
-    pub frame_buffer: Arc<Mutex<Vec<u8>>>,
+    pub output_buffer: Arc<Mutex<Output>>,
+}
+
+pub struct Output {
+    // Fully-Rendered Game Boy Display
+    pub display: DynamicImage,
+    // Tile Data
+    pub tiles: DynamicImage,
+    // Background Palette
+    pub bgp: DynamicImage,
+    // Object Palette 0
+    pub op_0: DynamicImage,
+    // Object Palette 1
+    pub op_1: DynamicImage,
+    // Background 1
+    pub bg_0: DynamicImage,
+    // Background 2
+    pub bg_1: DynamicImage,
+    // Sprites (Tile + Palette + Transform)
+    pub sprites: DynamicImage,
+}
+
+impl Output {
+    pub fn new() -> Self {
+        Self {
+            display: DynamicImage::ImageRgba8(ImageBuffer::new(160, 144)),
+            tiles: DynamicImage::ImageRgba8(ImageBuffer::new(256, 256)),
+            bgp: DynamicImage::ImageRgba8(ImageBuffer::new(4, 1)),
+            op_0: DynamicImage::ImageRgba8(ImageBuffer::new(3, 1)),
+            op_1: DynamicImage::ImageRgba8(ImageBuffer::new(3, 1)),
+            bg_0: DynamicImage::ImageRgba8(ImageBuffer::new(256, 256)),
+            bg_1: DynamicImage::ImageRgba8(ImageBuffer::new(256, 256)),
+            sprites: DynamicImage::ImageRgba8(ImageBuffer::new(80, 64)),
+        }
+    }
+
+    // Merges all of the output images into a single image, with them in a
+    // vertical column in a consistent order.
+    pub fn combined_image(&self) -> DynamicImage {
+        let mut maxWidth = 0;
+        let mut totalHeight = 0;
+        let mut images = vec![
+            &self.display,
+            &self.tiles,
+            &self.bgp,
+            &self.op_0,
+            &self.op_1,
+            &self.bg_0,
+            &self.bg_1,
+            &self.sprites,
+        ];
+        for image in images.clone() {
+            let (height, width) = image.dimensions();
+            if width > maxWidth {
+                maxWidth = width;
+            }
+            totalHeight += height;
+        }
+        let mut combined = ImageBuffer::new(maxWidth, totalHeight);
+        let mut y = 0;
+        for image in images.clone() {
+            let (height, _width) = image.dimensions();
+            combined.copy_from(image, 0, y);
+            y += height;
+        }
+        DynamicImage::ImageRgba8(combined)
+    }
 }
 
 impl GameBoy {
-    pub fn new(frame_buffer: Arc<Mutex<Vec<u8>>>) -> Self {
+    pub fn new(output_buffer: Arc<Mutex<Output>>) -> Self {
         let mut f = File::open("./roms/blargg-tests/instr_timing/instr_timing.gb").expect("file not found");
 
         let mut game_rom = vec![];
@@ -46,7 +114,7 @@ impl GameBoy {
             t: 0,
             debug_latest_executions: vec![],
             debug_latest_executions_next_i: 0,
-            frame_buffer: frame_buffer,
+            output_buffer: output_buffer,
         }
     }
 

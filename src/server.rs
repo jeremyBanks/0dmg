@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::io::prelude::*;
 use std::sync::{Arc, Mutex};
+use std::io::{Cursor, Read, Seek, SeekFrom, Write};
 
 extern crate hyper;
 use server::hyper::header::{ContentLength, ContentType};
@@ -10,8 +11,12 @@ use server::hyper::{Get, StatusCode};
 extern crate futures;
 use server::futures::future::Future;
 
+use emulator;
+extern crate image;
+use self::image::{GenericImage, DynamicImage, ImageBuffer};
+
 pub struct GameBoyIOServer {
-    pub frame_buffer: Arc<Mutex<Vec<u8>>>,
+    pub output_buffer: Arc<Mutex<emulator::Output>>,
 }
 
 impl Service for GameBoyIOServer {
@@ -40,12 +45,20 @@ impl Service for GameBoyIOServer {
                 ))
             }
             (&Get, "/frame") => {
-                let frame_buffer = self.frame_buffer.lock().unwrap();
+                let output_buffer = self.output_buffer.lock().unwrap();
+
+                let image = output_buffer.combined_image();
+                let mut encoded_buffer = Cursor::new(Vec::new());
+                let (width, heigth) = image.dimensions();
+                {
+                    let encoder = image::png::PNGEncoder::new(&encoded_buffer);
+                    encoder.encode(image)
+                }
 
                 Box::new(futures::future::ok(
                     Response::new()
-                        .with_header(ContentLength(frame_buffer.len() as u64))
-                        .with_body(frame_buffer.clone()),
+                        .with_header(ContentLength(output_buffer.len() as u64))
+                        .with_body(output_buffer.clone()),
                 ))
             }
             _ => Box::new(futures::future::ok(
