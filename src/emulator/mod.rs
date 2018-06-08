@@ -75,7 +75,7 @@ impl Output {
 
         Self {
             display: filled(160, 144),
-            tiles: filled(256, 256),
+            tiles: filled(128, 128),
             bgp: filled(4, 1),
             op_0: filled(3, 1),
             op_1: filled(3, 1),

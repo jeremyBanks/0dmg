@@ -34,7 +34,7 @@
       <h1>
         tiles
       </h1>
-      <canvas class="tiles" width="256" height="256"></canvas>
+      <canvas class="tiles" width="128" height="128"></canvas>
     </section>
     <section>
       <h1>
@@ -417,12 +417,12 @@
           });
           display_g2d.drawImage(image, 0, 0, image.width, image.height);
           tiles_g2d.drawImage(image, 0, -144, image.width, image.height);
-          bgp_g2d.drawImage(image, 0, -400, image.width, image.height);
-          op0_g2d.drawImage(image, 0, -401, image.width, image.height);
-          op1_g2d.drawImage(image, 0, -402, image.width, image.height);
-          bg0_g2d.drawImage(image, 0, -403, image.width, image.height);
-          bg1_g2d.drawImage(image, 0, -659, image.width, image.height);
-          sprites_g2d.drawImage(image, 0, -915, image.width, image.height);
+          bgp_g2d.drawImage(image, 0, -400 +128, image.width, image.height);
+          op0_g2d.drawImage(image, 0, -401 +128, image.width, image.height);
+          op1_g2d.drawImage(image, 0, -402 +128, image.width, image.height);
+          bg0_g2d.drawImage(image, 0, -403 +128, image.width, image.height);
+          bg1_g2d.drawImage(image, 0, -659 +128, image.width, image.height);
+          sprites_g2d.drawImage(image, 0, -915 +128, image.width, image.height);
           powerLight.classList.add('on');
         } catch (error) {
           powerLight.classList.remove('on');
