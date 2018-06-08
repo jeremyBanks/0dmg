@@ -55,17 +55,17 @@ impl Output {
     pub fn new() -> Self {
         let filled = |width: u32, height: u32| {
             let mut image = DynamicImage::ImageRgba8(ImageBuffer::new(width, height));
-            let fill_color = image::Rgba([0x87, 0x9C, 0x57, 0xFF]);
-            let border_color = image::Rgba([0xFF, 0x00, 0x00, 0xFF]);
+            let fill_colors = [image::Rgba([0x87, 0x9C, 0x57, 0xFF]), image::Rgba([0x87, 0x57, 0x9C, 0xFF]), image::Rgba([0x87, 0x87, 0x6C, 0xFF])];
+            let border_colors = [image::Rgba([0xFF, 0x00, 0x00, 0xFF]), image::Rgba([0xCC, 0xCC, 0x00, 0xFF]), image::Rgba([0xCC, 0xCC, 0x00, 0xFF])];
             for x in 0..width {
                 for y in 0..height {
                     image.put_pixel(
                         x,
                         y,
-                        if x == 0 || x == width - 1 || y == 0 || y == height - 1 {
-                            border_color
+                        if x <= 1 || x >= width - 2 || y <= 1 || y >= height - 2 {
+                            border_colors[(x + y) as usize % border_colors.len()]
                         } else {
-                            fill_color
+                            fill_colors[(x + y) as usize % fill_colors.len()]
                         },
                     );
                 }
@@ -94,10 +94,10 @@ impl Output {
             &self.display,
             &self.tiles,
             &self.bgp,
-            &self.op_0,
-            &self.op_1,
             &self.bg_0,
             &self.bg_1,
+            &self.op_0,
+            &self.op_1,
             &self.sprites,
         ];
         for image in images.clone() {

@@ -73,7 +73,10 @@ impl VideoController for GameBoy {
 
     fn draw_output(&mut self) {
         // redraw display because vram was touched!
-        let mut display = { self.output_buffer.lock().unwrap().display.clone() };
+        let (mut display, mut bg_0) = {
+            let output_buffer = self.output_buffer.lock().unwrap();
+            (output_buffer.display.clone(), output_buffer.bg_0.clone())
+        };
 
         // draw background
         for i in 0..1024 {
@@ -110,7 +113,8 @@ impl VideoController for GameBoy {
                         // tile offset
                         + 8 * (i % 32) as i64
                         // pixel offset
-                        + 4 * (j % 2) as i64
+                        + 4 * (j % 2) as i64) % 256) as u32;
+                let scrolled_x = ((x as i64
                         // scroll offset
                         - self.scx() as i64) % 256) as u32;
 
@@ -118,48 +122,39 @@ impl VideoController for GameBoy {
                     // tile offset
                     + 8 * (i / 32) as i64
                     // pixel offset
-                    + 1 * (j / 2) as i64
+                    + 1 * (j / 2) as i64) % 256) as u32;
+                let scrolled_y = ((y as i64
                     // scroll offset
                     - self.scy() as i64) % 256) as u32;
 
-                if x + 3 >= 160 {
-                    continue;
-                }
-                if y >= 144 {
-                    continue;
-                }
-
                 let byte = !new_character_data[j];
                 let a = (byte & 0b11000000) >> 6;
+                let a_color = image::Rgba([a * 0b01010101, a * 0b01010101, a * 0b01010101, 0xFF]);
                 let b = (byte & 0b00110000) >> 4;
+                let b_color = image::Rgba([b * 0b01010101, b * 0b01010101, b * 0b01010101, 0xFF]);
                 let c = (byte & 0b00001100) >> 2;
+                let c_color = image::Rgba([c * 0b01010101, c * 0b01010101, a * 0b01010101, 0xFF]);
                 let d = (byte & 0b00000011) >> 0;
-                display.put_pixel(
-                    x + 0,
-                    y,
-                    image::Rgba([a * 0b01010101, a * 0b01010101, a * 0b01010101, 0xFF]),
-                );
-                display.put_pixel(
-                    x + 1,
-                    y,
-                    image::Rgba([b * 0b01010101, b * 0b01010101, b * 0b01010101, 0xFF]),
-                );
-                display.put_pixel(
-                    x + 2,
-                    y,
-                    image::Rgba([c * 0b01010101, c * 0b01010101, c * 0b01010101, 0xFF]),
-                );
-                display.put_pixel(
-                    x + 3,
-                    y,
-                    image::Rgba([d * 0b01010101, d * 0b01010101, d * 0b01010101, 0xFF]),
-                );
+                let d_color = image::Rgba([d * 0b01010101, d * 0b01010101, a * 0b01010101, 0xFF]);
+
+                bg_0.put_pixel((x + 0) % 256, y, a_color);
+                bg_0.put_pixel((x + 1) % 256, y, b_color);
+                bg_0.put_pixel((x + 2) % 256, y, c_color);
+                bg_0.put_pixel((x + 3) % 256, y, d_color);
+
+                if scrolled_y < 144 {
+                    if (scrolled_x + 0) % 256 < 160 { display.put_pixel(scrolled_x + 0, scrolled_y, a_color); }
+                    if (scrolled_x + 1) % 256 < 160 { display.put_pixel(scrolled_x + 1, scrolled_y, b_color); }
+                    if (scrolled_x + 2) % 256 < 160 { display.put_pixel(scrolled_x + 2, scrolled_y, c_color); }
+                    if (scrolled_x + 3) % 256 < 160 { display.put_pixel(scrolled_x + 3, scrolled_y, d_color); }
+                }
             }
         }
 
         {
             let mut self_output_buffer = self.output_buffer.lock().unwrap();
             self_output_buffer.display = display;
+            self_output_buffer.bg_0 = bg_0;
         };
     }
 
