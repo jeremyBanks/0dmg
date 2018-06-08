@@ -133,9 +133,9 @@ impl VideoController for GameBoy {
                 let b = (byte & 0b00110000) >> 4;
                 let b_color = image::Rgba([b * 0b01010101, b * 0b01010101, b * 0b01010101, 0xFF]);
                 let c = (byte & 0b00001100) >> 2;
-                let c_color = image::Rgba([c * 0b01010101, c * 0b01010101, a * 0b01010101, 0xFF]);
+                let c_color = image::Rgba([c * 0b01010101, c * 0b01010101, c * 0b01010101, 0xFF]);
                 let d = (byte & 0b00000011) >> 0;
-                let d_color = image::Rgba([d * 0b01010101, d * 0b01010101, a * 0b01010101, 0xFF]);
+                let d_color = image::Rgba([d * 0b01010101, d * 0b01010101, d * 0b01010101, 0xFF]);
 
                 bg_0.put_pixel((x + 0) % 256, y, a_color);
                 bg_0.put_pixel((x + 1) % 256, y, b_color);

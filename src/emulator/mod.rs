@@ -94,10 +94,10 @@ impl Output {
             &self.display,
             &self.tiles,
             &self.bgp,
-            &self.bg_0,
-            &self.bg_1,
             &self.op_0,
             &self.op_1,
+            &self.bg_0,
+            &self.bg_1,
             &self.sprites,
         ];
         for image in images.clone() {

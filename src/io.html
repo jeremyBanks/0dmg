@@ -59,13 +59,12 @@
         <h2>
           object 2
         </h2>
-        <canvas class="obj1" width="3" height="1"></canvas>
+        <canvas class="obj2" width="3" height="1"></canvas>
       </section>
 
       <h1>
         sprites
       </h1>
-
       <canvas class="sprites" width="80" height="64"></canvas>
     </section>
     <section>
@@ -338,32 +337,46 @@
     const main = async () => {
       const gbWidth = 160;
       const gbHeight = 144;
-      const canvas = document.querySelector('canvas.display');
+      const display = document.querySelector('canvas.display');
+      const display_g2d = display.getContext('2d');
+      const bgp = document.querySelector('canvas.bgp');
+      const bgp_g2d = bgp.getContext('2d');
+      const tiles = document.querySelector('canvas.tiles');
+      const tiles_g2d = tiles.getContext('2d');
+      const bg0 = document.querySelector('canvas.background-1');
+      const bg0_g2d = bg0.getContext('2d');
+      const bg1 = document.querySelector('canvas.background-2');
+      const bg1_g2d = bg1.getContext('2d');
+      const op0 = document.querySelector('canvas.obj1');
+      const op0_g2d = op0.getContext('2d');
+      const op1 = document.querySelector('canvas.obj2');
+      const op1_g2d = op1.getContext('2d');
+      const sprites = document.querySelector('canvas.sprites');
+      const sprites_g2d = sprites.getContext('2d');
       
       const powerLight = document.querySelector('.power-light');
       
       const twoBitStyle = () => {
           // our anti-aliased text has too many shades.
           // cut each colour channel down to two bits.
-          let data = g2d.getImageData(0, 0, gbWidth, gbHeight);
+          let data = display_g2d.getImageData(0, 0, gbWidth, gbHeight);
           for (let i = 0; i < data.data.length; i++) {
             data.data[i] = ((data.data[i] & (128 + 64)) >> 6) * (1 + 4 + 16 + 64);
           }
-          g2d.putImageData(data, 0, 0);
+          display_g2d.putImageData(data, 0, 0);
       }
 
-      const g2d = canvas.getContext('2d');
 
-      g2d.fillStyle = 'rgba(0, 0, 0, 0.75)'
+      display_g2d.fillStyle = 'rgba(0, 0, 0, 0.75)'
 
-      g2d.font = "bold 36px monospace";
-      g2d.fillText("0dmg", 16.5, 64.5);
+      display_g2d.font = "bold 36px monospace";
+      display_g2d.fillText("0dmg", 16.5, 64.5);
 
       twoBitStyle();
       await sleep(125);
 
-      g2d.font = "bold 12px monospace";
-      g2d.fillText("connecting...", 24.5, 86.5);
+      display_g2d.font = "bold 12px monospace";
+      display_g2d.fillText("connecting...", 24.5, 86.5);
 
       twoBitStyle();
       await sleep(375);
@@ -393,44 +406,29 @@
       document.addEventListener('keydown', onKeyUpDown);
       document.addEventListener('keyup', onKeyUpDown);
 
-      let data = g2d.getImageData(0, 0, gbWidth, gbHeight);
       setInterval(async () => {
         let bytes;
         try {
-          bytes = new Uint8Array(await (await fetch('/frame')).arrayBuffer());
-          // canvas.style.opacity = 1.00;
+          let image = new Image();
+          image.src = '/output.png?' + Math.random();
+          await new Promise((resolve, reject) => {
+            image.onload = resolve;
+            image.onerror = reject;
+          });
+          display_g2d.drawImage(image, 0, 0, image.width, image.height);
+          tiles_g2d.drawImage(image, 0, -144, image.width, image.height);
+          bgp_g2d.drawImage(image, 0, -400, image.width, image.height);
+          op0_g2d.drawImage(image, 0, -401, image.width, image.height);
+          op1_g2d.drawImage(image, 0, -402, image.width, image.height);
+          bg0_g2d.drawImage(image, 0, -403, image.width, image.height);
+          bg1_g2d.drawImage(image, 0, -659, image.width, image.height);
+          sprites_g2d.drawImage(image, 0, -915, image.width, image.height);
           powerLight.classList.add('on');
         } catch (error) {
-          console.error(error);
-          // canvas.style.opacity = 0.75;
           powerLight.classList.remove('on');
-        }
-
-
-        for (let i = 0; i < bytes.length; i++) {
-          for (let j = 0; j < 4; j++) {
-            const frameIndex = (i * 4 + j); 
-            const frameX = frameIndex % gbWidth;
-            const frameY = frameIndex / gbWidth;
-
-            const colorIndex = (bytes[i] >> (j * 2)) & 3;
-            
-            const color = [
-              [220, 255, 220],
-              [170, 200, 170],
-              [92, 100, 92],
-              [8, 16, 8],
-            ][colorIndex];
-
-            const offset = frameIndex * 4;
-            data.data[offset + 0] = color[0];
-            data.data[offset + 1] = color[1];
-            data.data[offset + 2] = color[2];
-            data.data[offset + 3] = 255 * 0.75;
-          }
-        }
-        g2d.putImageData(data, 0, 0);
-      }, 16);
+          console.error(error);
+        } 
+      }, 1000 / 8);
     }
 
     const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
