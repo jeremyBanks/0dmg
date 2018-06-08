@@ -6,6 +6,7 @@ mod video;
 
 use std::sync::{Arc, Mutex};
 use std::fs::File;
+use std::clone::Clone;
 use std::io::Read;
 use std::time::{Duration, SystemTime};
 use std::thread::sleep;
@@ -53,23 +54,35 @@ pub struct Output {
 
 impl Output {
     pub fn new() -> Self {
+        let filled = |width: u32, height: u32| {
+            let mut image = DynamicImage::ImageRgba8(ImageBuffer::new(width, height));
+            let fillColor = image::Rgba([0x87, 0x9C, 0x57, 0xFF]);
+            let borderColor = image::Rgba([0xFF, 0x00, 0x00, 0xFF]);
+            for x in 0..width {
+                for y in 0..height {
+                    image.put_pixel(x, y, if x == 0 || x == width - 1 || y == 0 || y == height - 1 { borderColor } else { fillColor });
+                }
+            }
+            image
+        };
+
         Self {
-            display: DynamicImage::ImageRgba8(ImageBuffer::new(160, 144)),
-            tiles: DynamicImage::ImageRgba8(ImageBuffer::new(256, 256)),
-            bgp: DynamicImage::ImageRgba8(ImageBuffer::new(4, 1)),
-            op_0: DynamicImage::ImageRgba8(ImageBuffer::new(3, 1)),
-            op_1: DynamicImage::ImageRgba8(ImageBuffer::new(3, 1)),
-            bg_0: DynamicImage::ImageRgba8(ImageBuffer::new(256, 256)),
-            bg_1: DynamicImage::ImageRgba8(ImageBuffer::new(256, 256)),
-            sprites: DynamicImage::ImageRgba8(ImageBuffer::new(80, 64)),
+            display: filled(160, 144),
+            tiles: filled(256, 256),
+            bgp: filled(4, 1),
+            op_0: filled(3, 1),
+            op_1: filled(3, 1),
+            bg_0: filled(256, 256),
+            bg_1: filled(256, 256),
+            sprites: filled(80, 64),
         }
     }
 
     // Merges all of the output images into a single image, with them in a
     // vertical column in a consistent order.
     pub fn combined_image(&self) -> DynamicImage {
-        let mut maxWidth = 0;
-        let mut totalHeight = 0;
+        let mut max_width = 0;
+        let mut total_height = 0;
         let mut images = vec![
             &self.display,
             &self.tiles,
@@ -81,16 +94,16 @@ impl Output {
             &self.sprites,
         ];
         for image in images.clone() {
-            let (height, width) = image.dimensions();
-            if width > maxWidth {
-                maxWidth = width;
+            let (width, height) = image.dimensions();
+            if width > max_width {
+                max_width = width;
             }
-            totalHeight += height;
+            total_height += height;
         }
-        let mut combined = ImageBuffer::new(maxWidth, totalHeight);
+        let mut combined = ImageBuffer::new(max_width, total_height);
         let mut y = 0;
         for image in images.clone() {
-            let (height, _width) = image.dimensions();
+            let (width, height) = image.dimensions();
             combined.copy_from(image, 0, y);
             y += height;
         }

@@ -44,21 +44,17 @@ impl Service for GameBoyIOServer {
                         .with_body(contents),
                 ))
             }
-            (&Get, "/frame") => {
-                let output_buffer = self.output_buffer.lock().unwrap();
-
-                let image = output_buffer.combined_image();
-                let mut encoded_buffer = Cursor::new(Vec::new());
-                let (width, heigth) = image.dimensions();
-                {
-                    let encoder = image::png::PNGEncoder::new(&encoded_buffer);
-                    encoder.encode(image)
-                }
-
+            (&Get, "/output.png") => {
+                let display = {
+                    let mut output = self.output_buffer.lock().unwrap();
+                    output.combined_image()
+                };
+                let mut encoded_image = Vec::new();
+                display.write_to(&mut encoded_image, image::ImageOutputFormat::PNG);
                 Box::new(futures::future::ok(
                     Response::new()
-                        .with_header(ContentLength(output_buffer.len() as u64))
-                        .with_body(output_buffer.clone()),
+                        .with_header(ContentLength(encoded_image.len() as u64))
+                        .with_body(encoded_image),
                 ))
             }
             _ => Box::new(futures::future::ok(

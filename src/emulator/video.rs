@@ -1,5 +1,9 @@
 use super::{GameBoy, Output};
 
+
+extern crate image;
+use self::image::{GenericImage, DynamicImage, ImageBuffer};
+
 // seems to be the right value to meet the apparent framerate
 const CYCLES_PER_LINE: u64 = 113;
 
@@ -45,8 +49,7 @@ pub trait VideoController {
     fn set_lcdc(&mut self, value: u8);
     fn ly(&self) -> u8;
     fn set_ly(&mut self, value: u8);
-    fn draw_frame_buffer(&mut self);
-    fn draw_character(&mut self, index: usize, frame_buffer: &mut Vec<u8>);
+    fn draw_output(&mut self);
 }
 
 impl VideoController for GameBoy {
@@ -56,7 +59,7 @@ impl VideoController for GameBoy {
 
         // after vblank, draw
         if 0 == self.vid.ly && 0 == self.vid.t % CYCLES_PER_LINE {
-            self.draw_frame_buffer();
+            self.draw_output();
         }
     }
 
@@ -69,17 +72,11 @@ impl VideoController for GameBoy {
         self.vid.vram[index] = value;
     }
 
-    fn draw_frame_buffer(&mut self) {
-        // redraw frame buffer because vram was touched!
-        let mut frame_buffer = {
-            self.frame_buffer.lock().unwrap().clone()
+    fn draw_output(&mut self) {
+        // redraw display because vram was touched!
+        let mut display = {
+            self.output_buffer.lock().unwrap().display.clone()
         };
-        let len = frame_buffer.len();
-
-        // clear frame buffer
-        for i in 0..len {
-            frame_buffer[i] = 0;
-        }
 
         // draw background
         for i in 0..1024 {
@@ -117,21 +114,25 @@ impl VideoController for GameBoy {
 
             for j in 0..16 {
                 let byte = new_character_data[j];
-                let x = ((((j % 2) + i * 2) as u8).wrapping_sub(self.scx())) as usize;
-                // if x >= 160 / 4 { continue; }
-                let y = ((((j / 2) + 2 * (i / 32)) as u8).wrapping_sub(self.scy())) as usize;
-                // if y >= 144 { continue; }
-                frame_buffer[(x % (160 / 4)) + (y % 144) * (160 / 4)] |= byte;
+                let x = ((((j % 2) + i * 2) as u8).wrapping_sub(self.scx())) as u32;
+                if x >= 160 / 4 { continue; }
+                let y = ((((j / 2) + 2 * (i / 32)) as u8).wrapping_sub(self.scy())) as u32;
+                if y >= 144 { continue; }
+                let a = (byte & 0b11000000) >> 6;
+                let b = (byte & 0b00110000) >> 4;
+                let c = (byte & 0b00001100) >> 2;
+                let d = (byte & 0b00000011) >> 0;
+                display.put_pixel(x * 4 + 0, y, image::Rgba([a * 0b01010101, a * 0b01010101, a * 0b01010101, 0xFF]));
+                display.put_pixel(x * 4 + 1, y, image::Rgba([b * 0b01010101, b * 0b01010101, b * 0b01010101, 0xFF]));
+                display.put_pixel(x * 4 + 2, y, image::Rgba([c * 0b01010101, c * 0b01010101, c * 0b01010101, 0xFF]));
+                display.put_pixel(x * 4 + 3, y, image::Rgba([d * 0b01010101, d * 0b01010101, d * 0b01010101, 0xFF]));
             }
         }
         
         {
-            let mut frame_buffer_for_write = self.frame_buffer.lock().unwrap();
-            frame_buffer_for_write.clone_from(&frame_buffer);
+            let mut self_output_buffer = self.output_buffer.lock().unwrap();
+            self_output_buffer.display = display;
         };
-    }
-
-    fn draw_character(&mut self, index: usize, frame_buffer: &mut Vec<u8>) {
     }
 
     fn bgp(&self) -> u8 {

@@ -2,6 +2,7 @@
 
 use std::sync::{Arc, Mutex};
 use std::thread;
+use std::clone::Clone;
 
 extern crate hyper;
 use hyper::server::Http;
@@ -16,14 +17,6 @@ pub fn main() {
 pub fn try_main() -> Result<(), String> {
     let output_buffer = Arc::new(Mutex::new(emulator::Output::new()));
     let also_output_buffer = output_buffer.clone();
-
-    let mut b = {
-        output_buffer.lock().unwrap().clone()
-    };
-    {
-        let mut c = output_buffer.lock().unwrap();
-        c.clone_from(&b);
-    };
 
     let emulator_thread = thread::spawn(move || {
         thread::sleep_ms(250);
