@@ -56,11 +56,11 @@ impl Output {
     pub fn new() -> Self {
         let filled = |width: u32, height: u32| {
             let mut image = DynamicImage::ImageRgba8(ImageBuffer::new(width, height));
-            let fillColor = image::Rgba([0x87, 0x9C, 0x57, 0xFF]);
-            let borderColor = image::Rgba([0xFF, 0x00, 0x00, 0xFF]);
+            let fill_color = image::Rgba([0x87, 0x9C, 0x57, 0xFF]);
+            let border_color = image::Rgba([0xFF, 0x00, 0x00, 0xFF]);
             for x in 0..width {
                 for y in 0..height {
-                    image.put_pixel(x, y, if x == 0 || x == width - 1 || y == 0 || y == height - 1 { borderColor } else { fillColor });
+                    image.put_pixel(x, y, if x == 0 || x == width - 1 || y == 0 || y == height - 1 { border_color } else { fill_color });
                 }
             }
             image

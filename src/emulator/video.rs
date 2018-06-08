@@ -108,24 +108,43 @@ impl VideoController for GameBoy {
                     ((low_byte & 0b00000100) << 2) + 
                     ((low_byte & 0b00000010) << 1) + 
                     ((low_byte & 0b00000001) << 0);
-                new_character_data[y_offset * 2] = first_byte.reverse_bits() ^ (y_offset as u8);
-                new_character_data[y_offset * 2 + 1] = second_byte.reverse_bits() ^ (y_offset as u8);
+                new_character_data[y_offset * 2] = first_byte;
+                new_character_data[y_offset * 2 + 1] = second_byte;
             }
 
             for j in 0..16 {
-                let byte = new_character_data[j];
-                let x = ((((j % 2) + i * 2) as u8).wrapping_sub(self.scx())) as u32;
-                if x >= 160 / 4 { continue; }
-                let y = ((((j / 2) + 2 * (i / 32)) as u8).wrapping_sub(self.scy())) as u32;
+                let x =
+                    ((0
+                        // tile offset
+                        + 8 * (i % 32) as i64
+                        // pixel offset
+                        + 4 * (j % 2) as i64
+                        // scroll offset
+                        - self.scx() as i64
+                    ) % 256) as u32;
+                    
+                let y = 
+                ((0
+                    // tile offset
+                    + 8 * (i / 32) as i64
+                    // pixel offset
+                    + 1 * (j / 2) as i64
+                    // scroll offset
+                    - self.scy() as i64
+                ) % 256) as u32;
+                
+                if x + 3 >= 160 { continue; }
                 if y >= 144 { continue; }
+                
+                let byte = !new_character_data[j];
                 let a = (byte & 0b11000000) >> 6;
                 let b = (byte & 0b00110000) >> 4;
                 let c = (byte & 0b00001100) >> 2;
                 let d = (byte & 0b00000011) >> 0;
-                display.put_pixel(x * 4 + 0, y, image::Rgba([a * 0b01010101, a * 0b01010101, a * 0b01010101, 0xFF]));
-                display.put_pixel(x * 4 + 1, y, image::Rgba([b * 0b01010101, b * 0b01010101, b * 0b01010101, 0xFF]));
-                display.put_pixel(x * 4 + 2, y, image::Rgba([c * 0b01010101, c * 0b01010101, c * 0b01010101, 0xFF]));
-                display.put_pixel(x * 4 + 3, y, image::Rgba([d * 0b01010101, d * 0b01010101, d * 0b01010101, 0xFF]));
+                display.put_pixel(x + 0, y, image::Rgba([a * 0b01010101, a * 0b01010101, a * 0b01010101, 0xFF]));
+                display.put_pixel(x + 1, y, image::Rgba([b * 0b01010101, b * 0b01010101, b * 0b01010101, 0xFF]));
+                display.put_pixel(x + 2, y, image::Rgba([c * 0b01010101, c * 0b01010101, c * 0b01010101, 0xFF]));
+                display.put_pixel(x + 3, y, image::Rgba([d * 0b01010101, d * 0b01010101, d * 0b01010101, 0xFF]));
             }
         }
         
