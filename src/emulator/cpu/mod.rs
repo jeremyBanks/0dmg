@@ -5,8 +5,8 @@ pub mod operation;
 mod opcodes_cb;
 mod opcodes_main;
 
-use super::memory::MemoryController;
 use super::GameBoy;
+use super::memory::MemoryController;
 
 pub struct CPUData {
     // clock ticks
@@ -36,7 +36,7 @@ pub struct CPUData {
 pub struct OperationExecution {
     pub t: u64,
     pub operation_address: u16,
-    pub operation_code: Vec<u8>, 
+    pub operation_code: Vec<u8>,
     pub execution: operation::Execution,
 }
 

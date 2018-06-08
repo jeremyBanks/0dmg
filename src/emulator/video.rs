@@ -1,8 +1,7 @@
 use super::{GameBoy, Output};
 
-
 extern crate image;
-use self::image::{GenericImage, DynamicImage, ImageBuffer};
+use self::image::{DynamicImage, GenericImage, ImageBuffer};
 
 // seems to be the right value to meet the apparent framerate
 const CYCLES_PER_LINE: u64 = 113;
@@ -74,9 +73,7 @@ impl VideoController for GameBoy {
 
     fn draw_output(&mut self) {
         // redraw display because vram was touched!
-        let mut display = {
-            self.output_buffer.lock().unwrap().display.clone()
-        };
+        let mut display = { self.output_buffer.lock().unwrap().display.clone() };
 
         // draw background
         for i in 0..1024 {
@@ -90,64 +87,76 @@ impl VideoController for GameBoy {
             for y_offset in 0..8 {
                 let low_byte = new_character_data[y_offset * 2];
                 let high_byte = new_character_data[y_offset * 2 + 1];
-                let first_byte = 
-                    ((high_byte & 0b10000000) >> 0) +
-                    ((high_byte & 0b01000000) >> 1) + 
-                    ((high_byte & 0b00100000) >> 2) + 
-                    ((high_byte & 0b00010000) >> 3) + 
-                    ((low_byte & 0b10000000) >> 1) +
-                    ((low_byte & 0b01000000) >> 2) + 
-                    ((low_byte & 0b00100000) >> 3) + 
-                    ((low_byte & 0b00010000) >> 4);
-                let second_byte = 
-                    ((high_byte & 0b00001000) << 4) +
-                    ((high_byte & 0b00000100) << 3) + 
-                    ((high_byte & 0b00000010) << 1) + 
-                    ((high_byte & 0b00000001) << 1) + 
-                    ((low_byte & 0b00001000) << 3) +
-                    ((low_byte & 0b00000100) << 2) + 
-                    ((low_byte & 0b00000010) << 1) + 
-                    ((low_byte & 0b00000001) << 0);
+                let first_byte = ((high_byte & 0b10000000) >> 0) + ((high_byte & 0b01000000) >> 1)
+                    + ((high_byte & 0b00100000) >> 2)
+                    + ((high_byte & 0b00010000) >> 3)
+                    + ((low_byte & 0b10000000) >> 1)
+                    + ((low_byte & 0b01000000) >> 2)
+                    + ((low_byte & 0b00100000) >> 3)
+                    + ((low_byte & 0b00010000) >> 4);
+                let second_byte = ((high_byte & 0b00001000) << 4) + ((high_byte & 0b00000100) << 3)
+                    + ((high_byte & 0b00000010) << 1)
+                    + ((high_byte & 0b00000001) << 1)
+                    + ((low_byte & 0b00001000) << 3)
+                    + ((low_byte & 0b00000100) << 2)
+                    + ((low_byte & 0b00000010) << 1)
+                    + ((low_byte & 0b00000001) << 0);
                 new_character_data[y_offset * 2] = first_byte;
                 new_character_data[y_offset * 2 + 1] = second_byte;
             }
 
             for j in 0..16 {
-                let x =
-                    ((0
+                let x = ((0
                         // tile offset
                         + 8 * (i % 32) as i64
                         // pixel offset
                         + 4 * (j % 2) as i64
                         // scroll offset
-                        - self.scx() as i64
-                    ) % 256) as u32;
-                    
-                let y = 
-                ((0
+                        - self.scx() as i64) % 256) as u32;
+
+                let y = ((0
                     // tile offset
                     + 8 * (i / 32) as i64
                     // pixel offset
                     + 1 * (j / 2) as i64
                     // scroll offset
-                    - self.scy() as i64
-                ) % 256) as u32;
-                
-                if x + 3 >= 160 { continue; }
-                if y >= 144 { continue; }
-                
+                    - self.scy() as i64) % 256) as u32;
+
+                if x + 3 >= 160 {
+                    continue;
+                }
+                if y >= 144 {
+                    continue;
+                }
+
                 let byte = !new_character_data[j];
                 let a = (byte & 0b11000000) >> 6;
                 let b = (byte & 0b00110000) >> 4;
                 let c = (byte & 0b00001100) >> 2;
                 let d = (byte & 0b00000011) >> 0;
-                display.put_pixel(x + 0, y, image::Rgba([a * 0b01010101, a * 0b01010101, a * 0b01010101, 0xFF]));
-                display.put_pixel(x + 1, y, image::Rgba([b * 0b01010101, b * 0b01010101, b * 0b01010101, 0xFF]));
-                display.put_pixel(x + 2, y, image::Rgba([c * 0b01010101, c * 0b01010101, c * 0b01010101, 0xFF]));
-                display.put_pixel(x + 3, y, image::Rgba([d * 0b01010101, d * 0b01010101, d * 0b01010101, 0xFF]));
+                display.put_pixel(
+                    x + 0,
+                    y,
+                    image::Rgba([a * 0b01010101, a * 0b01010101, a * 0b01010101, 0xFF]),
+                );
+                display.put_pixel(
+                    x + 1,
+                    y,
+                    image::Rgba([b * 0b01010101, b * 0b01010101, b * 0b01010101, 0xFF]),
+                );
+                display.put_pixel(
+                    x + 2,
+                    y,
+                    image::Rgba([c * 0b01010101, c * 0b01010101, c * 0b01010101, 0xFF]),
+                );
+                display.put_pixel(
+                    x + 3,
+                    y,
+                    image::Rgba([d * 0b01010101, d * 0b01010101, d * 0b01010101, 0xFF]),
+                );
             }
         }
-        
+
         {
             let mut self_output_buffer = self.output_buffer.lock().unwrap();
             self_output_buffer.display = display;

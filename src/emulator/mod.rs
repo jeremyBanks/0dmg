@@ -1,23 +1,22 @@
-
 mod audio;
 mod cpu;
 mod memory;
 mod video;
 
-use std::sync::{Arc, Mutex};
-use std::fs::File;
-use std::clone::Clone;
-use std::io::Read;
-use std::time::{Duration, SystemTime};
-use std::thread::sleep;
 use self::audio::{AudioController, AudioData};
 use self::cpu::{CPUController, CPUData, OperationExecution};
 use self::memory::MemoryData;
 use self::video::{VideoController, VideoData};
+use std::clone::Clone;
+use std::fs::File;
+use std::io::Read;
+use std::sync::{Arc, Mutex};
+use std::thread::sleep;
+use std::time::{Duration, SystemTime};
 
 const EXECUTIONS_BUFFER_SIZE: usize = 32;
 extern crate image;
-use self::image::{GenericImage, DynamicImage, ImageBuffer};
+use self::image::{DynamicImage, GenericImage, ImageBuffer};
 
 pub struct GameBoy {
     cpu: CPUData,
@@ -60,7 +59,15 @@ impl Output {
             let border_color = image::Rgba([0xFF, 0x00, 0x00, 0xFF]);
             for x in 0..width {
                 for y in 0..height {
-                    image.put_pixel(x, y, if x == 0 || x == width - 1 || y == 0 || y == height - 1 { border_color } else { fill_color });
+                    image.put_pixel(
+                        x,
+                        y,
+                        if x == 0 || x == width - 1 || y == 0 || y == height - 1 {
+                            border_color
+                        } else {
+                            fill_color
+                        },
+                    );
                 }
             }
             image
@@ -113,12 +120,13 @@ impl Output {
 
 impl GameBoy {
     pub fn new(output_buffer: Arc<Mutex<Output>>) -> Self {
-        let mut f = File::open("./roms/blargg-tests/instr_timing/instr_timing.gb").expect("file not found");
+        let mut f =
+            File::open("./roms/blargg-tests/instr_timing/instr_timing.gb").expect("file not found");
 
         let mut game_rom = vec![];
         f.read_to_end(&mut game_rom)
             .expect("something went wrong reading the file");;
-        
+
         Self {
             cpu: CPUData::new(),
             mem: MemoryData::new(game_rom),
@@ -131,7 +139,7 @@ impl GameBoy {
         }
     }
 
-    fn print_execution(&self, opex: &OperationExecution) { 
+    fn print_execution(&self, opex: &OperationExecution) {
         if let Some(s) = &opex.execution.asm {
             print!("{:32}", s);
         } else {
@@ -139,7 +147,8 @@ impl GameBoy {
         }
         print!(" ; ${:04x}", opex.operation_address);
         print!(" ; {:10}", opex.t);
-        let code = opex.operation_code.clone()
+        let code = opex.operation_code
+            .clone()
             .into_iter()
             .map(|c| format!("{:02x}", c))
             .collect::<Vec<String>>()
@@ -171,7 +180,7 @@ impl GameBoy {
         let yellow = "\x1b[93m";
         let blue = "\x1b[94m";
         let clear = "\x1b[0m";
-        
+
         // using Instant seems to produced very unsteady results
         let start_time = SystemTime::now();
         let sync_time_every_ticks = 1024 * 4;
@@ -186,13 +195,14 @@ impl GameBoy {
                 self.debug_latest_executions[self.debug_latest_executions_next_i] = opex;
             }
 
-            self.debug_latest_executions_next_i = (self.debug_latest_executions_next_i + 1) % EXECUTIONS_BUFFER_SIZE;
+            self.debug_latest_executions_next_i =
+                (self.debug_latest_executions_next_i + 1) % EXECUTIONS_BUFFER_SIZE;
 
             for _ in 0..cycles {
                 self.video_cycle();
                 self.audio_cycle();
 
-                if self.t % (1024*1024) == 0 {
+                if self.t % (1024 * 1024) == 0 {
                     self.print_recent_executions();
                 }
 
@@ -205,16 +215,24 @@ impl GameBoy {
                 // duration by which we allow internal time to slip ahead of real time,
                 // for the sake of doing several operations in a batch, rather than
                 // sleeping between each of them
-                const BATCH_MARGIN:Duration = Duration::from_millis(4);
-                const MAX_LAG:Duration = Duration::from_millis(4);
-                const ZERO:Duration = Duration::from_secs(0);
+                const BATCH_MARGIN: Duration = Duration::from_millis(4);
+                const MAX_LAG: Duration = Duration::from_millis(4);
+                const ZERO: Duration = Duration::from_secs(0);
 
                 // TODO: this is exactly 1MHz, which is wrong.
-                let internal_elapsed = Duration::new(self.t / 1000000, ((self.t * 1000) % 1000000000) as u32); // 953 should really be 1000000000 / 1048576
+                let internal_elapsed =
+                    Duration::new(self.t / 1000000, ((self.t * 1000) % 1000000000) as u32); // 953 should really be 1000000000 / 1048576
                 let wall_elapsed = start_time.elapsed().expect("failed to get elapsed time?!");
-                let skew_ahead = if internal_elapsed > wall_elapsed { internal_elapsed - wall_elapsed } else { ZERO };
-                let skew_behind = if wall_elapsed > internal_elapsed { wall_elapsed - internal_elapsed } else { ZERO };
-
+                let skew_ahead = if internal_elapsed > wall_elapsed {
+                    internal_elapsed - wall_elapsed
+                } else {
+                    ZERO
+                };
+                let skew_behind = if wall_elapsed > internal_elapsed {
+                    wall_elapsed - internal_elapsed
+                } else {
+                    ZERO
+                };
 
                 // println!("internal / wall = {:?} / {:?}", internal_elapsed, wall_elapsed);
                 // println!("behind / ahead = {:?} / {:?}", skew_behind, skew_ahead);

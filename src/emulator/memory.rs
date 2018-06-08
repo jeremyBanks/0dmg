@@ -56,7 +56,11 @@ impl MemoryController for GameBoy {
         } else if addr == 0xFF47 {
             self.bgp()
         } else if addr == 0xFF50 {
-            if self.mem.boot_rom_mapped { 0x01 } else { 0x00 }
+            if self.mem.boot_rom_mapped {
+                0x01
+            } else {
+                0x00
+            }
         } else {
             panic!("I don't know how to get memory address ${:04x}.", addr);
         };
@@ -86,10 +90,12 @@ impl MemoryController for GameBoy {
             self.set_bgp(value);
         } else if addr == 0xFF50 {
             if value != 0x01 {
-                panic!("got unexpected value (not 0x01) written to 0xFF50 boot rom disable register");
+                panic!(
+                    "got unexpected value (not 0x01) written to 0xFF50 boot rom disable register"
+                );
             }
             self.mem.boot_rom_mapped = false;
-        }  else {
+        } else {
             panic!("I don't know how to set memory address ${:04x}.", addr);
         }
     }

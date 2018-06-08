@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::prelude::*;
-use std::sync::{Arc, Mutex};
 use std::io::{Cursor, Read, Seek, SeekFrom, Write};
+use std::sync::{Arc, Mutex};
 
 extern crate hyper;
 use server::hyper::header::{ContentLength, ContentType};
@@ -13,7 +13,7 @@ use server::futures::future::Future;
 
 use emulator;
 extern crate image;
-use self::image::{GenericImage, DynamicImage, ImageBuffer};
+use self::image::{DynamicImage, GenericImage, ImageBuffer};
 
 pub struct GameBoyIOServer {
     pub output_buffer: Arc<Mutex<emulator::Output>>,

@@ -1,6 +1,6 @@
+use std::clone::Clone;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::clone::Clone;
 
 extern crate hyper;
 use hyper::server::Http;
@@ -28,7 +28,9 @@ pub fn try_main() -> Result<(), String> {
         let addr = "127.0.0.1:9898".parse().unwrap();
         Http::new()
             .bind(&addr, move || {
-                Ok(server::GameBoyIOServer { output_buffer: output_buffer.clone() })
+                Ok(server::GameBoyIOServer {
+                    output_buffer: output_buffer.clone(),
+                })
             })
             .unwrap()
             .run()
