@@ -73,17 +73,36 @@ impl VideoController for GameBoy {
 
     fn draw_output(&mut self) {
         // redraw display because vram was touched!
-        let (mut display, mut bg_0, mut tiles) = {
+        let (mut display, mut bg_0, mut tiles, mut bgp) = {
             let output_buffer = self.output_buffer.lock().unwrap();
             (
                 output_buffer.display.clone(),
                 output_buffer.bg_0.clone(),
                 output_buffer.tiles.clone(),
+                output_buffer.bgp.clone(),
             )
         };
 
         // draw background palettes
-        
+        // the ! is because the GB colours values are darkness, but RGB is brightness
+        let bgp_a = (!self.bgp() & 0b11000000) >> 6;
+        let bgp_a_color = image::Rgba([bgp_a * 0b01010101, bgp_a * 0b01010101, bgp_a * 0b01010101, 0xFF]);
+        let bgp_b = (!self.bgp() & 0b00110000) >> 4;
+        let bgp_b_color = image::Rgba([bgp_b * 0b01010101, bgp_b * 0b01010101, bgp_b * 0b01010101, 0xFF]);
+        let bgp_c = (!self.bgp() & 0b00001100) >> 2;
+        let bgp_c_color = image::Rgba([bgp_c * 0b01010101, bgp_c * 0b01010101, bgp_c * 0b01010101, 0xFF]);
+        let bgp_d = (!self.bgp() & 0b00000011) >> 0;
+        let bgp_d_color = image::Rgba([bgp_d * 0b01010101, bgp_d * 0b01010101, bgp_d * 0b01010101, 0xFF]);
+        bgp.put_pixel(0, 0, bgp_a_color);
+        bgp.put_pixel(1, 0, bgp_b_color);
+        bgp.put_pixel(2, 0, bgp_c_color);
+        bgp.put_pixel(3, 0, bgp_d_color);
+        let bg_palette = [
+            bgp_a_color,
+            bgp_b_color,
+            bgp_c_color,
+            bgp_d_color,
+        ];
 
         // draw tiles into debug buffer
         for i in 0..256 {
@@ -91,22 +110,26 @@ impl VideoController for GameBoy {
             let mut new_tile_data = vec![0u8; 16];
             new_tile_data.clone_from_slice(tile_data);
             for y_offset in 0..8 {
-                let low_byte = new_tile_data[y_offset * 2];
-                let high_byte = new_tile_data[y_offset * 2 + 1];
-                let first_byte = ((high_byte & 0b10000000) >> 0) + ((high_byte & 0b01000000) >> 1)
-                    + ((high_byte & 0b00100000) >> 2)
-                    + ((high_byte & 0b00010000) >> 3)
-                    + ((low_byte & 0b10000000) >> 1)
-                    + ((low_byte & 0b01000000) >> 2)
-                    + ((low_byte & 0b00100000) >> 3)
-                    + ((low_byte & 0b00010000) >> 4);
-                let second_byte = ((high_byte & 0b00001000) << 4) + ((high_byte & 0b00000100) << 3)
-                    + ((high_byte & 0b00000010) << 1)
-                    + ((high_byte & 0b00000001) << 1)
-                    + ((low_byte & 0b00001000) << 3)
-                    + ((low_byte & 0b00000100) << 2)
-                    + ((low_byte & 0b00000010) << 1)
-                    + ((low_byte & 0b00000001) << 0);
+                let low_byte = new_tile_data[y_offset * 2 + 1];
+                let high_byte = new_tile_data[y_offset * 2];
+                let first_byte =
+                      ((high_byte & 0b10000000) >> 0)
+                    | ((low_byte  & 0b10000000) >> 1)
+                    | ((high_byte & 0b01000000) >> 1)
+                    | ((low_byte  & 0b01000000) >> 2)
+                    | ((high_byte & 0b00100000) >> 2)
+                    | ((low_byte  & 0b00100000) >> 3)
+                    | ((high_byte & 0b00010000) >> 3)
+                    | ((low_byte  & 0b00010000) >> 4);
+                let second_byte =
+                      ((high_byte & 0b00001000) << 4)
+                    | ((low_byte  & 0b00001000) << 3)
+                    | ((high_byte & 0b00000100) << 3)
+                    | ((low_byte  & 0b00000100) << 2)
+                    | ((high_byte & 0b00000010) << 2)
+                    | ((low_byte  & 0b00000010) << 1)
+                    | ((high_byte & 0b00000001) << 1)
+                    | ((low_byte  & 0b00000001) << 0);
                 new_tile_data[y_offset * 2] = first_byte;
                 new_tile_data[y_offset * 2 + 1] = second_byte;
             }
@@ -122,7 +145,7 @@ impl VideoController for GameBoy {
                 let y = ((y_tile_offset
                         + 1 * (j / 2) as i64) % 256) as u32;
 
-                let byte = new_tile_data[j];
+                let byte = !new_tile_data[j];
                 let a = (byte & 0b11000000) >> 6;
                 let a_color = image::Rgba([
                     a * 0b01010101,
@@ -169,22 +192,29 @@ impl VideoController for GameBoy {
             new_tile_data.clone_from_slice(tile_data);
 
             for y_offset in 0..8 {
-                let low_byte = new_tile_data[y_offset * 2];
-                let high_byte = new_tile_data[y_offset * 2 + 1];
-                let first_byte = ((high_byte & 0b10000000) >> 0) + ((high_byte & 0b01000000) >> 1)
-                    + ((high_byte & 0b00100000) >> 2)
-                    + ((high_byte & 0b00010000) >> 3)
-                    + ((low_byte & 0b10000000) >> 1)
-                    + ((low_byte & 0b01000000) >> 2)
-                    + ((low_byte & 0b00100000) >> 3)
-                    + ((low_byte & 0b00010000) >> 4);
-                let second_byte = ((high_byte & 0b00001000) << 4) + ((high_byte & 0b00000100) << 3)
-                    + ((high_byte & 0b00000010) << 1)
-                    + ((high_byte & 0b00000001) << 1)
-                    + ((low_byte & 0b00001000) << 3)
-                    + ((low_byte & 0b00000100) << 2)
-                    + ((low_byte & 0b00000010) << 1)
-                    + ((low_byte & 0b00000001) << 0);
+                // XXX: this is really dumb. 
+                // why are you converting back into bytes?
+                // convert into pixels.
+                let low_byte = new_tile_data[y_offset * 2 + 1];
+                let high_byte = new_tile_data[y_offset * 2];
+                let first_byte =
+                      ((high_byte & 0b10000000) >> 0)
+                    | ((low_byte  & 0b10000000) >> 1)
+                    | ((high_byte & 0b01000000) >> 1)
+                    | ((low_byte  & 0b01000000) >> 2)
+                    | ((high_byte & 0b00100000) >> 2)
+                    | ((low_byte  & 0b00100000) >> 3)
+                    | ((high_byte & 0b00010000) >> 3)
+                    | ((low_byte  & 0b00010000) >> 4);
+                let second_byte =
+                      ((high_byte & 0b00001000) << 4)
+                    | ((low_byte  & 0b00001000) << 3)
+                    | ((high_byte & 0b00000100) << 3)
+                    | ((low_byte  & 0b00000100) << 2)
+                    | ((high_byte & 0b00000010) << 2)
+                    | ((low_byte  & 0b00000010) << 1)
+                    | ((high_byte & 0b00000001) << 1)
+                    | ((low_byte  & 0b00000001) << 0);
                 new_tile_data[y_offset * 2] = first_byte;
                 new_tile_data[y_offset * 2 + 1] = second_byte;
             }
@@ -206,18 +236,18 @@ impl VideoController for GameBoy {
 
                 let byte = !new_tile_data[j];
                 let a = (byte & 0b11000000) >> 6;
-                let a_color = image::Rgba([a * 0b01010101, a * 0b01010101, a * 0b01010101, 0xFF]);
+                let a_color = bg_palette[a as usize];
                 let b = (byte & 0b00110000) >> 4;
-                let b_color = image::Rgba([b * 0b01010101, b * 0b01010101, b * 0b01010101, 0xFF]);
+                let b_color = bg_palette[b as usize];
                 let c = (byte & 0b00001100) >> 2;
-                let c_color = image::Rgba([c * 0b01010101, c * 0b01010101, c * 0b01010101, 0xFF]);
+                let c_color = bg_palette[c as usize];
                 let d = (byte & 0b00000011) >> 0;
-                let d_color = image::Rgba([d * 0b01010101, d * 0b01010101, d * 0b01010101, 0xFF]);
+                let d_color = bg_palette[d as usize];
 
-                bg_0.put_pixel((x + tile_col + 0) % (256 + 31), (y + tile_row) % (256 + 31), a_color);
-                bg_0.put_pixel((x + tile_col + 1) % (256 + 31), (y + tile_row) % (256 + 31), b_color);
-                bg_0.put_pixel((x + tile_col + 2) % (256 + 31), (y + tile_row) % (256 + 31), c_color);
-                bg_0.put_pixel((x + tile_col + 3) % (256 + 31), (y + tile_row) % (256 + 31), d_color);
+                bg_0.put_pixel((x + 0) % 256, y % 256, a_color);
+                bg_0.put_pixel((x + 1) % 256, y % 256, b_color);
+                bg_0.put_pixel((x + 2) % 256, y % 256, c_color);
+                bg_0.put_pixel((x + 3) % 256, y % 256, d_color);
 
                 if scrolled_y < 144 {
                     if (scrolled_x + 0) % 256 < 160 {
@@ -241,6 +271,7 @@ impl VideoController for GameBoy {
             self_output_buffer.display = display;
             self_output_buffer.bg_0 = bg_0;
             self_output_buffer.tiles = tiles;
+            self_output_buffer.bgp = bgp;
         };
     }
 

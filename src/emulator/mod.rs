@@ -84,8 +84,8 @@ impl Output {
             bgp: filled(4, 1),
             op_0: filled(3, 1),
             op_1: filled(3, 1),
-            bg_0: filled(256 + 31, 256 + 31),
-            bg_1: filled(256 + 31, 256 + 31),
+            bg_0: filled(256, 256),
+            bg_1: filled(256, 256),
             sprites: filled(80 + 4, 64 + 7),
         }
     }
