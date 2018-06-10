@@ -55,8 +55,16 @@ impl Output {
     pub fn new() -> Self {
         let filled = |width: u32, height: u32| {
             let mut image = DynamicImage::ImageRgba8(ImageBuffer::new(width, height));
-            let fill_colors = [image::Rgba([0x87, 0x9C, 0x57, 0xFF]), image::Rgba([0x87, 0x57, 0x9C, 0xFF]), image::Rgba([0x87, 0x87, 0x6C, 0xFF])];
-            let border_colors = [image::Rgba([0xFF, 0x00, 0x00, 0xFF]), image::Rgba([0xCC, 0xCC, 0x00, 0xFF]), image::Rgba([0xCC, 0xCC, 0x00, 0xFF])];
+            let fill_colors = [
+                image::Rgba([0x87, 0x9C, 0x57, 0xFF]),
+                image::Rgba([0x87, 0x57, 0x9C, 0xFF]),
+                image::Rgba([0x87, 0x87, 0x6C, 0xFF]),
+            ];
+            let border_colors = [
+                image::Rgba([0xFF, 0x00, 0x00, 0xFF]),
+                image::Rgba([0xCC, 0xCC, 0x00, 0xFF]),
+                image::Rgba([0xCC, 0xCC, 0x00, 0xFF]),
+            ];
             for x in 0..width {
                 for y in 0..height {
                     image.put_pixel(
@@ -120,8 +128,11 @@ impl Output {
 
 impl GameBoy {
     pub fn new(output_buffer: Arc<Mutex<Output>>) -> Self {
-        let mut f =
-            File::open("./roms/blargg-tests/instr_timing/instr_timing.gb").expect("file not found");
+        let mut f = match File::open("./roms/default.gb") {
+            Ok(f) => f,
+            Err(_) => File::open("./roms/blargg-tests/instr_timing/instr_timing.gb")
+                .expect("failed to open game ROM file"),
+        };
 
         let mut game_rom = vec![];
         f.read_to_end(&mut game_rom)

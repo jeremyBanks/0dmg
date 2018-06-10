@@ -56,6 +56,21 @@ pub const INTRA_REGISTER_LOAD: Operation = |opcode, gb| {
     }
 };
 
+use emulator::cpu::CPUData;
+pub const UNIMPLEMENTED: Operation = |opcode, gb| {
+    gb.print_recent_executions();
+    unimplemented!(
+        "operation ${} at ${:04x} is not implemented",
+        gb.cpu
+            .current_operation_code
+            .clone()
+            .iter()
+            .map(|x| format!("{:02x}", x))
+            .collect::<String>(),
+        gb.cpu.current_operation_address
+    )
+};
+
 pub const XOR: Operation = |opcode, gb| {
     let source = OneByteRegister::from(opcode & 0b111);
     let (source_value, extra_read_cycles) = gb.register(source);
@@ -98,7 +113,7 @@ pub const ADD: Operation = |opcode, gb| {
     gb.cpu.a = a1;
     gb.set_z_flag(a1 == 0);
     gb.set_n_flag(false);
-    gb.set_h_flag(u8_get_bit(a1, 4));
+    gb.set_h_flag(super::u8_get_bit(a1, 4));
     gb.set_c_flag(a1 < a0);
     op_execution!{
         cycles: 1 + extra_read_cycles;
@@ -115,7 +130,7 @@ pub const SUB: Operation = |opcode, gb| {
     gb.cpu.a = a1;
     gb.set_z_flag(a1 == 0);
     gb.set_n_flag(false);
-    gb.set_h_flag(u8_get_bit(a1, 4));
+    gb.set_h_flag(super::u8_get_bit(a1, 4));
     gb.set_c_flag(a1 > a0);
     op_execution!{
         cycles: 1 + extra_read_cycles;
@@ -131,7 +146,7 @@ pub const CP: Operation = |opcode, gb| {
     let delta = a.wrapping_sub(source_value);
     gb.set_z_flag(delta == 0);
     gb.set_n_flag(false);
-    gb.set_h_flag(u8_get_bit(delta, 4));
+    gb.set_h_flag(super::u8_get_bit(delta, 4));
     gb.set_c_flag(delta > a);
     op_execution!{
         cycles: 1 + extra_read_cycles;
@@ -164,7 +179,7 @@ pub const INC: Operation = |opcode, gb| {
     let extra_write_cycles = gb.set_register(target, new_value);
     gb.set_z_flag(new_value == 0);
     gb.set_n_flag(false);
-    gb.set_h_flag(u8_get_bit(new_value, 4));
+    gb.set_h_flag(super::u8_get_bit(new_value, 4));
     op_execution!{
         cycles: 1 + extra_read_cycles + extra_write_cycles;
         asm: "INC {}", target;
@@ -179,7 +194,7 @@ pub const DEC: Operation = |opcode, gb| {
     let extra_write_cycles = gb.set_register(target, new_value);
     gb.set_z_flag(new_value == 0);
     gb.set_n_flag(true);
-    gb.set_h_flag(u8_get_bit(new_value, 4));
+    gb.set_h_flag(super::u8_get_bit(new_value, 4));
     op_execution!{
         cycles: 1 + extra_read_cycles + extra_write_cycles;
         asm: "DEC {}", target;
@@ -187,23 +202,16 @@ pub const DEC: Operation = |opcode, gb| {
     }
 };
 
-pub fn u8_get_bit(x: u8, offset: u8) -> bool {
-    if offset > 7 {
-        panic!();
+pub const RST: Operation = |opcode, gb| {
+    let high_byte = opcode & 0b00_111_000;
+    let h = gb.cpu.h;
+    let pc0 = gb.cpu.pc;
+    let pc1 = super::u8s_to_u16(high_byte, h);
+    gb.stack_push(pc0);
+    gb.cpu.pc = pc1;
+    op_execution!{
+        cycles: 8;
+        asm: "RST ${:02x}H", high_byte;
+        trace: "H = ${:02x}", h;
     }
-
-    (x >> offset) & 1 == 1
-}
-
-pub fn u8_set_bit(x: &mut u8, offset: u8, value: bool) {
-    if offset > 7 {
-        panic!();
-    }
-
-    let mask = 1 << offset;
-    if value {
-        *x |= mask;
-    } else {
-        *x &= !mask;
-    }
-}
+};

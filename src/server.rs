@@ -1,10 +1,9 @@
 use std::fs::File;
-use std::io::prelude::*;
-use std::io::{Cursor, Read, Seek, SeekFrom, Write};
+use std::io::Read;
 use std::sync::{Arc, Mutex};
 
 extern crate hyper;
-use server::hyper::header::{ContentLength, ContentType};
+use server::hyper::header::{CacheControl, CacheDirective, ContentLength, ContentType};
 use server::hyper::server::{Request, Response, Service};
 use server::hyper::{Get, StatusCode};
 
@@ -13,7 +12,6 @@ use server::futures::future::Future;
 
 use emulator;
 extern crate image;
-use self::image::{DynamicImage, GenericImage, ImageBuffer};
 
 pub struct GameBoyIOServer {
     pub output_buffer: Arc<Mutex<emulator::Output>>,
@@ -50,10 +48,11 @@ impl Service for GameBoyIOServer {
                     output.combined_image()
                 };
                 let mut encoded_image = Vec::new();
-                display.write_to(&mut encoded_image, image::ImageOutputFormat::PNG);
+                display.write_to(&mut encoded_image, image::ImageOutputFormat::BMP);
                 Box::new(futures::future::ok(
                     Response::new()
                         .with_header(ContentLength(encoded_image.len() as u64))
+                        .with_header(CacheControl(vec![CacheDirective::NoStore]))
                         .with_body(encoded_image),
                 ))
             }

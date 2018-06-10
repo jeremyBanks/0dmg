@@ -1,10 +1,11 @@
 use super::GameBoy;
 
 use super::audio::AudioController;
+use super::cpu::CPUController;
 use super::video::VideoController;
 
 pub struct MemoryData {
-    main_ram: [u8; 0x2000],
+    wram: [u8; 0x2000],
     stack_ram: [u8; 0x80],
     boot_rom: [u8; 0x100],
     game_rom: Vec<u8>,
@@ -14,7 +15,7 @@ pub struct MemoryData {
 impl MemoryData {
     pub fn new(game_rom: Vec<u8>) -> Self {
         Self {
-            main_ram: [0x00; 0x2000],
+            wram: [0x00; 0x2000],
             stack_ram: [0x00; 0x80],
             game_rom,
             boot_rom_mapped: true,
@@ -35,10 +36,15 @@ impl MemoryController for GameBoy {
             self.mem.boot_rom[addr as usize]
         } else if addr <= 0x7FFF {
             // first page of game ROM
-            self.mem.game_rom[addr as usize]
+            let value = self.mem.game_rom[addr as usize];
+            // println!("    ; game_rom[${:02x}] == ${:02x}", addr, value);
+            value
         } else if 0x8000 <= addr && addr <= 0x9FFF {
             let i: usize = (addr - 0x8000) as usize;
             self.vram(i)
+        } else if 0xC000 <= addr && addr <= 0xDFFF {
+            let i: usize = (addr - 0xC000) as usize;
+            self.mem.wram[i]
         } else if 0xFF80 <= addr && addr <= 0xFFFE {
             let i: usize = (addr - 0xFF80) as usize;
             self.mem.stack_ram[i]
@@ -72,6 +78,10 @@ impl MemoryController for GameBoy {
         if 0x8000 <= addr && addr <= 0x9FFF {
             let i: usize = (addr - 0x8000) as usize;
             self.set_vram(i, value);
+        // self.print_recent_executions();
+        } else if 0xC000 <= addr && addr <= 0xDFFF {
+            let i: usize = (addr - 0xC000) as usize;
+            self.mem.wram[i] = value;
         } else if 0xFF80 <= addr && addr <= 0xFFFE {
             let i: usize = (addr - 0xFF80) as usize;
             self.mem.stack_ram[i] = value;
@@ -96,7 +106,10 @@ impl MemoryController for GameBoy {
             }
             self.mem.boot_rom_mapped = false;
         } else {
-            panic!("I don't know how to set memory address ${:04x}.", addr);
+            panic!(
+                "I don't know how to set memory address ${:04x} (to ${:02x}).",
+                addr, value
+            );
         }
     }
 }

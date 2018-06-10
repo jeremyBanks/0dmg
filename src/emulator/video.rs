@@ -75,7 +75,11 @@ impl VideoController for GameBoy {
         // redraw display because vram was touched!
         let (mut display, mut bg_0, mut tiles) = {
             let output_buffer = self.output_buffer.lock().unwrap();
-            (output_buffer.display.clone(), output_buffer.bg_0.clone(), output_buffer.tiles.clone())
+            (
+                output_buffer.display.clone(),
+                output_buffer.bg_0.clone(),
+                output_buffer.tiles.clone(),
+            )
         };
 
         // draw tiles into debug buffer
@@ -199,10 +203,18 @@ impl VideoController for GameBoy {
                 bg_0.put_pixel((x + 3) % 256, y, d_color);
 
                 if scrolled_y < 144 {
-                    if (scrolled_x + 0) % 256 < 160 { display.put_pixel(scrolled_x + 0, scrolled_y, a_color); }
-                    if (scrolled_x + 1) % 256 < 160 { display.put_pixel(scrolled_x + 1, scrolled_y, b_color); }
-                    if (scrolled_x + 2) % 256 < 160 { display.put_pixel(scrolled_x + 2, scrolled_y, c_color); }
-                    if (scrolled_x + 3) % 256 < 160 { display.put_pixel(scrolled_x + 3, scrolled_y, d_color); }
+                    if (scrolled_x + 0) % 256 < 160 {
+                        display.put_pixel(scrolled_x + 0, scrolled_y, a_color);
+                    }
+                    if (scrolled_x + 1) % 256 < 160 {
+                        display.put_pixel(scrolled_x + 1, scrolled_y, b_color);
+                    }
+                    if (scrolled_x + 2) % 256 < 160 {
+                        display.put_pixel(scrolled_x + 2, scrolled_y, c_color);
+                    }
+                    if (scrolled_x + 3) % 256 < 160 {
+                        display.put_pixel(scrolled_x + 3, scrolled_y, d_color);
+                    }
                 }
             }
         }

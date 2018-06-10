@@ -1,19 +1,19 @@
 use super::operation;
-use super::operation::{u8_get_bit, u8_set_bit};
+use super::{u8_get_bit, u8_set_bit};
 
 use emulator::cpu::CPUController;
 use emulator::memory::MemoryController;
 
 // one-byte opcodes
-pub static OPCODES: [operation::Operation; 0xFF] = [
+pub static OPCODES: [operation::Operation; 0x100] = [
     |_00, _gb| {
         op_execution!{
             cycles: 1;
             asm: "NOP";
         }
     },
-    |_01, _gb| unimplemented!("opcode 0x01 not implemented"),
-    |_02, _gb| unimplemented!("opcode 0x02 not implemented"),
+    /* 01 */ operation::UNIMPLEMENTED,
+    /* 02 */ operation::UNIMPLEMENTED,
     |_03, gb| {
         let bc0 = gb.bc();
         let bc1 = bc0.wrapping_add(1);
@@ -36,9 +36,9 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
             trace: "B₀ = ${:02x}, B₁ = ${:02x}", b0, b1;
         }
     },
-    |_07, _gb| unimplemented!("opcode 0x07 not implemented"),
-    |_08, _gb| unimplemented!("opcode 0x08 not implemented"),
-    |_09, _gb| unimplemented!("opcode 0x09 not implemented"),
+    /* 07 */ operation::UNIMPLEMENTED,
+    /* 08 */ operation::UNIMPLEMENTED,
+    /* 09 */ operation::UNIMPLEMENTED,
     |_0a, gb| {
         let a0 = gb.cpu.a;
         let bc = gb.bc();
@@ -50,7 +50,7 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
             trace: "A₀ = ${:02x}, BC = ${:04x}, (BC) = ${:02x}", a0, bc, a1;
         }
     },
-    |_0b, _gb| unimplemented!("opcode 0x0B not implemented"),
+    /* 0b */ operation::UNIMPLEMENTED,
     operation::INC,
     operation::DEC,
     |_0e, gb| {
@@ -63,19 +63,19 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
             trace: "C₀ = ${:02x}, C₁ = ${:02x}", c0, c1;
         }
     },
-    |_0f, _gb| unimplemented!("opcode 0x0F not implemented"),
-    |_10, _gb| unimplemented!("opcode 0x10 not implemented"),
+    /* 0f */ operation::UNIMPLEMENTED,
+    /* 10 */ operation::UNIMPLEMENTED,
     |_11, gb| {
         let de0 = gb.de();
         let de1 = gb.read_immediate_u16();
         gb.set_de(de1);
         op_execution!{
             cycles: 3;
-            asm: "LOAD DE, ${:04x}", de1;
+            asm: "LD DE, ${:04x}", de1;
             trace: "DE₁ = ${:04x}", de0;
         }
     },
-    |_12, _gb| unimplemented!("opcode 0x12 not implemented"),
+    /* 12 */ operation::UNIMPLEMENTED,
     |_13, gb| {
         let de0 = gb.de();
         let de1 = de0.wrapping_add(1);
@@ -99,17 +99,19 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
         }
     },
     |_17, gb| {
+        let fc0 = gb.c_flag();
         let a0 = gb.cpu.a;
-        let a1 = a0 << (1 + if gb.c_flag() { 1 } else { 0 });
+        let a1 = (a0 << 1) + if fc0 { 1 } else { 0 };
+        let fc1 = a0 & 0b10000000 > 0;
         gb.cpu.a = a1;
         gb.set_z_flag(a1 == 0);
-        gb.set_c_flag(a0 & 0b10000000 > 0);
+        gb.set_c_flag(fc1);
         gb.set_n_flag(false);
         gb.set_h_flag(false);
         op_execution!{
             cycles: 2;
             asm: "RL A";
-            trace: "A₀ = {}", a0;
+            trace: "Fc₀ = {}, A₀ = ${:02x}, Fc₁ = {}, A₁ = ${:02x}", fc0, a0, fc1, a1;
         }
     },
     |_18, gb| {
@@ -120,7 +122,7 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
             asm: "JR {}", n;
         }
     },
-    |_19, _gb| unimplemented!("opcode 0x19 not implemented"),
+    /* 19 */ operation::UNIMPLEMENTED,
     |_1a, gb| {
         let a0 = gb.cpu.a;
         let de = gb.de();
@@ -132,7 +134,7 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
             trace: "A₀ = ${:02x}, DE = ${:04x}, (DE) = ${:02x}", a0, de, a1;
         }
     },
-    |_1b, _gb| unimplemented!("opcode 0x1B not implemented"),
+    /* 1b */ operation::UNIMPLEMENTED,
     operation::INC,
     operation::DEC,
     |_1e, gb| {
@@ -145,7 +147,7 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
             trace: "E₀ = ${:02x}, E₁ = ${:02x}", e0, e1;
         }
     },
-    |_1f, _gb| unimplemented!("opcode 0x1F not implemented"),
+    /* 1f */ operation::UNIMPLEMENTED,
     |_20, gb| {
         let n = gb.read_immediate_i8();
         let z_flag = gb.z_flag();
@@ -164,7 +166,7 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
         gb.set_hl(hl1);
         op_execution!{
             cycles: 3;
-            asm: "LOAD HL, ${:04x}", hl1;
+            asm: "LD HL, ${:04x}", hl1;
             trace: "HL₁ = ${:04x}", hl1;
         }
     },
@@ -202,7 +204,7 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
             trace: "H₀ = ${:02x}, H₁ = ${:02x}", h0, h1;
         }
     },
-    |_27, _gb| unimplemented!("opcode 0x27 not implemented"),
+    /* 27 */ operation::UNIMPLEMENTED,
     |_28, gb| {
         let n = gb.read_immediate_i8();
         let z_flag = gb.z_flag();
@@ -215,9 +217,9 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
             trace: "Z = {}", z_flag;
         }
     },
-    |_29, _gb| unimplemented!("opcode 0x29 not implemented"),
-    |_2a, _gb| unimplemented!("opcode 0x2A not implemented"),
-    |_2b, _gb| unimplemented!("opcode 0x2B not implemented"),
+    /* 29 */ operation::UNIMPLEMENTED,
+    /* 2a */ operation::UNIMPLEMENTED,
+    /* 2b */ operation::UNIMPLEMENTED,
     operation::INC,
     operation::DEC,
     |_2e, gb| {
@@ -230,7 +232,7 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
             trace: "L₀ = ${:02x}, L₁ = ${:02x}", l0, l1;
         }
     },
-    |_2f, _gb| unimplemented!("opcode 0x2F not implemented"),
+    /* 2f */ operation::UNIMPLEMENTED,
     |_30, gb| {
         let n = gb.read_immediate_i8();
         let c_flag = gb.c_flag();
@@ -249,7 +251,7 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
         gb.cpu.sp = sp1;
         op_execution!{
             cycles: 3;
-            asm: "LOAD SP, ${:04x}", sp1;
+            asm: "LD SP, ${:04x}", sp1;
             trace: "SP₀ = ${:04x}", sp0;
         }
     },
@@ -277,8 +279,8 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
     },
     operation::INC,
     operation::DEC,
-    |_36, _gb| unimplemented!("opcode 0x36 not implemented"),
-    |_37, _gb| unimplemented!("opcode 0x37 not implemented"),
+    /* 36 */ operation::UNIMPLEMENTED,
+    /* 37 */ operation::UNIMPLEMENTED,
     |_38, gb| {
         let n = gb.read_immediate_i8();
         let c_flag = gb.c_flag();
@@ -291,9 +293,9 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
             trace: "C = {}", c_flag;
         }
     },
-    |_39, _gb| unimplemented!("opcode 0x39 not implemented"),
-    |_3a, _gb| unimplemented!("opcode 0x3A not implemented"),
-    |_3b, _gb| unimplemented!("opcode 0x3B not implemented"),
+    /* 39 */ operation::UNIMPLEMENTED,
+    /* 3a */ operation::UNIMPLEMENTED,
+    /* 3b */ operation::UNIMPLEMENTED,
     operation::INC,
     operation::DEC,
     |_3e, gb| {
@@ -306,7 +308,7 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
             trace: "A₀ = ${:02x}", a0;
         }
     },
-    |_3f, _gb| unimplemented!("opcode 0x3F not implemented"),
+    /* 3f */ operation::UNIMPLEMENTED,
     operation::INTRA_REGISTER_LOAD,
     operation::INTRA_REGISTER_LOAD,
     operation::INTRA_REGISTER_LOAD,
@@ -361,7 +363,7 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
     operation::INTRA_REGISTER_LOAD,
     operation::INTRA_REGISTER_LOAD,
     operation::INTRA_REGISTER_LOAD,
-    |_76, _gb| unimplemented!("opcode 0x76, HALT, is not implemented"),
+    /* 76 */ operation::UNIMPLEMENTED,
     operation::INTRA_REGISTER_LOAD,
     operation::INTRA_REGISTER_LOAD,
     operation::INTRA_REGISTER_LOAD,
@@ -379,14 +381,14 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
     operation::ADD,
     operation::ADD,
     operation::ADD,
-    |_88, _gb| unimplemented!("opcode 0x88 not implemented"),
-    |_89, _gb| unimplemented!("opcode 0x89 not implemented"),
-    |_8a, _gb| unimplemented!("opcode 0x8A not implemented"),
-    |_8b, _gb| unimplemented!("opcode 0x8B not implemented"),
-    |_8c, _gb| unimplemented!("opcode 0x8C not implemented"),
-    |_8d, _gb| unimplemented!("opcode 0x8D not implemented"),
-    |_8e, _gb| unimplemented!("opcode 0x8E not implemented"),
-    |_8f, _gb| unimplemented!("opcode 0x8F not implemented"),
+    /* 88 */ operation::UNIMPLEMENTED,
+    /* 89 */ operation::UNIMPLEMENTED,
+    /* 8a */ operation::UNIMPLEMENTED,
+    /* 8b */ operation::UNIMPLEMENTED,
+    /* 8c */ operation::UNIMPLEMENTED,
+    /* 8d */ operation::UNIMPLEMENTED,
+    /* 8e */ operation::UNIMPLEMENTED,
+    /* 8f */ operation::UNIMPLEMENTED,
     operation::SUB,
     operation::SUB,
     operation::SUB,
@@ -395,14 +397,14 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
     operation::SUB,
     operation::SUB,
     operation::SUB,
-    |_98, _gb| unimplemented!("opcode 0x98 not implemented"),
-    |_99, _gb| unimplemented!("opcode 0x99 not implemented"),
-    |_9a, _gb| unimplemented!("opcode 0x9A not implemented"),
-    |_9b, _gb| unimplemented!("opcode 0x9B not implemented"),
-    |_9c, _gb| unimplemented!("opcode 0x9C not implemented"),
-    |_9d, _gb| unimplemented!("opcode 0x9D not implemented"),
-    |_9e, _gb| unimplemented!("opcode 0x9E not implemented"),
-    |_9f, _gb| unimplemented!("opcode 0x9F not implemented"),
+    /* 98 */ operation::UNIMPLEMENTED,
+    /* 99 */ operation::UNIMPLEMENTED,
+    /* 9a */ operation::UNIMPLEMENTED,
+    /* 9b */ operation::UNIMPLEMENTED,
+    /* 9c */ operation::UNIMPLEMENTED,
+    /* 9d */ operation::UNIMPLEMENTED,
+    /* 9e */ operation::UNIMPLEMENTED,
+    /* 9f */ operation::UNIMPLEMENTED,
     operation::AND,
     operation::AND,
     operation::AND,
@@ -435,7 +437,7 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
     operation::CP,
     operation::CP,
     operation::CP,
-    |_c0, _gb| unimplemented!("opcode 0xC0 not implemented"),
+    /* c0 */ operation::UNIMPLEMENTED,
     |_c1, gb| {
         let bc0 = gb.bc();
         let bc1 = gb.stack_pop();
@@ -446,9 +448,16 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
             trace: "P₁ = ${:04x}, BC₀ = ${:04x}, BC₁ = ${:04x}", gb.cpu.sp, bc0, bc1;
         }
     },
-    |_c2, _gb| unimplemented!("opcode 0xC2 not implemented"),
-    |_c3, _gb| unimplemented!("opcode 0xC3 not implemented"),
-    |_c4, _gb| unimplemented!("opcode 0xC4 not implemented"),
+    /* c2 */ operation::UNIMPLEMENTED,
+    |_c3, gb| {
+        let addr = gb.read_immediate_u16();
+        gb.cpu.pc = addr;
+        op_execution!{
+            cycles: 3;
+            asm: "JP ${:04x}", addr;
+        }
+    },
+    /* c4 */ operation::UNIMPLEMENTED,
     |_c5, gb| {
         let bc = gb.bc();
         gb.stack_push(bc);
@@ -458,9 +467,9 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
             trace: "SP₁ = ${:04x}, BC = ${:04x}", gb.cpu.sp, bc;
         }
     },
-    |_c6, _gb| unimplemented!("opcode 0xC6 not implemented"),
-    |_c7, _gb| unimplemented!("opcode 0xC7 not implemented"),
-    |_c8, _gb| unimplemented!("opcode 0xC8 not implemented"),
+    /* c6 */ operation::UNIMPLEMENTED,
+    operation::RST,
+    /* c8 */ operation::UNIMPLEMENTED,
     |_c9, gb| {
         let pc1 = gb.stack_pop();
         let sp1 = gb.cpu.sp;
@@ -471,11 +480,11 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
             trace: "SP₁ = {:04x}", sp1;
         }
     },
-    |_ca, _gb| unimplemented!("opcode 0xCA not implemented"),
+    /* ca */ operation::UNIMPLEMENTED,
     |_cb, _gb| {
         panic!("0xCB prefix is not a complete opcode");
     },
-    |_cc, _gb| unimplemented!("opcode 0xCC not implemented"),
+    /* cc */ operation::UNIMPLEMENTED,
     |_cd, gb| {
         let nn = gb.read_immediate_u16();
         let pc0 = gb.cpu.pc;
@@ -488,9 +497,9 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
             trace: "SP₁ = {:04x}", sp1;
         }
     },
-    |_ce, _gb| unimplemented!("opcode 0xCE not implemented"),
-    |_cf, _gb| unimplemented!("opcode 0xCF not implemented"),
-    |_d0, _gb| unimplemented!("opcode 0xD0 not implemented"),
+    /* ce */ operation::UNIMPLEMENTED,
+    operation::RST,
+    /* d0 */ operation::UNIMPLEMENTED,
     |_d1, gb| {
         let de0 = gb.de();
         let de1 = gb.stack_pop();
@@ -501,11 +510,11 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
             trace: "SP₁ = ${:04x}, DE₀ = ${:04x}, DE₁ = ${:04x}", gb.cpu.sp, de0, de1;
         }
     },
-    |_d2, _gb| unimplemented!("opcode 0xD2 not implemented"),
+    /* d2 */ operation::UNIMPLEMENTED,
     |_d3, _gb| {
         panic!("0xD3 is not a valid opcode");
     },
-    |_d4, _gb| unimplemented!("opcode 0xD4 not implemented"),
+    /* d4 */ operation::UNIMPLEMENTED,
     |_d5, gb| {
         let de = gb.de();
         gb.stack_push(de);
@@ -515,20 +524,20 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
             trace: "SP₁ = ${:04x}, DE = ${:04x}", gb.cpu.sp, de;
         }
     },
-    |_d6, _gb| unimplemented!("opcode 0xD6 not implemented"),
-    |_d7, _gb| unimplemented!("opcode 0xD7 not implemented"),
-    |_d8, _gb| unimplemented!("opcode 0xD8 not implemented"),
-    |_d9, _gb| unimplemented!("opcode 0xD9 not implemented"),
-    |_da, _gb| unimplemented!("opcode 0xDA not implemented"),
+    /* d6 */ operation::UNIMPLEMENTED,
+    operation::RST,
+    /* d8 */ operation::UNIMPLEMENTED,
+    /* d9 */ operation::UNIMPLEMENTED,
+    /* da */ operation::UNIMPLEMENTED,
     |_db, _gb| {
         panic!("0xDB is not a valid opcode");
     },
-    |_dc, _gb| unimplemented!("opcode 0xDC not implemented"),
+    /* dc */ operation::UNIMPLEMENTED,
     |_dd, _gb| {
         panic!("0xDD is not a valid opcode");
     },
-    |_de, _gb| unimplemented!("opcode 0xDE not implemented"),
-    |_df, _gb| unimplemented!("opcode 0xDF not implemented"),
+    /* de */ operation::UNIMPLEMENTED,
+    operation::RST,
     |_e0, gb| {
         let a = gb.cpu.a;
         let n = gb.read_immediate_u8();
@@ -575,10 +584,10 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
             trace: "SP₁ = ${:04x}, HL = ${:04x}", gb.cpu.sp, hl;
         }
     },
-    |_e6, _gb| unimplemented!("opcode 0xE6 not implemented"),
-    |_e7, _gb| unimplemented!("opcode 0xE7 not implemented"),
-    |_e8, _gb| unimplemented!("opcode 0xE8 not implemented"),
-    |_e9, _gb| unimplemented!("opcode 0xE9 not implemented"),
+    /* e6 */ operation::UNIMPLEMENTED,
+    operation::RST,
+    /* e8 */ operation::UNIMPLEMENTED,
+    /* e9 */ operation::UNIMPLEMENTED,
     |_ea, gb| {
         let nn = gb.read_immediate_u16();
         let a = gb.cpu.a;
@@ -598,8 +607,8 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
     |_ed, _gb| {
         panic!("0xED is not a valid opcode");
     },
-    |_ee, _gb| unimplemented!("opcode 0xEE not implemented"),
-    |_ef, _gb| unimplemented!("opcode 0xEF not implemented"),
+    /* ee */ operation::UNIMPLEMENTED,
+    operation::RST,
     |_f0, gb| {
         let a0 = gb.cpu.a;
         let n = gb.read_immediate_u8();
@@ -621,8 +630,16 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
             trace: "SP₁ = ${:04x}, AF₀ = ${:04x}, AF₁ = ${:04x}", gb.cpu.sp, af0, af1;
         }
     },
-    |_f2, _gb| unimplemented!("opcode 0xF2 not implemented"),
-    |_f3, _gb| unimplemented!("opcode 0xF3 not implemented"),
+    /* f2 */ operation::UNIMPLEMENTED,
+    |_f3, gb| {
+        gb.print_recent_executions();
+        println!("ignoring DI instructions because interrupts haven't been implemented!");
+        op_execution!{
+            cycles: 1;
+            asm: "DI";
+            trace: "lol NOPE";
+        }
+    },
     |_f4, _gb| {
         panic!("0xF4 is not a valid opcode");
     },
@@ -635,10 +652,10 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
             trace: "SP₁ = ${:04x}, AF = ${:04x}", gb.cpu.sp, af;
         }
     },
-    |_f6, _gb| unimplemented!("opcode 0xF6 not implemented"),
-    |_f7, _gb| unimplemented!("opcode 0xF7 not implemented"),
-    |_f8, _gb| unimplemented!("opcode 0xF8 not implemented"),
-    |_f9, _gb| unimplemented!("opcode 0xF9 not implemented"),
+    /* f6 */ operation::UNIMPLEMENTED,
+    operation::RST,
+    /* f8 */ operation::UNIMPLEMENTED,
+    /* f9 */ operation::UNIMPLEMENTED,
     |_fa, gb| {
         let nn = gb.read_immediate_u16();
         let a0 = gb.cpu.a;
@@ -650,7 +667,7 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
             trace: "A₀ = ${:02x}, A₁ = ${:04x}", a0, a1;
         }
     },
-    |_fb, _gb| unimplemented!("opcode 0xFB not implemented"),
+    /* fb */ operation::UNIMPLEMENTED,
     |_fc, _gb| {
         panic!("0xFC is not a valid opcode");
     },
@@ -671,4 +688,5 @@ pub static OPCODES: [operation::Operation; 0xFF] = [
             trace: "A = ${:02x}, F_Z = {}, F_C = {}", a, gb.z_flag(), gb.n_flag();
         }
     },
+    operation::RST,
 ];

@@ -406,15 +406,19 @@
       document.addEventListener('keydown', onKeyUpDown);
       document.addEventListener('keyup', onKeyUpDown);
 
-      setInterval(async () => {
+      let targetInterval = 1000 / 60;
+      let lastStart = 0;
+      while (true) {
         let bytes;
+        lastStart = Date.now();
         try {
           let image = new Image();
-          image.src = '/output.png?' + Math.random();
-          await new Promise((resolve, reject) => {
+          let p = new Promise((resolve, reject) => {
             image.onload = resolve;
             image.onerror = reject;
           });
+          image.src = `/output.png`;
+          await p;
           display_g2d.drawImage(image, 0, 0, image.width, image.height);
           tiles_g2d.drawImage(image, 0, -144, image.width, image.height);
           bgp_g2d.drawImage(image, 0, -400 +128, image.width, image.height);
@@ -427,8 +431,13 @@
         } catch (error) {
           powerLight.classList.remove('on');
           console.error(error);
-        } 
-      }, 1000 / 8);
+        }
+        let targetNextStart = lastStart + targetInterval;
+        let now = Date.now();
+        if (now < targetNextStart) {
+          await sleep(targetNextStart - now);
+        }
+      }
     }
 
     const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
