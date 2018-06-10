@@ -82,8 +82,11 @@ impl VideoController for GameBoy {
             )
         };
 
+        // draw background palettes
+        
+
         // draw tiles into debug buffer
-        for i in 0..192 {
+        for i in 0..256 {
             let tile_data = &self.vid.vram[i * 16..(i + 1) * 16];
             let mut new_tile_data = vec![0u8; 16];
             new_tile_data.clone_from_slice(tile_data);
@@ -109,55 +112,50 @@ impl VideoController for GameBoy {
             }
 
             for j in 0..16 {
-                let x = (0
-                        // tile offset
-                        + 8 * (i % 16) as i64
-                        // pixel offset
-                        + 4 * (j % 2) as i64) as u32;
+                let tile_col = (i % 16) as u32;
+                let x_tile_offset = 8 * tile_col as i64;
+                let x = ((x_tile_offset
+                        + 4 * (j % 2) as i64) % 256) as u32;
 
-                let y = (0
-                    // tile offset
-                    + 8 * (i / 16) as i64
-                    // pixel offset
-                    + 1 * (j / 2) as i64) as u32;
-
-                let grid = if j >= 14 { 0x80 } else { 0x0 };
-                let grid_4 = if j % 2 == 1 { 0x80 } else { grid };
+                let tile_row = (i / 16) as u32;
+                let y_tile_offset = 8 * tile_row as i64;
+                let y = ((y_tile_offset
+                        + 1 * (j / 2) as i64) % 256) as u32;
 
                 let byte = new_tile_data[j];
                 let a = (byte & 0b11000000) >> 6;
                 let a_color = image::Rgba([
-                    (a * 0b01010101) | grid,
+                    a * 0b01010101,
                     a * 0b01010101,
                     a * 0b01010101,
                     0xFF,
                 ]);
                 let b = (byte & 0b00110000) >> 4;
                 let b_color = image::Rgba([
-                    (b * 0b01010101) | grid,
+                    b * 0b01010101,
                     b * 0b01010101,
                     b * 0b01010101,
                     0xFF,
                 ]);
                 let c = (byte & 0b00001100) >> 2;
                 let c_color = image::Rgba([
-                    (c * 0b01010101) | grid,
+                    c * 0b01010101,
                     c * 0b01010101,
                     c * 0b01010101,
                     0xFF,
                 ]);
                 let d = (byte & 0b00000011) >> 0;
                 let d_color = image::Rgba([
-                    (d * 0b01010101) | grid_4,
+                    d * 0b01010101,
                     d * 0b01010101,
                     d * 0b01010101,
                     0xFF,
                 ]);
 
-                tiles.put_pixel(x + 0, y, a_color);
-                tiles.put_pixel(x + 1, y, b_color);
-                tiles.put_pixel(x + 2, y, c_color);
-                tiles.put_pixel(x + 3, y, d_color);
+                tiles.put_pixel(x + 0 + tile_col, y + tile_row, a_color);
+                tiles.put_pixel(x + 1 + tile_col, y + tile_row, b_color);
+                tiles.put_pixel(x + 2 + tile_col, y + tile_row, c_color);
+                tiles.put_pixel(x + 3 + tile_col, y + tile_row, d_color);
             }
         }
 
@@ -192,22 +190,18 @@ impl VideoController for GameBoy {
             }
 
             for j in 0..16 {
-                let x = ((0
-                        // tile offset
-                        + 8 * (i % 32) as i64
-                        // pixel offset
+                let tile_col = (i % 32) as u32;
+                let x_tile_offset = 8 * tile_col as i64;
+                let x = ((x_tile_offset
                         + 4 * (j % 2) as i64) % 256) as u32;
                 let scrolled_x = ((x as i64
-                        // scroll offset
                         - self.scx() as i64) % 256) as u32;
 
-                let y = ((0
-                    // tile offset
-                    + 8 * (i / 32) as i64
-                    // pixel offset
-                    + 1 * (j / 2) as i64) % 256) as u32;
+                let tile_row = (i / 32) as u32;
+                let y_tile_offset = 8 * tile_row as i64;
+                let y = ((y_tile_offset
+                        + 1 * (j / 2) as i64) % 256) as u32;
                 let scrolled_y = ((y as i64
-                    // scroll offset
                     - self.scy() as i64) % 256) as u32;
 
                 let byte = !new_tile_data[j];
@@ -220,10 +214,10 @@ impl VideoController for GameBoy {
                 let d = (byte & 0b00000011) >> 0;
                 let d_color = image::Rgba([d * 0b01010101, d * 0b01010101, d * 0b01010101, 0xFF]);
 
-                bg_0.put_pixel((x + 0) % 256, y, a_color);
-                bg_0.put_pixel((x + 1) % 256, y, b_color);
-                bg_0.put_pixel((x + 2) % 256, y, c_color);
-                bg_0.put_pixel((x + 3) % 256, y, d_color);
+                bg_0.put_pixel((x + tile_col + 0) % (256 + 31), (y + tile_row) % (256 + 31), a_color);
+                bg_0.put_pixel((x + tile_col + 1) % (256 + 31), (y + tile_row) % (256 + 31), b_color);
+                bg_0.put_pixel((x + tile_col + 2) % (256 + 31), (y + tile_row) % (256 + 31), c_color);
+                bg_0.put_pixel((x + tile_col + 3) % (256 + 31), (y + tile_row) % (256 + 31), d_color);
 
                 if scrolled_y < 144 {
                     if (scrolled_x + 0) % 256 < 160 {

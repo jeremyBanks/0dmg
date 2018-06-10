@@ -56,21 +56,18 @@ impl Output {
         let filled = |width: u32, height: u32| {
             let mut image = DynamicImage::ImageRgba8(ImageBuffer::new(width, height));
             let fill_colors = [
-                image::Rgba([0x87, 0x9C, 0x57, 0xFF]),
-                image::Rgba([0x87, 0x57, 0x9C, 0xFF]),
-                image::Rgba([0x87, 0x87, 0x6C, 0xFF]),
+                image::Rgba([0x90, 0x60, 0x90, 0xFF]),
             ];
             let border_colors = [
-                image::Rgba([0xFF, 0x00, 0x00, 0xFF]),
-                image::Rgba([0xCC, 0xCC, 0x00, 0xFF]),
-                image::Rgba([0xCC, 0xCC, 0x00, 0xFF]),
+                image::Rgba([0xCC, 0x33, 0xCC, 0xFF]),
             ];
+            let border_width = 1;
             for x in 0..width {
                 for y in 0..height {
                     image.put_pixel(
                         x,
                         y,
-                        if x <= 1 || x >= width - 2 || y <= 1 || y >= height - 2 {
+                        if x < border_width || x >= width - border_width || y < border_width || y >= height - border_width {
                             border_colors[(x + y) as usize % border_colors.len()]
                         } else {
                             fill_colors[(x + y) as usize % fill_colors.len()]
@@ -83,13 +80,13 @@ impl Output {
 
         Self {
             display: filled(160, 144),
-            tiles: filled(128, 128),
+            tiles: filled(128 + 15, 128 + 15),
             bgp: filled(4, 1),
             op_0: filled(3, 1),
             op_1: filled(3, 1),
-            bg_0: filled(256, 256),
-            bg_1: filled(256, 256),
-            sprites: filled(80, 64),
+            bg_0: filled(256 + 31, 256 + 31),
+            bg_1: filled(256 + 31, 256 + 31),
+            sprites: filled(80 + 4, 64 + 7),
         }
     }
 
