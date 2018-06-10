@@ -130,7 +130,7 @@ impl GameBoy {
     pub fn new(output_buffer: Arc<Mutex<Output>>) -> Self {
         let mut f = match File::open("./roms/default.gb") {
             Ok(f) => f,
-            Err(_) => File::open("./roms/blargg-tests/instr_timing/instr_timing.gb")
+            Err(_) => File::open("./roms/blargg-tests/cpu_instrs/cpu_instrs.gb")
                 .expect("failed to open game ROM file"),
         };
 

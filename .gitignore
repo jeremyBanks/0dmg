@@ -2,3 +2,4 @@
 /target
 **/*.rs.bk
 roms/default.gb
+roms/tmp.gb

@@ -126,13 +126,33 @@ impl VideoController for GameBoy {
 
                 let byte = new_tile_data[j];
                 let a = (byte & 0b11000000) >> 6;
-                let a_color = image::Rgba([(a * 0b01010101) | grid, a * 0b01010101, a * 0b01010101, 0xFF]);
+                let a_color = image::Rgba([
+                    (a * 0b01010101) | grid,
+                    a * 0b01010101,
+                    a * 0b01010101,
+                    0xFF,
+                ]);
                 let b = (byte & 0b00110000) >> 4;
-                let b_color = image::Rgba([(b * 0b01010101) | grid, b * 0b01010101, b * 0b01010101, 0xFF]);
+                let b_color = image::Rgba([
+                    (b * 0b01010101) | grid,
+                    b * 0b01010101,
+                    b * 0b01010101,
+                    0xFF,
+                ]);
                 let c = (byte & 0b00001100) >> 2;
-                let c_color = image::Rgba([(c * 0b01010101) | grid, c * 0b01010101, c * 0b01010101, 0xFF]);
+                let c_color = image::Rgba([
+                    (c * 0b01010101) | grid,
+                    c * 0b01010101,
+                    c * 0b01010101,
+                    0xFF,
+                ]);
                 let d = (byte & 0b00000011) >> 0;
-                let d_color = image::Rgba([(d * 0b01010101) | grid_4, d * 0b01010101, d * 0b01010101, 0xFF]);
+                let d_color = image::Rgba([
+                    (d * 0b01010101) | grid_4,
+                    d * 0b01010101,
+                    d * 0b01010101,
+                    0xFF,
+                ]);
 
                 tiles.put_pixel(x + 0, y, a_color);
                 tiles.put_pixel(x + 1, y, b_color);
