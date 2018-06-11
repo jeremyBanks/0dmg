@@ -299,12 +299,12 @@ pub static OPCODES: [operation::Operation; 0x100] = [
     operation::INC,
     operation::DEC,
     |_3e, gb| {
-        let n = gb.read_immediate_u8();
         let a0 = gb.cpu.a;
-        gb.cpu.a = n;
+        let a1 = gb.read_immediate_u8();
+        gb.cpu.a = a1;
         op_execution!{
             cycles: 2;
-            asm: "LD A, ${:02x}", n;
+            asm: "LD A, ${:02x}", a1;
             trace: "A₀ = ${:02x}", a0;
         }
     },
@@ -632,7 +632,6 @@ pub static OPCODES: [operation::Operation; 0x100] = [
     },
     /* f2 */ operation::UNIMPLEMENTED,
     |_f3, gb| {
-        gb.print_recent_executions();
         println!("ignoring DI instructions because interrupts haven't been implemented!");
         op_execution!{
             cycles: 1;

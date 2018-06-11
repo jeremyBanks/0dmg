@@ -222,17 +222,13 @@ impl VideoController for GameBoy {
             for j in 0..16 {
                 let tile_col = (i % 32) as u32;
                 let x_tile_offset = 8 * tile_col as i64;
-                let x = ((x_tile_offset
-                        + 4 * (j % 2) as i64) % 256) as u32;
-                let scrolled_x = ((x as i64
-                        - self.scx() as i64) % 256) as u32;
+                let x = ((x_tile_offset + 4 * (j % 2) as i64) % 256) as u32;
+                let scrolled_x = (x + 256 - self.scx() as u32) % 256;
 
                 let tile_row = (i / 32) as u32;
                 let y_tile_offset = 8 * tile_row as i64;
-                let y = ((y_tile_offset
-                        + 1 * (j / 2) as i64) % 256) as u32;
-                let scrolled_y = ((y as i64
-                    - self.scy() as i64) % 256) as u32;
+                let y = ((y_tile_offset + 1 * (j / 2) as i64) % 256) as u32;
+                let scrolled_y = (y + 256 - self.scy() as u32) % 256;
 
                 let byte = !new_tile_data[j];
                 let a = (byte & 0b11000000) >> 6;
@@ -251,16 +247,16 @@ impl VideoController for GameBoy {
 
                 if scrolled_y < 144 {
                     if (scrolled_x + 0) % 256 < 160 {
-                        display.put_pixel(scrolled_x + 0, scrolled_y, a_color);
+                        display.put_pixel((scrolled_x + 0) % 256, scrolled_y, a_color);
                     }
                     if (scrolled_x + 1) % 256 < 160 {
-                        display.put_pixel(scrolled_x + 1, scrolled_y, b_color);
+                        display.put_pixel((scrolled_x + 1) % 256, scrolled_y, b_color);
                     }
                     if (scrolled_x + 2) % 256 < 160 {
-                        display.put_pixel(scrolled_x + 2, scrolled_y, c_color);
+                        display.put_pixel((scrolled_x + 2) % 256, scrolled_y, c_color);
                     }
                     if (scrolled_x + 3) % 256 < 160 {
-                        display.put_pixel(scrolled_x + 3, scrolled_y, d_color);
+                        display.put_pixel((scrolled_x + 3) % 256, scrolled_y, d_color);
                     }
                 }
             }

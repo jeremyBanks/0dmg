@@ -27,7 +27,7 @@ macro_rules! op_execution {
         }
     );
     {cycles: $cycles:expr; asm: $($asm:expr),*;} => (
-        if cfg!(trace_assertions) {
+        if cfg!(debug_assertions) {
             ::emulator::cpu::operation::Execution {
                 cycles: $cycles,
                 asm: Some(format!($($asm),*)),
@@ -58,7 +58,7 @@ pub const INTRA_REGISTER_LOAD: Operation = |opcode, gb| {
 
 use emulator::cpu::CPUData;
 pub const UNIMPLEMENTED: Operation = |opcode, gb| {
-    gb.print_recent_executions();
+    gb.print_recent_executions(32);
     unimplemented!(
         "operation ${} at ${:04x} is not implemented",
         gb.cpu

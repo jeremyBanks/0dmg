@@ -14,7 +14,7 @@ use std::sync::{Arc, Mutex};
 use std::thread::sleep;
 use std::time::{Duration, SystemTime};
 
-const EXECUTIONS_BUFFER_SIZE: usize = 32;
+const EXECUTIONS_BUFFER_SIZE: usize = 1024;
 extern crate image;
 use self::image::{DynamicImage, GenericImage, ImageBuffer};
 
@@ -125,15 +125,14 @@ impl Output {
 
 impl GameBoy {
     pub fn new(output_buffer: Arc<Mutex<Output>>) -> Self {
-        let mut f = match File::open("./roms/default.gb") {
-            Ok(f) => f,
-            Err(_) => File::open("./roms/blargg-tests/cpu_instrs/cpu_instrs.gb")
-                .expect("failed to open game ROM file"),
-        };
-
         let mut game_rom = vec![];
-        f.read_to_end(&mut game_rom)
-            .expect("something went wrong reading the file");;
+        
+        // match File::open("./roms/default.gb") {
+        //     Ok(f) => f,
+        //     Err(_) => File::open("./roms/blargg-tests/cpu_instrs/cpu_instrs.gb")
+        //         .expect("failed to open game ROM file"),
+        // }.read_to_end(&mut game_rom)
+        //     .expect("something went wrong reading the file");
 
         Self {
             cpu: CPUData::new(),
@@ -168,20 +167,27 @@ impl GameBoy {
         println!();
     }
 
-    pub fn print_recent_executions(&self) {
+    pub fn print_recent_executions(&mut self, limit: usize) {
         println!("; assembly:                        addr:        t/μs:   codes:      flags:");
         println!("; ---------                        -----        -----   ------      ------");
 
         let len = self.debug_latest_executions.len();
-        for i in 0..len {
+        for i in 0..len.min(limit) {
             let offset_i = (self.debug_latest_executions_next_i + i) % len;
             let opex = &self.debug_latest_executions[offset_i];
             self.print_execution(opex);
         }
+
+        self.debug_latest_executions.clear();
+        self.debug_latest_executions_next_i = 0;
+        
         println!();
     }
 
     pub fn run(&mut self) -> ! {
+        let log_size = EXECUTIONS_BUFFER_SIZE.min(32);
+        let log_interval = 1024 * 1024;
+
         let mut last_color: &'static str = "";
         let red = "\x1b[91m";
         let green = "\x1b[92m";
@@ -206,71 +212,77 @@ impl GameBoy {
             self.debug_latest_executions_next_i =
                 (self.debug_latest_executions_next_i + 1) % EXECUTIONS_BUFFER_SIZE;
 
+            let mut should_log = false;
+
             for _ in 0..cycles {
                 self.video_cycle();
                 self.audio_cycle();
 
-                if self.t % (1024 * 1024) == 0 {
-                    self.print_recent_executions();
+                if (self.t + log_interval - log_interval.min(log_size as u64)) % log_interval == 0 {
+                    should_log = true;
                 }
 
                 self.t += 1;
             }
 
-            if self.t >= sync_time_at_tick {
-                sync_time_at_tick += sync_time_every_ticks;
+            if should_log {
+                if self.t >= sync_time_at_tick {
+                    sync_time_at_tick += sync_time_every_ticks;
 
-                // duration by which we allow internal time to slip ahead of real time,
-                // for the sake of doing several operations in a batch, rather than
-                // sleeping between each of them
-                const BATCH_MARGIN: Duration = Duration::from_millis(4);
-                const MAX_LAG: Duration = Duration::from_millis(4);
-                const ZERO: Duration = Duration::from_secs(0);
+                    // duration by which we allow internal time to slip ahead of real time,
+                    // for the sake of doing several operations in a batch, rather than
+                    // sleeping between each of them
+                    const BATCH_MARGIN: Duration = Duration::from_millis(4);
+                    const MAX_LAG: Duration = Duration::from_millis(4);
+                    const ZERO: Duration = Duration::from_secs(0);
 
-                // TODO: this is exactly 1MHz, which is wrong.
-                let internal_elapsed =
-                    Duration::new(self.t / 1000000, ((self.t * 1000) % 1000000000) as u32); // 953 should really be 1000000000 / 1048576
-                let wall_elapsed = start_time.elapsed().expect("failed to get elapsed time?!");
-                let skew_ahead = if internal_elapsed > wall_elapsed {
-                    internal_elapsed - wall_elapsed
-                } else {
-                    ZERO
-                };
-                let skew_behind = if wall_elapsed > internal_elapsed {
-                    wall_elapsed - internal_elapsed
-                } else {
-                    ZERO
-                };
+                    // TODO: this is exactly 1MHz, which is wrong.
+                    let internal_elapsed =
+                        Duration::new(self.t / 1000000, ((self.t * 1000) % 1000000000) as u32); // 953 should really be 1000000000 / 1048576
+                    let wall_elapsed = start_time.elapsed().expect("failed to get elapsed time?!");
+                    let skew_ahead = if internal_elapsed > wall_elapsed {
+                        internal_elapsed - wall_elapsed
+                    } else {
+                        ZERO
+                    };
+                    let skew_behind = if wall_elapsed > internal_elapsed {
+                        wall_elapsed - internal_elapsed
+                    } else {
+                        ZERO
+                    };
 
-                // println!("internal / wall = {:?} / {:?}", internal_elapsed, wall_elapsed);
-                // println!("behind / ahead = {:?} / {:?}", skew_behind, skew_ahead);
+                    // println!("internal / wall = {:?} / {:?}", internal_elapsed, wall_elapsed);
+                    // println!("behind / ahead = {:?} / {:?}", skew_behind, skew_ahead);
 
-                if skew_ahead > BATCH_MARGIN {
-                    // going too fast -- sleep a bit
-                    sleep(skew_ahead);
-                    if clear != last_color {
-                        last_color = clear;
-                        print!("{}", clear);
-                    }
-                } else if skew_behind > MAX_LAG {
-                    // going waaay too slow! crap!
-                    if red != last_color {
-                        last_color = red;
-                        print!("{}", red);
-                    }
-                } else if skew_ahead > ZERO {
-                    // going good
-                    if clear != last_color {
-                        last_color = clear;
-                        print!("{}", clear);
-                    }
-                } else {
-                    // going a bit slow
-                    if yellow != last_color {
-                        last_color = yellow;
-                        print!("{}", yellow);
+                    if skew_ahead > BATCH_MARGIN {
+                        // going too fast -- sleep a bit
+                        sleep(skew_ahead);
+                        if clear != last_color {
+                            last_color = clear;
+                            print!("{}", clear);
+                        }
+                    } else if skew_behind > MAX_LAG {
+                        // going waaay too slow! crap!
+                        if red != last_color {
+                            last_color = red;
+                            print!("{}", red);
+                        }
+                    } else if skew_ahead > ZERO {
+                        // going good
+                        if clear != last_color {
+                            last_color = clear;
+                            print!("{}", clear);
+                        }
+                    } else {
+                        // going a bit slow
+                        if yellow != last_color {
+                            last_color = yellow;
+                            print!("{}", yellow);
+                        }
                     }
                 }
+                
+                self.print_recent_executions(log_size);
             }
         }
     }
