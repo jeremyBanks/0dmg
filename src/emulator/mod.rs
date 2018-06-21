@@ -95,7 +95,7 @@ impl Output {
     pub fn combined_image(&self) -> DynamicImage {
         let mut max_width = 0;
         let mut total_height = 0;
-        let mut images = vec![
+        let images = vec![
             &self.display,
             &self.tiles,
             &self.bgp,
@@ -115,7 +115,7 @@ impl Output {
         let mut combined = ImageBuffer::new(max_width, total_height);
         let mut y = 0;
         for image in images.clone() {
-            let (width, height) = image.dimensions();
+            let (_width, height) = image.dimensions();
             combined.copy_from(image, 0, y);
             y += height;
         }
@@ -127,12 +127,12 @@ impl GameBoy {
     pub fn new(output_buffer: Arc<Mutex<Output>>) -> Self {
         let mut game_rom = vec![];
         
-        // match File::open("./roms/default.gb") {
-        //     Ok(f) => f,
-        //     Err(_) => File::open("./roms/blargg-tests/cpu_instrs/cpu_instrs.gb")
-        //         .expect("failed to open game ROM file"),
-        // }.read_to_end(&mut game_rom)
-        //     .expect("something went wrong reading the file");
+        match File::open("./roms/default.gb") {
+            Ok(f) => f,
+            Err(_) => File::open("./roms/blargg-tests/cpu_instrs/cpu_instrs.gb")
+                .expect("failed to open game ROM file"),
+        }.read_to_end(&mut game_rom)
+            .expect("something went wrong reading the file");
 
         Self {
             cpu: CPUData::new(),

@@ -1,7 +1,6 @@
 use super::GameBoy;
 
 use super::audio::AudioController;
-use super::cpu::CPUController;
 use super::video::VideoController;
 
 pub struct MemoryData {
@@ -19,7 +18,7 @@ impl MemoryData {
             stack_ram: [0x00; 0x80],
             game_rom,
             boot_rom_mapped: true,
-            boot_rom: DEMO_ROM.clone(),
+            boot_rom: BOOT_ROM.clone(),
         }
     }
 }
