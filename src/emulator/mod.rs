@@ -54,19 +54,19 @@ impl Output {
     pub fn new() -> Self {
         let filled = |width: u32, height: u32| {
             let mut image = DynamicImage::ImageRgba8(ImageBuffer::new(width, height));
-            let fill_colors = [
-                image::Rgba([0x90, 0x60, 0x90, 0xFF]),
-            ];
-            let border_colors = [
-                image::Rgba([0xCC, 0x33, 0xCC, 0xFF]),
-            ];
+            let fill_colors = [image::Rgba([0x90, 0x60, 0x90, 0xFF])];
+            let border_colors = [image::Rgba([0xCC, 0x33, 0xCC, 0xFF])];
             let border_width = 1;
             for x in 0..width {
                 for y in 0..height {
                     image.put_pixel(
                         x,
                         y,
-                        if x < border_width || x >= width - border_width || y < border_width || y >= height - border_width {
+                        if x < border_width
+                            || x >= width - border_width
+                            || y < border_width
+                            || y >= height - border_width
+                        {
                             border_colors[(x + y) as usize % border_colors.len()]
                         } else {
                             fill_colors[(x + y) as usize % fill_colors.len()]
@@ -125,7 +125,7 @@ impl Output {
 impl GameBoy {
     pub fn new(output_buffer: Arc<Mutex<Output>>) -> Self {
         let mut game_rom = vec![];
-        
+
         match File::open("./roms/default.gb") {
             Ok(f) => f,
             Err(_) => File::open("./roms/blargg-tests/cpu_instrs/cpu_instrs.gb")
@@ -153,7 +153,8 @@ impl GameBoy {
         }
         print!(" ; ${:04x}", opex.operation_address);
         print!(" ; {:10}", opex.t);
-        let code = opex.operation_code
+        let code = opex
+            .operation_code
             .clone()
             .into_iter()
             .map(|c| format!("{:02x}", c))
@@ -179,7 +180,7 @@ impl GameBoy {
 
         self.debug_latest_executions.clear();
         self.debug_latest_executions_next_i = 0;
-        
+
         println!();
     }
 
@@ -189,9 +190,9 @@ impl GameBoy {
 
         let mut last_color: &'static str = "";
         let red = "\x1b[91m";
-        let green = "\x1b[92m";
+        let _green = "\x1b[92m";
         let yellow = "\x1b[93m";
-        let blue = "\x1b[94m";
+        let _blue = "\x1b[94m";
         let clear = "\x1b[0m";
 
         // using Instant seems to produced very unsteady results
@@ -280,7 +281,7 @@ impl GameBoy {
                         }
                     }
                 }
-                
+
                 self.print_recent_executions(log_size);
             }
         }

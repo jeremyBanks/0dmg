@@ -5,8 +5,8 @@ pub mod operation;
 mod opcodes_cb;
 mod opcodes_main;
 
-use super::GameBoy;
 use super::memory::MemoryController;
+use super::GameBoy;
 
 pub struct CPUData {
     // clock ticks

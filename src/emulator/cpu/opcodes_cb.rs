@@ -1,6 +1,6 @@
 use super::operation;
-use super::{u8_get_bit, u8_set_bit};
 use super::operation::Execution;
+use super::{u8_get_bit, u8_set_bit};
 
 use super::CPUController;
 

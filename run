@@ -2,4 +2,4 @@
 set -eu
 # cargo fmt
 # cargo fix --allow-dirty
-while true; do (cargo run || true); sleep 0; done;
+while true; do (rustup run nightly cargo run || true); sleep 0; done;

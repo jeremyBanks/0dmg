@@ -58,7 +58,7 @@ pub const INTRA_REGISTER_LOAD: Operation = |opcode, gb| {
 };
 
 use super::CPUData;
-pub const UNIMPLEMENTED: Operation = |opcode, gb| {
+pub const UNIMPLEMENTED: Operation = |_opcode, gb| {
     gb.print_recent_executions(32);
     unimplemented!(
         "operation ${} at ${:04x} is not implemented",
