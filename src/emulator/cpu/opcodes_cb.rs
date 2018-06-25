@@ -1,7 +1,8 @@
 use super::operation;
 use super::{u8_get_bit, u8_set_bit};
+use super::operation::Execution;
 
-use emulator::cpu::CPUController;
+use super::CPUController;
 
 // 0xCB-prefixed two-byte opcodes
 pub static OPCODES: [operation::Operation; 0x100] = [

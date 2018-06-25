@@ -15,8 +15,7 @@ use std::thread::sleep;
 use std::time::{Duration, SystemTime};
 
 const EXECUTIONS_BUFFER_SIZE: usize = 1024;
-extern crate image;
-use self::image::{DynamicImage, GenericImage, ImageBuffer};
+use image::{DynamicImage, GenericImage, ImageBuffer};
 
 pub struct GameBoy {
     cpu: CPUData,

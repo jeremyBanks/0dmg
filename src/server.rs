@@ -2,16 +2,13 @@ use std::fs::File;
 use std::io::Read;
 use std::sync::{Arc, Mutex};
 
-extern crate hyper;
-use server::hyper::header::{CacheControl, CacheDirective, ContentLength, ContentType};
-use server::hyper::server::{Request, Response, Service};
-use server::hyper::{Get, StatusCode};
+use hyper::header::{CacheControl, CacheDirective, ContentLength, ContentType};
+use hyper::server::{Request, Response, Service};
+use hyper::{Get, StatusCode};
 
-extern crate futures;
-use server::futures::future::Future;
+use futures::future::Future;
 
-use emulator;
-extern crate image;
+use crate::emulator;
 
 pub struct GameBoyIOServer {
     pub output_buffer: Arc<Mutex<emulator::Output>>,
