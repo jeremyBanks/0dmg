@@ -1,0 +1,12 @@
+#!/bin/bash
+set -eux;
+CARGO="cargo +nightly";
+
+for f in zerodmg-*/; do
+    (
+        cd "${f}";
+        ${CARGO} test;
+    );
+done
+${CARGO} test;
+
