@@ -1,8 +1,27 @@
 #!/bin/bash
 set -eux;
 CARGO="cargo +nightly";
+function clean {
+    ${CARGO} clean;
+    for f in zerodmg-*; do
+        (
+            cd "${f}";
+            ${CARGO} clean;
+        );
+    done
+}
+
+clean;
+
+for f in zerodmg-*/; do
+    (
+        cd "${f}";
+        ${CARGO} build;
+    );
+done
+${CARGO} build || sleep 3;
 
 while true; do
-    ${CARGO} run || sleep 3;
     sleep 1;
+    ${CARGO} run || sleep 3;
 done;

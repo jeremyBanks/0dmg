@@ -3,11 +3,11 @@
 // Opt in to warnings about new 2018 idioms
 #![feature(rust_2018_idioms)]
 
+use std::any::Any;
 use std::clone::Clone;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
-use std::any::Any;
 
 use hyper::server::Http;
 
