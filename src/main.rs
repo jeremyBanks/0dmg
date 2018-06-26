@@ -7,6 +7,7 @@ use std::clone::Clone;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
+use std::any::Any;
 
 use hyper::server::Http;
 
@@ -14,11 +15,7 @@ use zerodmg_emulator as emulator;
 
 mod server;
 
-pub fn main() {
-    try_main().unwrap();
-}
-
-pub fn try_main() -> Result<(), String> {
+pub fn main() -> Result<(), Box<Any + Send>> {
     let output_buffer = Arc::new(Mutex::new(emulator::Output::new()));
     let also_output_buffer = output_buffer.clone();
 
@@ -43,15 +40,8 @@ pub fn try_main() -> Result<(), String> {
             .unwrap();
     });
 
-    if let Err(_error) = emulator_thread.join() {
-        println!("; emulator thread panicked");
-        thread::sleep(Duration::from_millis(1000));
-        return Err(format!("emulator thread panicked"));
-    }
-
-    if let Err(_error) = http_server_thread.join() {
-        return Err(format!("HTTP server thread panicked"));
-    }
+    emulator_thread.join()?;
+    http_server_thread.join()?;
 
     Ok(())
 }
