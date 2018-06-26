@@ -1,4 +1,4 @@
-use zerodmg_utils::binary::{u8_get_bit, u8_set_bit};
+use zerodmg_utils::binary::u8_get_bit;
 
 use super::operation;
 use super::operation::Execution;

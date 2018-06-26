@@ -11,7 +11,7 @@ use std::clone::Clone;
 use std::fs::File;
 use std::io::Read;
 use std::sync::{Arc, Mutex};
-use std::thread::sleep;
+use std::thread;
 use std::time::{Duration, SystemTime};
 
 const EXECUTIONS_BUFFER_SIZE: usize = 1024;
@@ -256,7 +256,7 @@ impl GameBoy {
 
                     if skew_ahead > BATCH_MARGIN {
                         // going too fast -- sleep a bit
-                        sleep(skew_ahead);
+                        thread::sleep(skew_ahead);
                         if clear != last_color {
                             last_color = clear;
                             print!("{}", clear);

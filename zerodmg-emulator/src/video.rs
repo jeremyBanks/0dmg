@@ -1,6 +1,6 @@
-use super::{GameBoy, Output};
+use super::GameBoy;
 
-use image::{DynamicImage, GenericImage, ImageBuffer};
+use image::GenericImage;
 
 // seems to be the right value to meet the apparent framerate
 const CYCLES_PER_LINE: u64 = 113;

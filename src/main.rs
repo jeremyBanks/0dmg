@@ -6,6 +6,7 @@
 use std::clone::Clone;
 use std::sync::{Arc, Mutex};
 use std::thread;
+use std::time::Duration;
 
 use hyper::server::Http;
 
@@ -22,7 +23,7 @@ pub fn try_main() -> Result<(), String> {
     let also_output_buffer = output_buffer.clone();
 
     let emulator_thread = thread::spawn(move || {
-        thread::sleep_ms(250);
+        thread::sleep(Duration::from_millis(250));
         let mut gameboy = emulator::GameBoy::new(also_output_buffer.clone());
         gameboy.run();
     });
@@ -44,7 +45,7 @@ pub fn try_main() -> Result<(), String> {
 
     if let Err(_error) = emulator_thread.join() {
         println!("; emulator thread panicked");
-        thread::sleep_ms(1000);
+        thread::sleep(Duration::from_millis(1000));
         return Err(format!("emulator thread panicked"));
     }
 

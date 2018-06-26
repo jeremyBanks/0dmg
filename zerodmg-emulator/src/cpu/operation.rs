@@ -1,4 +1,4 @@
-use zerodmg_utils::binary::{u8_get_bit, u8_set_bit, u8s_to_u16, u16_to_u8s};
+use zerodmg_utils::binary::{u8_get_bit, u8s_to_u16};
 
 use super::{CPUController, OneByteRegister};
 
@@ -59,7 +59,6 @@ pub const INTRA_REGISTER_LOAD: Operation = |opcode, gb| {
     }
 };
 
-use super::CPUData;
 pub const UNIMPLEMENTED: Operation = |_opcode, gb| {
     gb.print_recent_executions(32);
     unimplemented!(
