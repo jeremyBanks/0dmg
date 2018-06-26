@@ -1,3 +1,5 @@
+use zerodmg_utils::binary::{u8_get_bit, u8_set_bit, u8s_to_u16, u16_to_u8s};
+
 use super::{CPUController, OneByteRegister};
 
 pub type Operation = fn(opcode: u8, gb: &mut super::GameBoy) -> Execution;
@@ -114,7 +116,7 @@ pub const ADD: Operation = |opcode, gb| {
     gb.cpu.a = a1;
     gb.set_z_flag(a1 == 0);
     gb.set_n_flag(false);
-    gb.set_h_flag(super::u8_get_bit(a1, 4));
+    gb.set_h_flag(u8_get_bit(a1, 4));
     gb.set_c_flag(a1 < a0);
     op_execution!{
         cycles: 1 + extra_read_cycles;
@@ -131,7 +133,7 @@ pub const SUB: Operation = |opcode, gb| {
     gb.cpu.a = a1;
     gb.set_z_flag(a1 == 0);
     gb.set_n_flag(false);
-    gb.set_h_flag(super::u8_get_bit(a1, 4));
+    gb.set_h_flag(u8_get_bit(a1, 4));
     gb.set_c_flag(a1 > a0);
     op_execution!{
         cycles: 1 + extra_read_cycles;
@@ -147,7 +149,7 @@ pub const CP: Operation = |opcode, gb| {
     let delta = a.wrapping_sub(source_value);
     gb.set_z_flag(delta == 0);
     gb.set_n_flag(false);
-    gb.set_h_flag(super::u8_get_bit(delta, 4));
+    gb.set_h_flag(u8_get_bit(delta, 4));
     gb.set_c_flag(delta > a);
     op_execution!{
         cycles: 1 + extra_read_cycles;
@@ -180,7 +182,7 @@ pub const INC: Operation = |opcode, gb| {
     let extra_write_cycles = gb.set_register(target, new_value);
     gb.set_z_flag(new_value == 0);
     gb.set_n_flag(false);
-    gb.set_h_flag(super::u8_get_bit(new_value, 4));
+    gb.set_h_flag(u8_get_bit(new_value, 4));
     op_execution!{
         cycles: 1 + extra_read_cycles + extra_write_cycles;
         asm: "INC {}", target;
@@ -195,7 +197,7 @@ pub const DEC: Operation = |opcode, gb| {
     let extra_write_cycles = gb.set_register(target, new_value);
     gb.set_z_flag(new_value == 0);
     gb.set_n_flag(true);
-    gb.set_h_flag(super::u8_get_bit(new_value, 4));
+    gb.set_h_flag(u8_get_bit(new_value, 4));
     op_execution!{
         cycles: 1 + extra_read_cycles + extra_write_cycles;
         asm: "DEC {}", target;
@@ -207,7 +209,7 @@ pub const RST: Operation = |opcode, gb| {
     let high_byte = opcode & 0b00_111_000;
     let h = gb.cpu.h;
     let pc0 = gb.cpu.pc;
-    let pc1 = super::u8s_to_u16(high_byte, h);
+    let pc1 = u8s_to_u16(high_byte, h);
     gb.stack_push(pc0);
     gb.cpu.pc = pc1;
     op_execution!{

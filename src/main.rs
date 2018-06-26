@@ -9,7 +9,8 @@ use std::thread;
 
 use hyper::server::Http;
 
-mod emulator;
+use zerodmg_emulator as emulator;
+
 mod server;
 
 pub fn main() {
