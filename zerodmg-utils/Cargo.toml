@@ -3,7 +3,7 @@ cargo-features = ["edition"]
 [package]
 edition = "2018"
 name = "zerodmg-utils"
-version = "0.1.1"
+version = "0.1.2"
 license = "MIT"
 authors = ["Jeremy Banks <_@jeremy.ca>"]
 repository = "https://github.com/jeremyBanks/0dmg"
