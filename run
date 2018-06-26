@@ -1,5 +1,8 @@
 #!/bin/bash
-set -eu
-# cargo fmt
-# cargo fix --allow-dirty
-while true; do (rustup run nightly cargo run || true); sleep 0; done;
+set -eux;
+CARGO="cargo +nightly";
+
+while true; do
+    ${CARGO} run || sleep 3;
+    sleep 1;
+done;
