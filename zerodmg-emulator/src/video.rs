@@ -1,5 +1,6 @@
 use super::GameBoy;
 
+use std::convert::TryFrom;
 use image::GenericImage;
 
 // seems to be the right value to meet the apparent framerate
@@ -19,6 +20,9 @@ pub struct VideoData {
     // LCD Y draw line
     ly: u8,
 }
+
+const GB_WIDTH: u8 = 160;
+const GB_HEIGHT: u8 = 144;
 
 impl VideoData {
     pub fn new() -> Self {
@@ -54,7 +58,7 @@ pub trait VideoController {
 impl VideoController for GameBoy {
     fn video_cycle(&mut self) {
         self.vid.t += 1;
-        self.vid.ly = ((self.vid.t / CYCLES_PER_LINE) % (144 + 10)) as u8;
+        self.vid.ly = ((self.vid.t / CYCLES_PER_LINE) % u64::from(GB_HEIGHT + 10)) as u8;
 
         // after vblank, draw
         if 0 == self.vid.ly && 0 == self.vid.t % CYCLES_PER_LINE {
@@ -234,23 +238,58 @@ impl VideoController for GameBoy {
                 bg_0.put_pixel((x + 2) % 256, y % 256, c_color);
                 bg_0.put_pixel((x + 3) % 256, y % 256, d_color);
 
-                if scrolled_y < 144 {
-                    if (scrolled_x + 0) % 256 < 160 {
+                if scrolled_y < GB_HEIGHT.into() {
+                    if ((scrolled_x + 0) as u8) < GB_WIDTH {
                         display.put_pixel((scrolled_x + 0) % 256, scrolled_y, a_color);
                     }
-                    if (scrolled_x + 1) % 256 < 160 {
+                    if ((scrolled_x + 1) as u8) < GB_WIDTH {
                         display.put_pixel((scrolled_x + 1) % 256, scrolled_y, b_color);
                     }
-                    if (scrolled_x + 2) % 256 < 160 {
+                    if ((scrolled_x + 2) as u8) < GB_WIDTH {
                         display.put_pixel((scrolled_x + 2) % 256, scrolled_y, c_color);
                     }
-                    if (scrolled_x + 3) % 256 < 160 {
+                    if ((scrolled_x + 3) as u8) < GB_WIDTH {
                         display.put_pixel((scrolled_x + 3) % 256, scrolled_y, d_color);
                     }
                 }
             }
         }
 
+        // Draw border around active background in debug buffer.
+        // We want to overwrite the alpha, but put_pixel seems to
+        // alpha blend instead, so we're also adding green color.
+        let border_width: i16 = 2;
+        for dy in -border_width..border_width {
+            let dyp = if dy < 0 { dy } else { dy + i16::from(GB_HEIGHT) };
+            let y = u32::from((i16::from(self.scy()) + dyp) as u8);
+
+            for x in 0..=0xFF {
+                let mut color = bg_0.get_pixel(x, y);
+
+                color.data[0] /= 8;
+                color.data[1] /= 2;
+                color.data[2] /= 4;
+                color.data[3] = 0x80;
+
+                bg_0.put_pixel(x, y, color);
+            }
+        }
+        for dx in -border_width..border_width {
+            let dxp = if dx < 0 { dx } else { dx + i16::from(GB_WIDTH) };
+            let x = u32::from((i16::from(self.scx()) + dxp) as u8);
+
+            for y in 0..=0xFF {
+                let mut color = bg_0.get_pixel(x, y);
+
+                color.data[0] /= 8;
+                color.data[1] /= 2;
+                color.data[2] /= 4;
+                color.data[3] = 0x80;
+
+                bg_0.put_pixel(x, y, color);
+            }
+        }
+        
         {
             let mut self_output_buffer = self.output_buffer.lock().unwrap();
             self_output_buffer.display = display;

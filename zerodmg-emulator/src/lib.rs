@@ -1,3 +1,5 @@
+#![feature(try_from)]
+
 mod audio;
 mod cpu;
 mod memory;
