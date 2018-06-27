@@ -3,15 +3,15 @@ cargo-features = ["edition"]
 [package]
 edition = "2018"
 name = "zerodmg"
-version = "0.1.2"
+version = "0.1.3"
 license = "MIT"
 authors = ["Jeremy Banks <_@jeremy.ca>"]
 repository = "https://github.com/jeremyBanks/0dmg"
 description = "pieces of a naive incomplete broken game boy emulator"
 
 [dependencies]
-zerodmg-emulator = { version = "0.1.2", path = "zerodmg-emulator" }
-zerodmg-utils = { version = "0.1.2", path = "zerodmg-utils" }
+zerodmg-emulator = { version = "0.1.3", path = "zerodmg-emulator" }
+zerodmg-utils = { version = "0.1.3", path = "zerodmg-utils" }
 futures = "0.1.*"
 hyper = "0.11.*"
 tokio = "0.1.7"
