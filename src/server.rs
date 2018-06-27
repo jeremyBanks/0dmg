@@ -8,10 +8,10 @@ use hyper::{Get, StatusCode};
 
 use futures::future::Future;
 
-use crate::emulator;
+use zerodmg_emulator;
 
 pub struct GameBoyIOServer {
-    pub output_buffer: Arc<Mutex<emulator::Output>>,
+    pub output_buffer: Arc<Mutex<zerodmg_emulator::Output>>,
 }
 
 impl Service for GameBoyIOServer {
