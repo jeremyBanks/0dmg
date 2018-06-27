@@ -15,7 +15,7 @@
 /// assert_eq!(u8s_to_u16(0x00, 0x01), 0x0100);
 /// ```
 pub fn u8s_to_u16(a: u8, b: u8) -> u16 {
-    return a as u16 + ((b as u16) << 8);
+    u16::from(a) + (u16::from(b) << 8)
 }
 
 /// Splits a `u16` into two `u8`s.

@@ -84,32 +84,32 @@ impl VideoController for GameBoy {
 
         // draw background palettes
         // the ! is because the GB colours values are darkness, but RGB is brightness
-        let bgp_a = (!self.bgp() & 0b11000000) >> 6;
+        let bgp_a = (!self.bgp() & 0b1100_0000) >> 6;
         let bgp_a_color = image::Rgba([
-            bgp_a * 0b01010101,
-            bgp_a * 0b01010101,
-            bgp_a * 0b01010101,
+            bgp_a * 0b0101_0101,
+            bgp_a * 0b0101_0101,
+            bgp_a * 0b0101_0101,
             0xFF,
         ]);
-        let bgp_b = (!self.bgp() & 0b00110000) >> 4;
+        let bgp_b = (!self.bgp() & 0b0011_0000) >> 4;
         let bgp_b_color = image::Rgba([
-            bgp_b * 0b01010101,
-            bgp_b * 0b01010101,
-            bgp_b * 0b01010101,
+            bgp_b * 0b0101_0101,
+            bgp_b * 0b0101_0101,
+            bgp_b * 0b0101_0101,
             0xFF,
         ]);
-        let bgp_c = (!self.bgp() & 0b00001100) >> 2;
+        let bgp_c = (!self.bgp() & 0b0000_1100) >> 2;
         let bgp_c_color = image::Rgba([
-            bgp_c * 0b01010101,
-            bgp_c * 0b01010101,
-            bgp_c * 0b01010101,
+            bgp_c * 0b0101_0101,
+            bgp_c * 0b0101_0101,
+            bgp_c * 0b0101_0101,
             0xFF,
         ]);
-        let bgp_d = (!self.bgp() & 0b00000011) >> 0;
+        let bgp_d = (!self.bgp() & 0b0000_0011) >> 0;
         let bgp_d_color = image::Rgba([
-            bgp_d * 0b01010101,
-            bgp_d * 0b01010101,
-            bgp_d * 0b01010101,
+            bgp_d * 0b0101_0101,
+            bgp_d * 0b0101_0101,
+            bgp_d * 0b0101_0101,
             0xFF,
         ]);
         bgp.put_pixel(0, 0, bgp_a_color);
@@ -126,44 +126,44 @@ impl VideoController for GameBoy {
             for y_offset in 0..8 {
                 let low_byte = new_tile_data[y_offset * 2 + 1];
                 let high_byte = new_tile_data[y_offset * 2];
-                let first_byte = ((high_byte & 0b10000000) >> 0)
-                    | ((low_byte & 0b10000000) >> 1)
-                    | ((high_byte & 0b01000000) >> 1)
-                    | ((low_byte & 0b01000000) >> 2)
-                    | ((high_byte & 0b00100000) >> 2)
-                    | ((low_byte & 0b00100000) >> 3)
-                    | ((high_byte & 0b00010000) >> 3)
-                    | ((low_byte & 0b00010000) >> 4);
-                let second_byte = ((high_byte & 0b00001000) << 4)
-                    | ((low_byte & 0b00001000) << 3)
-                    | ((high_byte & 0b00000100) << 3)
-                    | ((low_byte & 0b00000100) << 2)
-                    | ((high_byte & 0b00000010) << 2)
-                    | ((low_byte & 0b00000010) << 1)
-                    | ((high_byte & 0b00000001) << 1)
-                    | ((low_byte & 0b00000001) << 0);
+                let first_byte = ((high_byte & 0b1000_0000) >> 0)
+                    | ((low_byte & 0b1000_0000) >> 1)
+                    | ((high_byte & 0b0100_0000) >> 1)
+                    | ((low_byte & 0b0100_0000) >> 2)
+                    | ((high_byte & 0b0010_0000) >> 2)
+                    | ((low_byte & 0b0010_0000) >> 3)
+                    | ((high_byte & 0b0001_0000) >> 3)
+                    | ((low_byte & 0b0001_0000) >> 4);
+                let second_byte = ((high_byte & 0b0000_1000) << 4)
+                    | ((low_byte & 0b0000_1000) << 3)
+                    | ((high_byte & 0b0000_0100) << 3)
+                    | ((low_byte & 0b0000_0100) << 2)
+                    | ((high_byte & 0b0000_0010) << 2)
+                    | ((low_byte & 0b0000_0010) << 1)
+                    | ((high_byte & 0b0000_0001) << 1)
+                    | ((low_byte & 0b0000_0001) << 0);
                 new_tile_data[y_offset * 2] = first_byte;
                 new_tile_data[y_offset * 2 + 1] = second_byte;
             }
 
             for j in 0..16 {
                 let tile_col = (i % 16) as u32;
-                let x_tile_offset = 8 * tile_col as i64;
+                let x_tile_offset = 8 * i64::from(tile_col);
                 let x = ((x_tile_offset + 4 * (j % 2) as i64) % 256) as u32;
 
                 let tile_row = (i / 16) as u32;
-                let y_tile_offset = 8 * tile_row as i64;
+                let y_tile_offset = 8 * i64::from(tile_row);
                 let y = ((y_tile_offset + 1 * (j / 2) as i64) % 256) as u32;
 
                 let byte = !new_tile_data[j];
-                let a = (byte & 0b11000000) >> 6;
-                let a_color = image::Rgba([a * 0b01010101, a * 0b01010101, a * 0b01010101, 0xFF]);
-                let b = (byte & 0b00110000) >> 4;
-                let b_color = image::Rgba([b * 0b01010101, b * 0b01010101, b * 0b01010101, 0xFF]);
-                let c = (byte & 0b00001100) >> 2;
-                let c_color = image::Rgba([c * 0b01010101, c * 0b01010101, c * 0b01010101, 0xFF]);
-                let d = (byte & 0b00000011) >> 0;
-                let d_color = image::Rgba([d * 0b01010101, d * 0b01010101, d * 0b01010101, 0xFF]);
+                let a = (byte & 0b1100_0000) >> 6;
+                let a_color = image::Rgba([a * 0b0101_0101, a * 0b0101_0101, a * 0b0101_0101, 0xFF]);
+                let b = (byte & 0b0011_0000) >> 4;
+                let b_color = image::Rgba([b * 0b0101_0101, b * 0b0101_0101, b * 0b0101_0101, 0xFF]);
+                let c = (byte & 0b0000_1100) >> 2;
+                let c_color = image::Rgba([c * 0b0101_0101, c * 0b0101_0101, c * 0b0101_0101, 0xFF]);
+                let d = (byte & 0b0000_0011) >> 0;
+                let d_color = image::Rgba([d * 0b0101_0101, d * 0b0101_0101, d * 0b0101_0101, 0xFF]);
 
                 tiles.put_pixel(x + 0 + tile_col, y + tile_row, a_color);
                 tiles.put_pixel(x + 1 + tile_col, y + tile_row, b_color);
@@ -187,45 +187,45 @@ impl VideoController for GameBoy {
                 // convert into pixels.
                 let low_byte = new_tile_data[y_offset * 2 + 1];
                 let high_byte = new_tile_data[y_offset * 2];
-                let first_byte = ((high_byte & 0b10000000) >> 0)
-                    | ((low_byte & 0b10000000) >> 1)
-                    | ((high_byte & 0b01000000) >> 1)
-                    | ((low_byte & 0b01000000) >> 2)
-                    | ((high_byte & 0b00100000) >> 2)
-                    | ((low_byte & 0b00100000) >> 3)
-                    | ((high_byte & 0b00010000) >> 3)
-                    | ((low_byte & 0b00010000) >> 4);
-                let second_byte = ((high_byte & 0b00001000) << 4)
-                    | ((low_byte & 0b00001000) << 3)
-                    | ((high_byte & 0b00000100) << 3)
-                    | ((low_byte & 0b00000100) << 2)
-                    | ((high_byte & 0b00000010) << 2)
-                    | ((low_byte & 0b00000010) << 1)
-                    | ((high_byte & 0b00000001) << 1)
-                    | ((low_byte & 0b00000001) << 0);
+                let first_byte = ((high_byte & 0b1000_0000) >> 0)
+                    | ((low_byte & 0b1000_0000) >> 1)
+                    | ((high_byte & 0b0100_0000) >> 1)
+                    | ((low_byte & 0b0100_0000) >> 2)
+                    | ((high_byte & 0b0010_0000) >> 2)
+                    | ((low_byte & 0b0010_0000) >> 3)
+                    | ((high_byte & 0b0001_0000) >> 3)
+                    | ((low_byte & 0b0001_0000) >> 4);
+                let second_byte = ((high_byte & 0b0000_1000) << 4)
+                    | ((low_byte & 0b0000_1000) << 3)
+                    | ((high_byte & 0b0000_0100) << 3)
+                    | ((low_byte & 0b0000_0100) << 2)
+                    | ((high_byte & 0b0000_0010) << 2)
+                    | ((low_byte & 0b0000_0010) << 1)
+                    | ((high_byte & 0b0000_0001) << 1)
+                    | ((low_byte & 0b0000_0001) << 0);
                 new_tile_data[y_offset * 2] = first_byte;
                 new_tile_data[y_offset * 2 + 1] = second_byte;
             }
 
             for j in 0..16 {
                 let tile_col = (i % 32) as u32;
-                let x_tile_offset = 8 * tile_col as i64;
+                let x_tile_offset = 8 * i64::from(tile_col);
                 let x = ((x_tile_offset + 4 * (j % 2) as i64) % 256) as u32;
-                let scrolled_x = (x + 256 - self.scx() as u32) % 256;
+                let scrolled_x = (x + 256 - u32::from(self.scx())) % 256;
 
                 let tile_row = (i / 32) as u32;
-                let y_tile_offset = 8 * tile_row as i64;
+                let y_tile_offset = 8 * i64::from(tile_row);
                 let y = ((y_tile_offset + 1 * (j / 2) as i64) % 256) as u32;
-                let scrolled_y = (y + 256 - self.scy() as u32) % 256;
+                let scrolled_y = (y + 256 - u32::from(self.scy())) % 256;
 
                 let byte = !new_tile_data[j];
-                let a = (byte & 0b11000000) >> 6;
+                let a = (byte & 0b1100_0000) >> 6;
                 let a_color = bg_palette[a as usize];
-                let b = (byte & 0b00110000) >> 4;
+                let b = (byte & 0b0011_0000) >> 4;
                 let b_color = bg_palette[b as usize];
-                let c = (byte & 0b00001100) >> 2;
+                let c = (byte & 0b0000_1100) >> 2;
                 let c_color = bg_palette[c as usize];
-                let d = (byte & 0b00000011) >> 0;
+                let d = (byte & 0b0000_0011) >> 0;
                 let d_color = bg_palette[d as usize];
 
                 bg_0.put_pixel((x + 0) % 256, y % 256, a_color);
@@ -260,7 +260,7 @@ impl VideoController for GameBoy {
     }
 
     fn bgp(&self) -> u8 {
-        return self.vid.bgp;
+        self.vid.bgp
     }
 
     fn set_bgp(&mut self, value: u8) {
@@ -269,7 +269,7 @@ impl VideoController for GameBoy {
     }
 
     fn scy(&self) -> u8 {
-        return self.vid.scy;
+        self.vid.scy
     }
 
     fn set_scy(&mut self, value: u8) {
@@ -278,7 +278,7 @@ impl VideoController for GameBoy {
     }
 
     fn scx(&self) -> u8 {
-        return self.vid.scx;
+        self.vid.scx
     }
 
     fn set_scx(&mut self, value: u8) {
@@ -287,7 +287,7 @@ impl VideoController for GameBoy {
     }
 
     fn lcdc(&self) -> u8 {
-        return self.vid.lcdc;
+        self.vid.lcdc
     }
 
     fn set_lcdc(&mut self, value: u8) {
@@ -296,7 +296,7 @@ impl VideoController for GameBoy {
     }
 
     fn ly(&self) -> u8 {
-        return self.vid.ly;
+        self.vid.ly
     }
 
     fn set_ly(&mut self, _value: u8) {

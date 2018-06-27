@@ -148,7 +148,7 @@ impl CPUController for GameBoy {
     }
 
     fn relative_jump(&mut self, n: i8) {
-        self.cpu.pc = ((self.cpu.pc as i32) + (n as i32)) as u16;
+        self.cpu.pc = (i32::from(self.cpu.pc) + i32::from(n)) as u16;
     }
 
     fn stack_push(&mut self, value: u16) {
@@ -171,7 +171,7 @@ impl CPUController for GameBoy {
     }
 
     fn bc(&self) -> u16 {
-        return u8s_to_u16(self.cpu.c, self.cpu.b);
+        u8s_to_u16(self.cpu.c, self.cpu.b)
     }
 
     fn set_bc(&mut self, value: u16) {
@@ -181,7 +181,7 @@ impl CPUController for GameBoy {
     }
 
     fn hl(&self) -> u16 {
-        return u8s_to_u16(self.cpu.l, self.cpu.h);
+        u8s_to_u16(self.cpu.l, self.cpu.h)
     }
 
     fn set_hl(&mut self, value: u16) {
@@ -191,7 +191,7 @@ impl CPUController for GameBoy {
     }
 
     fn af(&self) -> u16 {
-        return u8s_to_u16(self.cpu.f, self.cpu.a);
+        u8s_to_u16(self.cpu.f, self.cpu.a)
     }
 
     fn set_af(&mut self, value: u16) {
@@ -201,7 +201,7 @@ impl CPUController for GameBoy {
     }
 
     fn de(&self) -> u16 {
-        return u8s_to_u16(self.cpu.e, self.cpu.d);
+        u8s_to_u16(self.cpu.e, self.cpu.d)
     }
 
     fn set_de(&mut self, value: u16) {

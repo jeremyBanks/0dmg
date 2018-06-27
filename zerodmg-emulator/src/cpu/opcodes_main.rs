@@ -104,7 +104,7 @@ pub static OPCODES: [operation::Operation; 0x100] = [
         let fc0 = gb.c_flag();
         let a0 = gb.cpu.a;
         let a1 = (a0 << 1) + if fc0 { 1 } else { 0 };
-        let fc1 = a0 & 0b10000000 > 0;
+        let fc1 = a0 & 0b1000_0000 > 0;
         gb.cpu.a = a1;
         gb.set_z_flag(a1 == 0);
         gb.set_c_flag(fc1);
@@ -153,7 +153,7 @@ pub static OPCODES: [operation::Operation; 0x100] = [
     |_20, gb| {
         let n = gb.read_immediate_i8();
         let z_flag = gb.z_flag();
-        if z_flag == false {
+        if !z_flag {
             gb.relative_jump(n);
         }
         op_execution!{
@@ -238,7 +238,7 @@ pub static OPCODES: [operation::Operation; 0x100] = [
     |_30, gb| {
         let n = gb.read_immediate_i8();
         let c_flag = gb.c_flag();
-        if c_flag == false {
+        if !c_flag {
             gb.relative_jump(n);
         }
         op_execution!{

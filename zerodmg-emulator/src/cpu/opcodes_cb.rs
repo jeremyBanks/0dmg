@@ -27,7 +27,7 @@ pub static OPCODES: [operation::Operation; 0x100] = [
         let b0 = gb.cpu.b;
         let fc0 = gb.c_flag();
         let b1 = (b0 << 1) + if fc0 { 1 } else { 0 };
-        let fc1 = b0 & 0b10000000 > 0;
+        let fc1 = b0 & 0b1000_0000 > 0;
         gb.cpu.b = b1;
         gb.set_z_flag(b1 == 0);
         gb.set_c_flag(fc1);
@@ -43,7 +43,7 @@ pub static OPCODES: [operation::Operation; 0x100] = [
         let c0 = gb.cpu.c;
         let fc0 = gb.c_flag();
         let c1 = (c0 << 1) + if fc0 { 1 } else { 0 };
-        let fc1 = c0 & 0b10000000 > 0;
+        let fc1 = c0 & 0b1000_0000 > 0;
         gb.cpu.c = c1;
         gb.set_z_flag(c1 == 0);
         gb.set_c_flag(fc1);
@@ -59,7 +59,7 @@ pub static OPCODES: [operation::Operation; 0x100] = [
         let d0 = gb.cpu.d;
         let fc0 = gb.c_flag();
         let d1 = (d0 << 1) + if fc0 { 1 } else { 0 };
-        let fc1 = d0 & 0b10000000 > 0;
+        let fc1 = d0 & 0b1000_0000 > 0;
         gb.cpu.d = d1;
         gb.set_z_flag(d1 == 0);
         gb.set_c_flag(fc1);
@@ -75,7 +75,7 @@ pub static OPCODES: [operation::Operation; 0x100] = [
         let e0 = gb.cpu.e;
         let fc0 = gb.c_flag();
         let e1 = (e0 << 1) + if fc0 { 1 } else { 0 };
-        let fc1 = e0 & 0b10000000 > 0;
+        let fc1 = e0 & 0b1000_0000 > 0;
         gb.cpu.e = e1;
         gb.set_z_flag(e1 == 0);
         gb.set_c_flag(fc1);
@@ -91,7 +91,7 @@ pub static OPCODES: [operation::Operation; 0x100] = [
         let h0 = gb.cpu.h;
         let fc0 = gb.c_flag();
         let h1 = (h0 << 1) + if fc0 { 1 } else { 0 };
-        let fc1 = h0 & 0b10000000 > 0;
+        let fc1 = h0 & 0b1000_0000 > 0;
         gb.cpu.h = h1;
         gb.set_z_flag(h1 == 0);
         gb.set_c_flag(fc1);
@@ -107,7 +107,7 @@ pub static OPCODES: [operation::Operation; 0x100] = [
         let l0 = gb.cpu.l;
         let fc0 = gb.c_flag();
         let l1 = (l0 << 1) + if fc0 { 1 } else { 0 };
-        let fc1 = l0 & 0b10000000 > 0;
+        let fc1 = l0 & 0b1000_0000 > 0;
         gb.cpu.l = l1;
         gb.set_z_flag(l1 == 0);
         gb.set_c_flag(fc1);

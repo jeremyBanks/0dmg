@@ -50,6 +50,12 @@ pub struct Output {
     pub sprites: DynamicImage,
 }
 
+impl Default for Output {  
+    fn default() -> Self { 
+        Self::new()        
+    }                      
+}                          
+
 impl Output {
     pub fn new() -> Self {
         let filled = |width: u32, height: u32| {
@@ -141,7 +147,7 @@ impl GameBoy {
             t: 0,
             debug_latest_executions: vec![],
             debug_latest_executions_next_i: 0,
-            output_buffer: output_buffer,
+            output_buffer,
         }
     }
 
@@ -273,12 +279,10 @@ impl GameBoy {
                             last_color = clear;
                             print!("{}", clear);
                         }
-                    } else {
+                    } else if yellow != last_color {
                         // going a bit slow
-                        if yellow != last_color {
-                            last_color = yellow;
-                            print!("{}", yellow);
-                        }
+                        last_color = yellow;
+                        print!("{}", yellow);
                     }
                 }
 

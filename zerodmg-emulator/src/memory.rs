@@ -18,7 +18,7 @@ impl MemoryData {
             stack_ram: [0x00; 0x80],
             game_rom,
             boot_rom_mapped: true,
-            boot_rom: BOOT_ROM.clone(),
+            boot_rom: *BOOT_ROM,
         }
     }
 }
@@ -30,14 +30,13 @@ pub trait MemoryController {
 
 impl MemoryController for GameBoy {
     fn mem(&self, addr: u16) -> u8 {
-        let value = if self.mem.boot_rom_mapped && addr <= 0x00FF {
+        if self.mem.boot_rom_mapped && addr <= 0x00FF {
             // boot ROM, until unmapped to expose initial bytes of game ROM
             self.mem.boot_rom[addr as usize]
         } else if addr <= 0x7FFF {
             // first page of game ROM
-            let value = self.mem.game_rom[addr as usize];
-            // println!("    ; game_rom[${:02x}] == ${:02x}", addr, value);
-            value
+            self.mem.game_rom[addr as usize]
+            // println!("    ; game_rom[${:02x}] == ${:02x}", addr, self.mem.game_rom[addr as usize]);
         } else if 0x8000 <= addr && addr <= 0x9FFF {
             let i: usize = (addr - 0x8000) as usize;
             self.vram(i)
@@ -68,9 +67,7 @@ impl MemoryController for GameBoy {
             }
         } else {
             panic!("I don't know how to get memory address ${:04x}.", addr);
-        };
-
-        value
+        }
     }
 
     fn set_mem(&mut self, addr: u16, value: u8) {
@@ -112,7 +109,7 @@ impl MemoryController for GameBoy {
     }
 }
 
-const BOOT_ROM: &'static [u8; 0x0100] = &[
+const BOOT_ROM: &[u8; 0x0100] = &[
     0x31, 0xFE, 0xFF, 0xAF, 0x21, 0xFF, 0x9F, 0x32, 0xCB, 0x7C, 0x20, 0xFB, 0x21, 0x26, 0xFF, 0x0E,
     0x11, 0x3E, 0x80, 0x32, 0xE2, 0x0C, 0x3E, 0xF3, 0xE2, 0x32, 0x3E, 0x77, 0x77, 0x3E, 0xFC, 0xE0,
     0x47, 0x11, 0x04, 0x01, 0x21, 0x10, 0x80, 0x1A, 0xCD, 0x95, 0x00, 0xCD, 0x96, 0x00, 0x13, 0x7B,
