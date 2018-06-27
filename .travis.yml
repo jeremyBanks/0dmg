@@ -1,5 +1,5 @@
 {
-  "language": rust,
+  "language": "rust",
   "rust": ["nightly"],
-  "script": ./test
+  "script": ["./test", "./lint"]
 }
