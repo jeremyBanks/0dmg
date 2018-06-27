@@ -1,5 +1,19 @@
 # 0dmg
 
+It's not much, but you can run
+
+    cargo install zerodmg
+
+then run
+
+    zerodmg
+
+and open
+
+<pre><code><a href="http://localhost:9898/">http://localhost:9898/</a></code></pre>
+
+to see what we've got.
+
 [![Blog on GitHub Pages](https://img.shields.io/badge/blog-here-4422FF.svg?style=flat-square)](https://jeremybanks.github.io/0dmg/)  
 [![using Rust Nightly](https://img.shields.io/badge/rust-nightly-441199.svg?style=flat-square)](https://github.com/rust-lang-nursery/rustup.rs/blob/master/README.md#working-with-nightly-rust)  
 
