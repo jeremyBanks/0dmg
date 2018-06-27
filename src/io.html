@@ -408,13 +408,21 @@
           image.src = `/output.png`;
           await p;
           let y = 0;
+          display_g2d.clearRect(0, 0, 0xFFFF, 0xFFFF);
           display_g2d.drawImage(image, 0, y, image.width, image.height);
+          tiles_g2d.clearRect(0, 0, 0xFFFF, 0xFFFF);
           tiles_g2d.drawImage(image, 0, y -= display.height, image.width, image.height);
+          bgp_g2d.clearRect(0, 0, 0xFFFF, 0xFFFF);
           bgp_g2d.drawImage(image, 0, y -= tiles.height, image.width, image.height);
+          op0_g2d.clearRect(0, 0, 0xFFFF, 0xFFFF);
           op0_g2d.drawImage(image, 0, y -= bgp.height, image.width, image.height);
+          op1_g2d.clearRect(0, 0, 0xFFFF, 0xFFFF);
           op1_g2d.drawImage(image, 0, y -= op0.height, image.width, image.height);
+          bg0_g2d.clearRect(0, 0, 0xFFFF, 0xFFFF);
           bg0_g2d.drawImage(image, 0, y -= op1.height, image.width, image.height);
+          bg1_g2d.clearRect(0, 0, 0xFFFF, 0xFFFF);
           bg1_g2d.drawImage(image, 0, y -= bg0.height, image.width, image.height);
+          sprites_g2d.clearRect(0, 0, 0xFFFF, 0xFFFF);
           sprites_g2d.drawImage(image, 0, y -= bg1.height, image.width, image.height);
           powerLight.classList.add('on');
         } catch (error) {

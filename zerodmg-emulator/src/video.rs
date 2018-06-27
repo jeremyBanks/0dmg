@@ -256,8 +256,6 @@ impl VideoController for GameBoy {
         }
 
         // Draw border around active background in debug buffer.
-        // We want to overwrite the alpha, but put_pixel seems to
-        // alpha blend instead, so we're also adding green color.
         let border_width: i16 = 2;
         for dy in -border_width..border_width {
             let dyp = if dy < 0 { dy } else { dy + i16::from(GB_HEIGHT) };
@@ -266,10 +264,10 @@ impl VideoController for GameBoy {
             for x in 0..=0xFF {
                 let mut color = bg_0.get_pixel(x, y);
 
-                color.data[0] /= 8;
-                color.data[1] /= 2;
-                color.data[2] /= 4;
-                color.data[3] = 0x80;
+                color.data[0] = (color.data[0] / 4) + (color.data[0] / 2);
+                color.data[1] = (color.data[1] / 4) + (color.data[1] / 2);
+                color.data[2] = (color.data[2] / 4) + (color.data[2] / 2);
+                color.data[3] = 0xB0;
 
                 bg_0.put_pixel(x, y, color);
             }
@@ -281,10 +279,10 @@ impl VideoController for GameBoy {
             for y in 0..=0xFF {
                 let mut color = bg_0.get_pixel(x, y);
 
-                color.data[0] /= 8;
-                color.data[1] /= 2;
-                color.data[2] /= 4;
-                color.data[3] = 0x80;
+                color.data[0] = (color.data[0] / 4) + (color.data[0] / 2);
+                color.data[1] = (color.data[1] / 4) + (color.data[1] / 2);
+                color.data[2] = (color.data[2] / 4) + (color.data[2] / 2);
+                color.data[3] = 0xB0;
 
                 bg_0.put_pixel(x, y, color);
             }
