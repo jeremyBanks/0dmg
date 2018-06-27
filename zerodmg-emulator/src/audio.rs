@@ -1,5 +1,6 @@
 use super::GameBoy;
 
+/// Game Boy audio controller state
 pub struct AudioData {
     t: u64,
     registers: [u8; 0x2F],

@@ -3,6 +3,7 @@ use super::GameBoy;
 use super::audio::AudioController;
 use super::video::VideoController;
 
+/// Game Boy general memory state
 pub struct MemoryData {
     wram: [u8; 0x2000],
     stack_ram: [u8; 0x80],

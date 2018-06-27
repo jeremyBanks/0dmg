@@ -5,6 +5,7 @@ use image::GenericImage;
 // seems to be the right value to meet the apparent framerate
 const CYCLES_PER_LINE: u64 = 113;
 
+/// Game Boy video memory state
 pub struct VideoData {
     t: u64,
     vram: [u8; 0x2000],

@@ -10,6 +10,7 @@ use futures::future::Future;
 
 use zerodmg_emulator;
 
+/// Simple HTTP server displaying emulator output
 pub struct GameBoyIOServer {
     pub output_buffer: Arc<Mutex<zerodmg_emulator::Output>>,
 }
