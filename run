@@ -1,8 +1,0 @@
-#!/bin/bash
-set -eux;
-CARGO="cargo +nightly";
-
-while true; do
-    ${CARGO} run || sleep 3;
-    sleep 1;
-done;
