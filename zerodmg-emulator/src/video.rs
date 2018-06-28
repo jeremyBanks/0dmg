@@ -1,6 +1,5 @@
 use super::GameBoy;
 
-use std::convert::TryFrom;
 use image::GenericImage;
 
 // seems to be the right value to meet the apparent framerate

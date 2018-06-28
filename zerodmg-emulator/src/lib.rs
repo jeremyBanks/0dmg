@@ -1,5 +1,3 @@
-#![feature(try_from)]
-
 mod audio;
 mod cpu;
 mod memory;
@@ -10,8 +8,6 @@ use self::cpu::{CPUController, CPUData, OperationExecution};
 use self::memory::MemoryData;
 use self::video::{VideoController, VideoData};
 use std::clone::Clone;
-use std::fs::File;
-use std::io::Read;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, SystemTime};
@@ -132,12 +128,11 @@ impl Output {
 
 impl GameBoy {
     pub fn new(output_buffer: Arc<Mutex<Output>>) -> Self {
-        let default_game_rom = include_bytes!("../../roms/blargg-tests/cpu_instrs/cpu_instrs.gb");
-        let mut game_rom = default_game_rom.to_vec();
-
+        let default_game_rom = include_bytes!("test_roms/cpu_instrs/cpu_instrs.gb");
+        
         Self {
             cpu: CPUData::new(),
-            mem: MemoryData::new(game_rom),
+            mem: MemoryData::new(default_game_rom.to_vec()),
             aud: AudioData::new(),
             vid: VideoData::new(),
             t: 0,
