@@ -27,17 +27,12 @@ impl Service for GameBoyIOServer {
 
         match (req.method(), req.path()) {
             (&Get, "/") => {
-                let mut f = File::open("./src/io.html").expect("file not found");
-
-                let mut contents = String::new();
-                f.read_to_string(&mut contents)
-                    .expect("something went wrong reading the file");;
-
+                let html = include_bytes!("io.html").to_vec();
                 Box::new(futures::future::ok(
                     Response::new()
-                        .with_header(ContentLength(contents.len() as u64))
+                        .with_header(ContentLength(html.len() as u64))
                         .with_header(ContentType::html())
-                        .with_body(contents),
+                        .with_body(html),
                 ))
             }
             (&Get, "/output.png") => {

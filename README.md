@@ -2,7 +2,7 @@
 
 It's not much, but you can run
 
-    cargo install zerodmg
+    cargo +nightly install zerodmg
 
 then run
 

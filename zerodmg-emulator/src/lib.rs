@@ -132,14 +132,8 @@ impl Output {
 
 impl GameBoy {
     pub fn new(output_buffer: Arc<Mutex<Output>>) -> Self {
-        let mut game_rom = vec![];
-
-        match File::open("./roms/default.gb") {
-            Ok(f) => f,
-            Err(_) => File::open("./roms/blargg-tests/cpu_instrs/cpu_instrs.gb")
-                .expect("failed to open game ROM file"),
-        }.read_to_end(&mut game_rom)
-            .expect("something went wrong reading the file");
+        let default_game_rom = include_bytes!("../../roms/blargg-tests/cpu_instrs/cpu_instrs.gb");
+        let mut game_rom = default_game_rom.to_vec();
 
         Self {
             cpu: CPUData::new(),
