@@ -1,2 +1,0 @@
-    cargo clean && cargo build;
-
