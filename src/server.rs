@@ -1,5 +1,3 @@
-use std::fs::File;
-use std::io::Read;
 use std::sync::{Arc, Mutex};
 
 use hyper::header::{CacheControl, CacheDirective, ContentLength, ContentType};

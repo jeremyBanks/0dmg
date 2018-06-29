@@ -222,61 +222,61 @@ impl GameBoy {
                 self.t += 1;
             }
 
-            if should_log {
-                if self.t >= sync_time_at_tick {
-                    sync_time_at_tick += sync_time_every_ticks;
+            if self.t >= sync_time_at_tick {
+                sync_time_at_tick += sync_time_every_ticks;
 
-                    // duration by which we allow internal time to slip ahead of real time,
-                    // for the sake of doing several operations in a batch, rather than
-                    // sleeping between each of them
-                    const BATCH_MARGIN: Duration = Duration::from_millis(4);
-                    const MAX_LAG: Duration = Duration::from_millis(4);
-                    const ZERO: Duration = Duration::from_secs(0);
+                // duration by which we allow internal time to slip ahead of real time,
+                // for the sake of doing several operations in a batch, rather than
+                // sleeping between each of them
+                const BATCH_MARGIN: Duration = Duration::from_millis(8);
+                const MAX_LAG: Duration = Duration::from_millis(8);
+                const ZERO: Duration = Duration::from_secs(0);
 
-                    // TODO: this is exactly 1MHz, which is wrong.
-                    let internal_elapsed =
-                        Duration::new(self.t / 1000000, ((self.t * 1000) % 1000000000) as u32); // 953 should really be 1000000000 / 1048576
-                    let wall_elapsed = start_time.elapsed().expect("failed to get elapsed time?!");
-                    let skew_ahead = if internal_elapsed > wall_elapsed {
-                        internal_elapsed - wall_elapsed
-                    } else {
-                        ZERO
-                    };
-                    let skew_behind = if wall_elapsed > internal_elapsed {
-                        wall_elapsed - internal_elapsed
-                    } else {
-                        ZERO
-                    };
+                // TODO: this is exactly 1MHz, which is wrong.
+                let internal_elapsed =
+                    Duration::new(self.t / 1000000, ((self.t * 1000) % 1000000000) as u32);
+                let wall_elapsed = start_time.elapsed().expect("failed to get elapsed time?!");
 
-                    // println!("internal / wall = {:?} / {:?}", internal_elapsed, wall_elapsed);
-                    // println!("behind / ahead = {:?} / {:?}", skew_behind, skew_ahead);
+                let skew_ahead = if internal_elapsed > wall_elapsed {
+                    internal_elapsed - wall_elapsed
+                } else {
+                    ZERO
+                };
+                let skew_behind = if wall_elapsed > internal_elapsed {
+                    wall_elapsed - internal_elapsed
+                } else {
+                    ZERO
+                };
 
-                    if skew_ahead > BATCH_MARGIN {
-                        // going too fast -- sleep a bit
-                        thread::sleep(skew_ahead);
-                        if clear != last_color {
-                            last_color = clear;
-                            print!("{}", clear);
-                        }
-                    } else if skew_behind > MAX_LAG {
-                        // going waaay too slow! crap!
-                        if red != last_color {
-                            last_color = red;
-                            print!("{}", red);
-                        }
-                    } else if skew_ahead > ZERO {
-                        // going good
-                        if clear != last_color {
-                            last_color = clear;
-                            print!("{}", clear);
-                        }
-                    } else if yellow != last_color {
-                        // going a bit slow
+                if skew_ahead > BATCH_MARGIN {
+                    // going too fast -- sleep a bit
+                    thread::sleep(skew_ahead);
+                    if clear != last_color {
+                        last_color = clear;
+                        print!("{}", clear);
+                    }
+                } else if skew_ahead > ZERO {
+                    // going good
+                    if clear != last_color {
+                        last_color = clear;
+                        print!("{}", clear);
+                    }
+                } else if skew_behind < MAX_LAG {
+                    // going a bit slow
+                    if yellow != last_color {
                         last_color = yellow;
                         print!("{}", yellow);
                     }
+                } else {
+                    // going waaay too slow! crap!
+                    if red != last_color {
+                        last_color = red;
+                        print!("{}", red);
+                    }
                 }
+            }
 
+            if should_log {
                 self.print_recent_executions(log_size);
             }
         }
