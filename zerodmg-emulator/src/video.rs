@@ -255,34 +255,26 @@ impl VideoController for GameBoy {
         }
 
         // Draw border around active background in debug buffer.
-        let border_width: i16 = 2;
+        let border_width: i16 = 12;
         for dy in -border_width..border_width {
-            let dyp = if dy < 0 { dy } else { dy + i16::from(GB_HEIGHT) };
+            let dya: u8 = (if dy > 0 { dy + 1 } else { -dy }) as u8;
+            let dyp = if dy < 0 { dy  } else { dy + i16::from(GB_HEIGHT) };
             let y = u32::from((i16::from(self.scy()) + dyp) as u8);
 
             for x in 0..=0xFF {
                 let mut color = bg_0.get_pixel(x, y);
-
-                color.data[0] = (color.data[0] / 4) + (color.data[0] / 2);
-                color.data[1] = (color.data[1] / 4) + (color.data[1] / 2);
-                color.data[2] = (color.data[2] / 4) + (color.data[2] / 2);
-                color.data[3] = 0xB0;
-
+                color.data[3] = ((color.data[3] as u32 * dya as u32) / (border_width as u32)) as u8;
                 bg_0.put_pixel(x, y, color);
             }
         }
         for dx in -border_width..border_width {
+            let dxa: u8 = (if dx > 0 { dx + 1 } else { -dx }) as u8;
             let dxp = if dx < 0 { dx } else { dx + i16::from(GB_WIDTH) };
             let x = u32::from((i16::from(self.scx()) + dxp) as u8);
 
             for y in 0..=0xFF {
                 let mut color = bg_0.get_pixel(x, y);
-
-                color.data[0] = (color.data[0] / 4) + (color.data[0] / 2);
-                color.data[1] = (color.data[1] / 4) + (color.data[1] / 2);
-                color.data[2] = (color.data[2] / 4) + (color.data[2] / 2);
-                color.data[3] = 0xB0;
-
+                color.data[3] = ((color.data[3] as u32 * dxa as u32) / (border_width as u32)) as u8;
                 bg_0.put_pixel(x, y, color);
             }
         }
