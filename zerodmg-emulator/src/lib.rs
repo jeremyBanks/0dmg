@@ -1,10 +1,7 @@
-#![feature(iterator_flatten)]
-
 mod audio;
 mod cpu;
 mod memory;
 mod video;
-pub mod asm;
 
 use self::audio::{AudioController, AudioData};
 use self::cpu::{CPUController, CPUData, OperationExecution};
@@ -51,11 +48,11 @@ pub struct Output {
     pub sprites: DynamicImage,
 }
 
-impl Default for Output {  
-    fn default() -> Self { 
-        Self::new()        
-    }                      
-}                          
+impl Default for Output {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl Output {
     pub fn new() -> Self {
@@ -132,7 +129,7 @@ impl Output {
 impl GameBoy {
     pub fn new(output_buffer: Arc<Mutex<Output>>) -> Self {
         let default_game_rom = include_bytes!("test_roms/cpu_instrs/cpu_instrs.gb");
-        
+
         Self {
             cpu: CPUData::new(),
             mem: MemoryData::new(default_game_rom.to_vec()),

@@ -1,8 +1,8 @@
 #![feature(rust_2018_preview)]
 #![feature(rust_2018_idioms)]
 
-use zerodmg_emulator::asm;
+use zerodmg_codes;
 
 pub fn main() -> Result<(), impl std::fmt::Debug> {
-    asm::main()
+    zerodmg_codes::main()
 }
