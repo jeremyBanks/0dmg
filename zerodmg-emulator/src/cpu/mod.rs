@@ -92,26 +92,6 @@ impl CPUData {
     }
 }
 
-enum Interrupt {
-    VBlank,
-    LCDStatus,
-    TimerOverflow,
-    SerialByteTransferred,
-    ButtonUp,
-}
-
-impl Interrupt {
-    fn HandlerAddress(&self) -> u16 {
-        match (self) {
-            VBlank => 0x0040,
-            LCDStatus => 0x0048,
-            TimerOverflow => 0x0050,
-            SerialByteTransferred => 0x0058,
-            ButtonUp => 0x0060,
-        }
-    }
-}
-
 impl CPUController for GameBoy {
     fn tick(&mut self) -> OperationExecution {
         let t = self.cpu.t;

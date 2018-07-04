@@ -1,7 +1,10 @@
+#![feature(iterator_flatten)]
+
 mod audio;
 mod cpu;
 mod memory;
 mod video;
+pub mod asm;
 
 use self::audio::{AudioController, AudioData};
 use self::cpu::{CPUController, CPUData, OperationExecution};
