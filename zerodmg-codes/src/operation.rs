@@ -6,6 +6,8 @@ use self::Operation::*;
 use self::U16Register::*;
 use self::U8Register::*;
 
+//^ TODO: rename to Instruction
+
 /// A single CPU operation, including any immediate arguments.
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
