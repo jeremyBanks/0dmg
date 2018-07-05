@@ -26,32 +26,29 @@ pub enum Operation {
 }
 
 /// The 8-bit registers that are available in the CPU.
-///
-/// The discriminant integer associated with each variant is the bit pattern
-// used to identify the register the machine code.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub enum U8Register {
     /// Primary accumulator register
-    A = 0b111,
+    A,
 
     /// May be paired with C as 16-bit BC register.
-    B = 0b000,
+    B,
     /// May be paired with B as 16-bit BC register.
-    C = 0b001,
+    C,
 
     /// May be paired with D as 16-bit BC register.
-    D = 0b010,
+    D,
     /// May be paired with E as 16-bit BC register.
-    E = 0b011,
+    E,
 
     /// High byte of 16-bit HL memory pointer register.
-    H = 0b100,
+    H,
     /// Low byte of 16-bit HL memory pointer register.
-    L = 0b101,
+    L,
 
     /// Value in memory address represented indicated by H and L registers.
-    AT_HL = 0b110,
+    AT_HL,
 }
 
 /// The 16-bit registers that are available in the CPU.
@@ -149,6 +146,15 @@ impl Operation {
 impl U8Register {
     /// The integer/bit pattern representing this register in the machine code.
     pub fn index(self) -> u8 {
-        self as u8
+        match self {
+            A => 0b111,
+            B => 0b000,
+            C => 0b001,
+            D => 0b010,
+            E => 0b011,
+            H => 0b100,
+            L => 0b101,
+            AT_HL => 0b110,
+        }
     }
 }
