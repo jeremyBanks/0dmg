@@ -10,11 +10,6 @@ use self::U8Register::*;
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub enum Operation {
-    /// Raw data in the ROM that has not been interpreted as instructions.
-    /// This may really be raw data (graphics, text, sound), or it may just be
-    /// something we don't understand how to interpret yet.
-    DATA(Vec<u8>),
-
     /// No operation
     NOP,
     /// Increment u8 register
@@ -31,22 +26,18 @@ pub enum Operation {
 pub enum U8Register {
     /// Primary accumulator register
     A,
-
     /// May be paired with C as 16-bit BC register.
     B,
     /// May be paired with B as 16-bit BC register.
     C,
-
     /// May be paired with D as 16-bit BC register.
     D,
     /// May be paired with E as 16-bit BC register.
     E,
-
     /// High byte of 16-bit HL memory pointer register.
     H,
     /// Low byte of 16-bit HL memory pointer register.
     L,
-
     /// Value in memory address represented indicated by H and L registers.
     AT_HL,
 }
@@ -114,7 +105,6 @@ impl Operation {
     /// Encodes this operation back into machine code bytes.
     pub fn to_bytes(&self) -> Vec<u8> {
         match self {
-            DATA(data) => data.clone(),
             NOP => vec![0b0000_0000],
             INC(register) => vec![0b00_000_100 + 0b00_001_000 * register.index()],
             DEC(register) => vec![0b00_000_101 + 0b00_001_000 * register.index()],
@@ -128,13 +118,6 @@ impl Operation {
     /// Encodes this instruction as a pseudo-assembly string.
     pub fn to_asm(&self) -> String {
         match self {
-            DATA(data) => format!(
-                "DATA 0x{}",
-                data.iter()
-                    .map(|ref b| format!("{:02X}", b))
-                    .collect::<Vec<String>>()
-                    .join("")
-            ),
             NOP => format!("NOP"),
             INC(register) => format!("INC {:?}", register),
             DEC(register) => format!("DEC {:?}", register),
