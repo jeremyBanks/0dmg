@@ -1,12 +1,17 @@
 use zerodmg_utils::little_endian::{u16_to_u8s, u8s_to_u16};
 
 use std::fmt::Debug;
+    
+//^ TODO: rename Operation to Instruction
+//^ Encoding/decoding of single processor instruction.
 
-use self::Operation::*;
-use self::U16Register::*;
-use self::U8Register::*;
+mod prelude {
+  use self::Operation::*;
+  use self::U16Register::*;
+  use self::U8Register::*;
+}
 
-//^ TODO: rename to Instruction
+use prelude::*;
 
 /// A single CPU operation, including any immediate arguments.
 #[derive(Clone, Debug, PartialEq, Eq)]
