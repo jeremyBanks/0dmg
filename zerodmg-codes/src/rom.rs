@@ -7,8 +7,6 @@ use crate::instruction::Instruction::*;
 use crate::instruction::U16Register::*;
 use crate::instruction::U8Register::*;
 
-//^ Encoding/decoding of complete ROMs.
-
 /// Re-exports important traits and types for glob importing.
 pub mod prelude {
     pub use super::AssembledROM;
@@ -93,14 +91,14 @@ impl From<&AssembledROM> for DisassembledROM {
 
 impl AssembledROM {
     /// Creates a new `AssembledROM` of the given raw bytes, with their roles
-    /// inferred where possible from constant known instruction locations.
+    /// inferred where possible from constant known instruction addresses.
     pub fn new(bytes: &Vec<u8>) -> Self {
         let self = Self::from(bytes);
 
-        // For now, we're pretending that 0x0000 is the only known constant instruction location.
-        self.add_known_instruction_location(0x0000);
-        // In reality, 0x0000 is a constant instruction location for the boot ROM, but for games
-        // it's not, and the actual constant instruction locations are the entry point at 0x0100 and
+        // For now, we're pretending that 0x0000 is the only known constant instruction address.
+        self.add_known_instruction_address(0x0000);
+        // In reality, 0x0000 is a constant instruction address for the boot ROM, but for games
+        // it's not, and the actual constant instruction addresses are the entry point at 0x0100 and
         // the interrupt handlers at 0x0040, 0x0048, 0x0050, and 0x0048.
 
         self
@@ -108,8 +106,21 @@ impl AssembledROM {
 
     /// Updates byte role information give that the byte at entry_point is the beginning
     /// of an instruction.
-    pub fn add_known_instruction_location(&mut self, _entry_point: u16) {
+    pub fn add_known_instruction_address(&mut self, _address: u16) {
         unimplemented!()
+    }
+
+    /// Returns the instruction starting at the specified address, which may need to be newly decoded.
+    ///
+    /// If this instruction was not previously decoded, this will also decode the roles of following
+    /// bytes that can now be decoded.
+    pub fn get_instruction(&mut self, address: u16) -> Instruction {
+        self.add_known_instruction_address(address);
+        if let ROMByteRole::InstructionStart(instruction) = self.bytes[address].role {
+            instruction
+        } else {
+            unreachable!();
+        }
     }
 }
 

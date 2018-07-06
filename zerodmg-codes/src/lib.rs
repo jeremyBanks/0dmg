@@ -3,12 +3,14 @@
 #![warn(missing_docs, missing_debug_implementations)]
 #![allow(dead_code, unused_imports)]
 
-//! Experiments in decoding game boy machine code.
+//! Experiments in decoding Game Boy machine code.
 
-/// Instruction types.
+/// Encoding/decoding individual CPU instructions.
 pub mod instruction;
 
-/// ROM types.
+/// Encoding/decoding of complete ROMs.
+///
+/// Apparent logic errors in ROM data are currently handled by panicking.
 pub mod rom;
 
 /// Re-exports important traits and types for glob importing.
