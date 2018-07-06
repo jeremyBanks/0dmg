@@ -5,6 +5,7 @@ use std::fmt::{Debug, Display};
 
 /// Re-exports important traits and types for glob importing.
 pub mod prelude {
+    pub use super::JumpReference;
     pub use super::Instruction::*;
     pub use super::U16Register::*;
     pub use super::U8Register::*;
@@ -68,6 +69,24 @@ pub enum U16Register {
     PC,
 }
 
+/// Possible control flow that can be statically known following this instruction.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ControlFlowsTo {
+    /// Whether control may flow directly to the next instruction.
+    next: bool,
+    /// A potential control jump following this instruction.
+    jump: Option<JumpReference>,
+}
+
+/// Potential target references for a jump instruction.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum JumpReference {
+    /// A jump to an absolute address in memory.
+    Absolute(u16),
+    /// A jump to relative to the address *following* the current instruction.
+    Relative(i8),
+}
+
 impl Instruction {
     /// Decodes machine code bytes from the iterator to an Instruction.
     ///
@@ -127,6 +146,17 @@ impl Instruction {
             }
         }
     }
+
+    /// Where execution may continue following this instruction.
+    pub fn flows_to(&self) -> ControlFlowsTo {
+        match self {
+            NOP => ControlFlowsTo::next(),
+            INC(_) => ControlFlowsTo::next(),
+            DEC(_) => ControlFlowsTo::next(),
+            JP_NZ(address) => ControlFlowsTo::next_and_jump(JumpReference::Absolute(*address)),
+            JP(address) => ControlFlowsTo::jump(JumpReference::Absolute(*address)),
+        }
+    }
 }
 
 impl Display for Instruction {
@@ -138,6 +168,37 @@ impl Display for Instruction {
             DEC(register) => write!(f, "DEC {:?}", register),
             JP(address) => write!(f, "JP 0x{:04X}", address),
             JP_NZ(address) => write!(f, "JP NZ 0x{:04X}", address),
+        }
+    }
+}
+
+impl ControlFlowsTo {
+    /// No known control flow from here.
+    pub fn none() -> Self {
+        ControlFlowsTo {
+            next: false,
+            jump: None,
+        }
+    }
+    /// Control can flows to the next instruction (typical case).
+    pub fn next() -> Self {
+        ControlFlowsTo {
+            next: true,
+            jump: None,
+        }
+    }
+    /// Control can flow to a given jump reference.
+    pub fn jump(jump: JumpReference) -> Self {
+        ControlFlowsTo {
+            next: false,
+            jump: Some(jump),
+        }
+    }
+    /// Control can flow to the next instruction or a given jump reference.
+    pub fn next_and_jump(jump: JumpReference) -> Self {
+        ControlFlowsTo {
+            next: false,
+            jump: Some(jump),
         }
     }
 }

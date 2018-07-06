@@ -4,7 +4,7 @@ Following up from my last post, I've been considering how I want to model the RO
 
 ## `enum zerodmg_codes::instructions::Instruction`
 
-`Instruction` specifies a single assembly instruction. Immediate argument values, or register arguments (via opcode variants) are included as enum fields. This enum itself is responsible for encoding and decoding individual instructions [TODO?: and listing their jump destinations], but doesn't know anything else about what they do.
+`Instruction` specifies a single assembly instruction. Immediate argument values, or register arguments (via opcode variants) are included as enum fields.
 
 ```rust
 pub enum Instruction {
@@ -14,6 +14,20 @@ pub enum Instruction {
     JP_NZ(u16),
     JP(u16),
     // ...
+}
+```
+
+This enum itself is responsible for encoding and decoding individual instructions, knowing their sizes, and listing their statically-knowable jump destinations, but doesn't know anything else about what they do.
+
+```rust
+pub fn flows_to(&self) -> ControlFlowsTo {
+    match self {
+        NOP => ControlFlowsTo::next(),
+        INC(_) => ControlFlowsTo::next(),
+        DEC(_) => ControlFlowsTo::next(),
+        JP(address) => ControlFlowsTo::jump(Absolute(*address)),
+        JP_NZ(address) => ControlFlowsTo::next_and_jump(Absolute(*address)),
+    }
 }
 ```
 
