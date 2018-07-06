@@ -11,24 +11,27 @@ pub enum Instruction {
     NOP,
     INC(U8Register),
     DEC(U8Register),
-    JP_NZ(u16),
     JP(u16),
+    JP_NZ(u16),
     // ...
 }
 ```
 
-This enum itself is responsible for encoding and decoding individual instructions, knowing their sizes, and listing their statically-knowable jump destinations, but doesn't know anything else about what they do.
+This enum itself is responsible for encoding and decoding individual instructions, knowing their sizes, but doesn't know anything else about what they do.
+
+The `rom` also module needs to trace static control flow from each instruction, so it defines a new private external trait with the logic it needs (below), but this isn't public.
 
 ```rust
-pub fn flows_to(&self) -> ControlFlowsTo {
-    match self {
-        NOP => ControlFlowsTo::next(),
-        INC(_) => ControlFlowsTo::next(),
-        DEC(_) => ControlFlowsTo::next(),
-        JP(address) => ControlFlowsTo::jump(Absolute(*address)),
-        JP_NZ(address) => ControlFlowsTo::next_and_jump(Absolute(*address)),
+    fn flows_to(&self) -> ControlFlowsTo {
+        match self {
+            NOP => ControlFlowsTo::next(),
+            INC(_) => ControlFlowsTo::next(),
+            DEC(_) => ControlFlowsTo::next(),
+            JP(address) => ControlFlowsTo::jump(Absolute(*address)),
+            JP_NZ(address) => ControlFlowsTo::next_and_jump(Absolute(*address)),
+            // ...
+        }
     }
-}
 ```
 
 ## `struct zerodmg_codes::rom::AssembledROM`

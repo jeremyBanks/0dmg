@@ -1,10 +1,14 @@
 #!/bin/bash
 set -euo pipefail;
-echo; echo; echo; echo; echo; echo; echo; 
-clear;
-echo; echo; echo; echo; echo; echo; echo; 
 clear;
 cd "$(dirname ${BASH_SOURCE[0]})";
 cargo fmt;
+echo;
 cargo build --color=always 2>&1;
-cargo doc --color=always --no-deps 2>&1;
+echo;
+cargo rustdoc --color=always -- --document-private-items 2>&1;
+echo;
+echo "Internal docs written to: file://$PWD/target/doc/zerodmg_codes/index.html";
+echo;
+cargo fix --allow-dirty;
+echo;
