@@ -35,8 +35,6 @@ pub struct ROMBlock {
     pub content: ROMBlockContent,
     /// An optional address that this block must be located at in the compiled output.
     pub address: Option<u16>,
-    /// An optional unique human-readable label for this block.
-    pub label: Option<String>,
 }
 
 /// A contiguous block of ROM code or data.
@@ -88,44 +86,49 @@ impl Display for DisassembledROM {
     /// Encodes this ROM as a pseudo-assembly string.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for block in self.blocks.iter() {
-            block.fmt(f)?;
-            write!(f, "\n");
+            Display::fmt(&block, f)?;
+            write!(f, "\n")?;
         }
+        Ok(())
     }
 }
 
 impl Display for ROMBlock {
     /// Encodes this block as a pseudo-assembly string.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if let Some(label) = self.label {
-            write!(f, "{}:\n", self.label)?;
-        } else if let Some(address) = self.address {
-            write!(f, "0x{:04X}:\n", self.address)?;
+        if let Some(address) = self.address {
+            write!(f, "0x{:04X}:\n", address)?;
+        } else {
+            write!(f, "0x____:\n")?;
         }
+
         match self.content {
-            Data(bytes) => {
+            Data(ref bytes) => {
                 let mut n = 0;
                 for byte in bytes.iter() {
                     if n == 0 {
-                        write!(f, "    0x")?;
+                        write!(f, "    DATA 0x")?;
                         n += 6;
                     }
 
-                    write!(f, "{:02X}", byte);
+                    write!(f, "{:02X}", byte)?;
                     n += 2;
 
-                    if n >= 66 {
+                    if n >= 61 {
                         write!(f, "\n")?;
                         n = 0;
                     }
                 }
+                write!(f, "\n")?;
             }
-            Code(instructions) => {
-                for instruction in instruction.iter() {
+            Code(ref instructions) => {
+                // TODO: exclude trailing padding NOPs
+                for instruction in instructions.iter() {
                     write!(f, "    {}\n", instruction)?;
                 }
             }
         }
+        Ok(())
     }
 }
 
@@ -139,15 +142,15 @@ impl AssembledROM {
     /// Creates a new `AssembledROM` of the given raw bytes, with their roles
     /// inferred where possible from constant known instruction addresses.
     pub fn new(bytes: &Vec<u8>) -> Self {
-        let self = Self::from(bytes);
+        let mut assembled = Self::from(bytes);
 
         // For now, we're pretending that 0x0000 is the only known constant instruction address.
-        self.add_known_instruction_address(0x0000);
+        assembled.add_known_instruction_address(0x0000);
         // In reality, 0x0000 is a constant instruction address for the boot ROM, but for games
         // it's not, and the actual constant instruction addresses are the entry point at 0x0100 and
         // the interrupt handlers at 0x0040, 0x0048, 0x0050, and 0x0048.
 
-        self
+        assembled
     }
 
     /// Updates byte role information give that the byte at entry_point is the beginning
@@ -162,7 +165,9 @@ impl AssembledROM {
     /// bytes that can now be decoded.
     pub fn get_instruction(&mut self, address: u16) -> Instruction {
         self.add_known_instruction_address(address);
-        if let ROMByteRole::InstructionStart(instruction) = self.bytes[address].role {
+        if let ROMByteRole::InstructionStart(instruction, IsJumpDestination::Yes) =
+            self.bytes[usize::from(address)].role
+        {
             instruction
         } else {
             unreachable!();
@@ -188,7 +193,6 @@ impl From<ROMBlockContent> for ROMBlock {
     fn from(content: ROMBlockContent) -> Self {
         Self {
             content,
-            label: None,
             address: None,
         }
     }

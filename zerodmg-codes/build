@@ -1,8 +1,10 @@
 #!/bin/bash
-set -euo pipefail
+set -euo pipefail;
+echo; echo; echo; echo; echo; echo; echo; 
+clear;
+echo; echo; echo; echo; echo; echo; echo; 
+clear;
+cd "$(dirname ${BASH_SOURCE[0]})";
 cargo fmt;
-(
-    cargo build --color=always;
-    cargo doc --color=always --no-deps;
-) 2>&1 | tee target/tmp-build-log | less -r;
-cat target/tmp-build-log;
+cargo build --color=always 2>&1;
+cargo doc --color=always --no-deps 2>&1;

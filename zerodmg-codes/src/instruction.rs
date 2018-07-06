@@ -24,6 +24,8 @@ pub enum Instruction {
     DEC(U8Register),
     /// Conditional absolute jump, if Z flag bit is non-zero
     JP_NZ(u16),
+    /// Unconditional absolute jump
+    JP(u16),
 }
 
 /// The 8-bit registers that are available in the CPU.
@@ -96,6 +98,12 @@ impl Instruction {
                     let address = u8s_to_u16(*low, *high);
                     JP_NZ(address)
                 }
+                0b1100_0011 => {
+                    let low = bytes.next().expect("TODO handle this gracefully");
+                    let high = bytes.next().expect("TODO handle this gracefully");
+                    let address = u8s_to_u16(*low, *high);
+                    JP(address)
+                }
                 _ => unimplemented!(),
             })
         } else {
@@ -113,6 +121,10 @@ impl Instruction {
                 let (low, high) = u16_to_u8s(*address);
                 vec![0b1100_0010, low, high]
             }
+            JP(address) => {
+                let (low, high) = u16_to_u8s(*address);
+                vec![0b11000011, low, high]
+            }
         }
     }
 }
@@ -124,6 +136,7 @@ impl Display for Instruction {
             NOP => write!(f, "NOP"),
             INC(register) => write!(f, "INC {:?}", register),
             DEC(register) => write!(f, "DEC {:?}", register),
+            JP(address) => write!(f, "JP 0x{:04X}", address),
             JP_NZ(address) => write!(f, "JP NZ 0x{:04X}", address),
         }
     }
