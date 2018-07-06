@@ -34,19 +34,19 @@ pub enum Instruction {
 pub enum U8Register {
     /// Primary accumulator register
     A,
-    /// May be paired with C as 16-bit BC register.
+    /// May be paired with [C] as 16-bit [BC] register.
     B,
-    /// May be paired with B as 16-bit BC register.
+    /// May be paired with [B] as 16-bit [BC] register.
     C,
-    /// May be paired with D as 16-bit BC register.
+    /// May be paired with [D] as 16-bit [DE] register.
     D,
-    /// May be paired with E as 16-bit BC register.
+    /// May be paired with [E] as 16-bit [DE] register.
     E,
-    /// High byte of 16-bit HL memory pointer register.
+    /// High byte of 16-bit [HL] memory pointer register.
     H,
-    /// Low byte of 16-bit HL memory pointer register.
+    /// Low byte of 16-bit [HL] memory pointer register.
     L,
-    /// Value in memory address represented indicated by H and L registers.
+    /// Value in memory address represented indicated by [H] and [L] registers.
     AT_HL,
 }
 
@@ -55,12 +55,14 @@ pub enum U8Register {
 #[allow(non_camel_case_types)]
 pub enum U16Register {
     /// Combines the accumulator register and the internal flag register.
+    ///
+    /// Typically used to preserve/restore that state before/after calls.
     AF,
-    /// Combines the B and C 8-bit registers.
+    /// Combines the [B] and [C] 8-bit registers.
     BC,
-    /// Combines the D and E 8-bit registers.
+    /// Combines the [D] and [E] 8-bit registers.
     DE,
-    /// Memory pointer register, combining the H and L 8-bit registers.
+    /// Memory pointer register, combining the [H] and [L] 8-bit registers.
     HL,
     /// Stack pointer register
     SP,
@@ -71,7 +73,7 @@ pub enum U16Register {
 impl Instruction {
     /// Decodes machine code bytes from the iterator to an Instruction.
     ///
-    /// Returns None if the iterator is exhausted.
+    /// Returns [None] if the iterator is exhausted.
     pub fn from_byte_iter(bytes: &mut Iterator<Item = &u8>) -> Option<Self> {
         if let Some(first) = bytes.next() {
             Some(match first {
