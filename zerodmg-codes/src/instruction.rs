@@ -1,23 +1,23 @@
 use zerodmg_utils::little_endian::{u16_to_u8s, u8s_to_u16};
 
 use std::fmt::Debug;
-    
-//^ TODO: rename Operation to Instruction
-//^ Encoding/decoding of single processor instruction.
 
-mod prelude {
-  use self::Operation::*;
-  use self::U16Register::*;
-  use self::U8Register::*;
+//^ Encoding/decoding of single processor instructions.
+
+/// Re-exports important traits and types for glob importing.
+pub mod prelude {
+    pub use super::Instruction::*;
+    pub use super::U16Register::*;
+    pub use super::U8Register::*;
 }
 
-use prelude::*;
+use self::prelude::*;
 
-/// A single CPU operation, including any immediate arguments.
-#[derive(Clone, Debug, PartialEq, Eq)]
+/// A single CPU instruction, including any immediate arguments.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
-pub enum Operation {
-    /// No operation
+pub enum Instruction {
+    /// No instruction
     NOP,
     /// Increment u8 register
     INC(U8Register),
@@ -67,8 +67,8 @@ pub enum U16Register {
     PC,
 }
 
-impl Operation {
-    /// Decodes machine code bytes from the iterator to an Operation.
+impl Instruction {
+    /// Decodes machine code bytes from the iterator to an Instruction.
     ///
     /// Returns None if the iterator is exhausted.
     pub fn from_byte_iter(bytes: &mut Iterator<Item = &u8>) -> Option<Self> {
@@ -97,19 +97,14 @@ impl Operation {
                     let address = u8s_to_u16(*low, *high);
                     JP_NZ(address)
                 }
-                first => {
-                    // Just grab all of the remaining bytes as DATA.
-                    let mut data = vec![*first];
-                    data.extend(bytes);
-                    DATA(data)
-                }
+                _ => unimplemented!(),
             })
         } else {
             None
         }
     }
 
-    /// Encodes this operation back into machine code bytes.
+    /// Encodes this instruction back into machine code bytes.
     pub fn to_bytes(&self) -> Vec<u8> {
         match self {
             NOP => vec![0b0000_0000],
