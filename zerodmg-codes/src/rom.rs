@@ -146,62 +146,15 @@ impl ControlFlowsTo {
     }
 }
 
-impl Display for DisassembledROM {
-    /// Encodes this ROM as a pseudo-assembly string.
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for block in self.blocks.iter() {
-            Display::fmt(&block, f)?;
-            write!(f, "\n")?;
+impl DisassembledROM {
+    /// Returns some arbitrary value of this type.
+    pub fn example() -> DisassembledROM {
+        DisassembledROM {
+            blocks: vec![ROMBlock {
+                address: None,
+                content: Code(vec![INC(A), INC(A), INC(B), INC(C)]),
+            }],
         }
-        Ok(())
-    }
-}
-
-impl Display for ROMBlock {
-    /// Encodes this block as a pseudo-assembly string.
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if let Some(address) = self.address {
-            write!(f, "0x{:04X}:\n", address)?;
-        } else {
-            write!(f, "0x____:\n")?;
-        }
-
-        match self.content {
-            Data(ref bytes) => {
-                let mut n = 0;
-                for byte in bytes.iter() {
-                    if n == 0 {
-                        write!(f, "    DATA 0x")?;
-                        n += 6;
-                    }
-
-                    write!(f, "{:02X}", byte)?;
-                    n += 2;
-
-                    if n >= 61 {
-                        write!(f, "\n")?;
-                        n = 0;
-                    }
-                }
-                write!(f, "\n")?;
-            }
-            Code(ref instructions) => {
-                // TODO: exclude trailing padding NOPs
-                for instruction in instructions.iter() {
-                    write!(f, "    {}\n", instruction)?;
-                }
-            }
-        }
-        Ok(())
-    }
-}
-
-impl From<&AssembledROM> for DisassembledROM {
-    /// Constructs a [DisassembledROM] from the bytes and current role information in an [AssembledROM]. You probably want to make sure you've added as many known instruction addresses as possible (with [AssembledROM::get_known_instruction()]) before calling this.
-    ///
-    /// Each byte which [IsJumpDestination::Yes] starts a new [Code] block, and contiguous [ROMByteRole::Unknown] bytes are grouped into [Data] blocks.
-    fn from(_assembled: &AssembledROM) -> Self {
-        unimplemented!()
     }
 }
 
@@ -227,6 +180,51 @@ impl AssembledROM {
     pub fn get_known_instruction(&mut self, _address: u16) -> Instruction {
         unimplemented!();
     }
+
+    /// Returns some arbitrary value of this type.
+    pub fn example() -> AssembledROM {
+        AssembledROM {
+            bytes: vec![
+                ROMByte {
+                    role: ROMByteRole::InstructionStart(INC(A), IsJumpDestination::Yes),
+                    byte: 0x3C,
+                },
+                ROMByte {
+                    role: ROMByteRole::InstructionStart(INC(A), IsJumpDestination::Unknown),
+                    byte: 0x3C,
+                },
+                ROMByte {
+                    role: ROMByteRole::InstructionStart(INC(B), IsJumpDestination::Unknown),
+                    byte: 0x04,
+                },
+                ROMByte {
+                    role: ROMByteRole::InstructionStart(INC(C), IsJumpDestination::Unknown),
+                    byte: 0x0C,
+                },
+            ],
+        }
+    }
+}
+
+#[test]
+fn test_disassembled_from_assembled() {
+    let assembled = AssembledROM::example();
+    let _disassembled = DisassembledROM::from(&assembled);
+}
+
+impl From<&AssembledROM> for DisassembledROM {
+    /// Constructs a [DisassembledROM] from the bytes and current role information in an [AssembledROM]. You probably want to make sure you've added as many known instruction addresses as possible (with [AssembledROM::get_known_instruction()]) before calling this.
+    ///
+    /// Each byte which [IsJumpDestination::Yes] starts a new [Code] block, and contiguous [ROMByteRole::Unknown] bytes are grouped into [Data] blocks.
+    fn from(_assembled: &AssembledROM) -> Self {
+        unimplemented!()
+    }
+}
+
+#[test]
+fn test_assembled_from_disassembled() {
+    let disassembled = DisassembledROM::example();
+    let _assembled = AssembledROM::from(&disassembled);
 }
 
 impl From<&DisassembledROM> for AssembledROM {
@@ -240,6 +238,17 @@ impl From<&DisassembledROM> for AssembledROM {
     }
 }
 
+#[test]
+fn test_assembled_from_bytes_then_decode_trivial() {
+    let bytes = vec![0x3Cu8, 0x3C, 0x04, 0x0C];
+    let mut assembled = AssembledROM::from(&bytes);
+    assert_eq!(NOP, assembled.get_known_instruction(0x0000));
+    assert_eq!(INC(A), assembled.get_known_instruction(0x0001));
+    assert_eq!(INC(B), assembled.get_known_instruction(0x0002));
+    assert_eq!(INC(C), assembled.get_known_instruction(0x0003));
+    assert_eq!(NOP, assembled.get_known_instruction(0x0000));
+}
+
 impl From<&Vec<u8>> for AssembledROM {
     /// Copies bytes into a new [AssembledROM] and marks them as as [ROMByteRole::Unknown].
     ///
@@ -248,6 +257,22 @@ impl From<&Vec<u8>> for AssembledROM {
         Self {
             bytes: bytes.iter().map(|byte| byte.clone().into()).collect(),
         }
+    }
+}
+
+#[test]
+fn test_bytes_from_assembled() {
+    let assembled = AssembledROM::example();
+    let _bytes = Vec::<u8>::from(&assembled);
+}
+impl From<&AssembledROM> for Vec<u8> {
+    /// Copies the bytes from [AssembledROM] into a new byte vector.
+    ///
+    /// Used to save binary ROMs.
+    ///
+    /// **This️ conversion is lossy** because byte role information is not preserved.
+    fn from(assembled: &AssembledROM) -> Self {
+        assembled.bytes.iter().map(|&byte| byte.byte).collect()
     }
 }
 
@@ -324,13 +349,52 @@ impl From<&DisassembledROM> for Vec<u8> {
     }
 }
 
-impl From<&AssembledROM> for Vec<u8> {
-    /// Copies the bytes from [AssembledROM] into a new byte vector.
-    ///
-    /// Used to save binary ROMs.
-    ///
-    /// **This️ conversion is lossy** because byte role information is not preserved.
-    fn from(assembled: &AssembledROM) -> Self {
-        assembled.bytes.iter().map(|&byte| byte.byte).collect()
+impl Display for DisassembledROM {
+    /// Encodes this ROM as a pseudo-assembly string.
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for block in self.blocks.iter() {
+            Display::fmt(&block, f)?;
+            write!(f, "\n")?;
+        }
+        Ok(())
+    }
+}
+
+impl Display for ROMBlock {
+    /// Encodes this block as a pseudo-assembly string.
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if let Some(address) = self.address {
+            write!(f, "0x{:04X}:\n", address)?;
+        } else {
+            write!(f, "0x____:\n")?;
+        }
+
+        match self.content {
+            Data(ref bytes) => {
+                let mut n = 0;
+                for byte in bytes.iter() {
+                    if n == 0 {
+                        write!(f, "    DATA 0x")?;
+                        n += 6;
+                    }
+
+                    write!(f, "{:02X}", byte)?;
+                    n += 2;
+
+                    if n >= 61 {
+                        write!(f, "\n")?;
+                        n = 0;
+                    }
+                }
+                write!(f, "\n")?;
+            }
+            Code(ref instructions) => {
+                // TODO: exclude trailing padding NOPs
+                for instruction in instructions.iter() {
+                    write!(f, "    {}\n", instruction)?;
+                }
+            }
+        }
+        Ok(())
     }
 }

@@ -10,7 +10,7 @@ pub mod instruction;
 
 /// Encoding/decoding of complete ROMs.
 ///
-/// Apparent logic errors in ROM data are currently handled by panicking.
+/// Apparent logic errors in ROM data are currently "handled" by panicking.
 pub mod rom;
 
 /// Re-exports important traits and types for glob importing.
@@ -21,7 +21,7 @@ pub mod prelude {
 
 use self::prelude::*;
 
-/// Example/experimental use of this crate.
+/// An example/experimental use of this crate.
 pub fn main() -> Result<(), Box<std::any::Any + Send>> {
     let input = DisassembledROM::from({
         let main_addr = 0x0000;
@@ -56,4 +56,9 @@ pub fn main() -> Result<(), Box<std::any::Any + Send>> {
     println!("{:?}", input);
     println!("{}", input);
     Ok(())
+}
+
+#[test]
+fn test_main() -> Result<(), Box<std::any::Any + Send>> {
+    main()
 }
