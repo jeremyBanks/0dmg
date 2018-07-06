@@ -1,6 +1,7 @@
 use zerodmg_utils::little_endian::{u16_to_u8s, u8s_to_u16};
 
-use std::fmt::Debug;
+use std::fmt;
+use std::fmt::{Debug, Display};
 
 use crate::instruction::Instruction;
 use crate::instruction::Instruction::*;
@@ -24,7 +25,7 @@ pub struct DisassembledROM {
     pub blocks: Vec<ROMBlock>,
 }
 
-/// A contiguous block of ROM code or data, with some optional metadata.
+/// A contiguous block of ROM code or data, with optional metadata.
 ///
 /// If this is a Code block, the first instruction will be a known jump destination,
 /// and all of the other instructions will not be known jump destinations.
@@ -32,7 +33,7 @@ pub struct DisassembledROM {
 pub struct ROMBlock {
     /// The code or data in the block.
     pub content: ROMBlockContent,
-    /// An optional address  that this block must be located at in the compiled output.
+    /// An optional address that this block must be located at in the compiled output.
     pub address: Option<u16>,
     /// An optional unique human-readable label for this block.
     pub label: Option<String>,
@@ -81,6 +82,51 @@ pub enum IsJumpDestination {
     Unknown,
     /// We are confident that this is a potential jump destination in the code.
     Yes,
+}
+
+impl Display for DisassembledROM {
+    /// Encodes this ROM as a pseudo-assembly string.
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for block in self.blocks.iter() {
+            block.fmt(f)?;
+            write!(f, "\n");
+        }
+    }
+}
+
+impl Display for ROMBlock {
+    /// Encodes this block as a pseudo-assembly string.
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if let Some(label) = self.label {
+            write!(f, "{}:\n", self.label)?;
+        } else if let Some(address) = self.address {
+            write!(f, "0x{:04X}:\n", self.address)?;
+        }
+        match self.content {
+            Data(bytes) => {
+                let mut n = 0;
+                for byte in bytes.iter() {
+                    if n == 0 {
+                        write!(f, "    0x")?;
+                        n += 6;
+                    }
+
+                    write!(f, "{:02X}", byte);
+                    n += 2;
+
+                    if n >= 66 {
+                        write!(f, "\n")?;
+                        n = 0;
+                    }
+                }
+            }
+            Code(instructions) => {
+                for instruction in instruction.iter() {
+                    write!(f, "    {}\n", instruction)?;
+                }
+            }
+        }
+    }
 }
 
 impl From<&AssembledROM> for DisassembledROM {

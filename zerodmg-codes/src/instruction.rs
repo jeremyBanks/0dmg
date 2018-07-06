@@ -1,8 +1,7 @@
 use zerodmg_utils::little_endian::{u16_to_u8s, u8s_to_u16};
 
-use std::fmt::Debug;
-
-//^ Encoding/decoding of single processor instructions.
+use std::fmt;
+use std::fmt::{Debug, Display};
 
 /// Re-exports important traits and types for glob importing.
 pub mod prelude {
@@ -116,14 +115,16 @@ impl Instruction {
             }
         }
     }
+}
 
+impl Display for Instruction {
     /// Encodes this instruction as a pseudo-assembly string.
-    pub fn to_asm(&self) -> String {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            NOP => format!("NOP"),
-            INC(register) => format!("INC {:?}", register),
-            DEC(register) => format!("DEC {:?}", register),
-            JP_NZ(address) => format!("JP NZ 0x{:04X}", address),
+            NOP => write!(f, "NOP"),
+            INC(register) => write!(f, "INC {:?}", register),
+            DEC(register) => write!(f, "DEC {:?}", register),
+            JP_NZ(address) => write!(f, "JP NZ 0x{:04X}", address),
         }
     }
 }

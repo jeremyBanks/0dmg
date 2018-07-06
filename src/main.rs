@@ -4,5 +4,5 @@
 use zerodmg_codes;
 
 pub fn main() -> Result<(), impl std::fmt::Debug> {
-    unimplemented!();
+    zerodmg_codes::main()
 }
