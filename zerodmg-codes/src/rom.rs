@@ -145,7 +145,7 @@ impl AssembledROM {
         let mut assembled = Self::from(bytes);
 
         // For now, we're pretending that 0x0000 is the only known constant instruction address.
-        assembled.add_known_instruction_address(0x0000);
+        assembled.get_known_instruction(0x0000);
         // In reality, 0x0000 is a constant instruction address for the boot ROM, but for games
         // it's not, and the actual constant instruction addresses are the entry point at 0x0100 and
         // the interrupt handlers at 0x0040, 0x0048, 0x0050, and 0x0048.
@@ -155,7 +155,7 @@ impl AssembledROM {
 
     /// Updates byte role information give that the byte at entry_point is the beginning
     /// of an instruction.
-    pub fn add_known_instruction_address(&mut self, _address: u16) {
+    pub fn get_known_instruction(&mut self, _address: u16) {
         unimplemented!()
     }
 
@@ -164,7 +164,7 @@ impl AssembledROM {
     /// If this instruction was not previously decoded, this will also decode the roles of following
     /// bytes that can now be decoded.
     pub fn get_instruction(&mut self, address: u16) -> Instruction {
-        self.add_known_instruction_address(address);
+        self.get_known_instruction(address);
         if let ROMByteRole::InstructionStart(instruction, IsJumpDestination::Yes) =
             self.bytes[usize::from(address)].role
         {
