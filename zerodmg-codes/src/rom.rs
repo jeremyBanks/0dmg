@@ -22,36 +22,52 @@ use self::prelude::*;
 /// A ROM in a disassembled assembly-like structure.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DisassembledROM {
+    /// An ordered list of blocks of code or data in the ROM.
     pub blocks: Vec<ROMBlock>,
 }
 
+/// A contiguous block of ROM code or data, with some optional metadata.
+///
+/// If this is a Code block, the first instruction will be a known jump destination,
+/// and all of the other instructions will not be known jump destinations.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ROMBlock {
+    /// The code or data in the block.
     pub content: ROMBlockContent,
-    pub label: Option<String>,
+    /// An optional address  that this block must be located at in the compiled output.
     pub address: Option<u16>,
+    /// An optional unique human-readable label for this block.
+    pub label: Option<String>,
 }
 
+/// A contiguous block of ROM code or data.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ROMBlockContent {
+    /// A block of instructions.
     Code(Vec<Instruction>),
+    /// A block of raw binary data.
     Data(Vec<u8>),
 }
 
 /// A ROM of compiled machine code bytes, potentially with their decoded instruction values attached.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AssembledROM {
+    /// The compiled bytes of the ROM with associated disassembly information.
     pub bytes: Vec<ROMByte>,
 }
 
+/// A ROM byte and inferred information about its role.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ROMByte {
+    /// The raw byte value.
     pub byte: u8,
-    pub kind: ROMByteKind,
+    /// Current inferred information about the byte's role in the ROM.
+    pub role: ROMByteRole,
 }
 
+/// Potential roles a byte can have in a ROM.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ROMByteKind {
+pub enum ROMByteRole {
     /// This may be data, unused, or code we don't understand.
     Unknown,
     /// The initial byte of an instruction; a point at which we can begin parsing.
@@ -60,6 +76,7 @@ pub enum ROMByteKind {
     InstructionRest,
 }
 
+/// Whether we are confident an address is used as a jump destination in the program.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum IsJumpDestination {
     /// We don't know whether this instruction is a potential jump destination.
@@ -68,7 +85,6 @@ pub enum IsJumpDestination {
     Yes,
 }
 
-// logic
 impl From<&AssembledROM> for DisassembledROM {
     fn from(_assembled: &AssembledROM) -> Self {
         unimplemented!()
@@ -76,7 +92,23 @@ impl From<&AssembledROM> for DisassembledROM {
 }
 
 impl AssembledROM {
-    pub fn trace_entry_point(&mut self, _entry_point: u16) {
+    /// Creates a new `AssembledROM` of the given raw bytes, with their roles
+    /// inferred where possible from constant known instruction locations.
+    pub fn new(bytes: &Vec<u8>) -> Self {
+        let self = Self::from(bytes);
+
+        // For now, we're pretending that 0x0000 is the only known constant instruction location.
+        self.add_known_instruction_location(0x0000);
+        // In reality, 0x0000 is a constant instruction location for the boot ROM, but for games
+        // it's not, and the actual constant instruction locations are the entry point at 0x0100 and
+        // the interrupt handlers at 0x0040, 0x0048, 0x0050, and 0x0048.
+
+        self
+    }
+
+    /// Updates byte role information give that the byte at entry_point is the beginning
+    /// of an instruction.
+    pub fn add_known_instruction_location(&mut self, _entry_point: u16) {
         unimplemented!()
     }
 }
@@ -87,18 +119,11 @@ impl From<&DisassembledROM> for AssembledROM {
     }
 }
 
-// glue
 impl From<&Vec<u8>> for AssembledROM {
     fn from(bytes: &Vec<u8>) -> Self {
-        let mut assembled = Self {
+        Self {
             bytes: bytes.iter().map(|byte| byte.clone().into()).collect(),
-        };
-
-        // 0x0000 isn't even an entry point for real ROMs,
-        // but we're going to use this simplification for now.
-        assembled.trace_entry_point(0x0000);
-
-        assembled
+        }
     }
 }
 
@@ -116,7 +141,7 @@ impl From<u8> for ROMByte {
     fn from(byte: u8) -> Self {
         Self {
             byte,
-            kind: ROMByteKind::Unknown,
+            role: ROMByteRole::Unknown,
         }
     }
 }

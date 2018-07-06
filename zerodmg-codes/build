@@ -1,0 +1,5 @@
+#!/bin/bash
+set -euo pipefail
+cargo fmt;
+cargo doc --no-deps --color=always 2>&1 | tee target/tmp-build-log | less -r;
+cat target/tmp-build-log;
