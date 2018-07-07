@@ -1,17 +1,17 @@
 #!/bin/bash
 set -euo pipefail;
-clear;
 cd "$(dirname ${BASH_SOURCE[0]})";
-cargo fmt;
+clear;
+cargo +nightly fmt 2>&1;
 echo;
-cargo build --color=always 2>&1;
+cargo +nightly build --color=always 2>&1;
 echo;
-cargo test --doc --color=always 2>&1;
-cargo test --lib --color=always 2>&1;
-echo;
-cargo rustdoc --color=always -- --document-private-items 2>&1;
+cargo +nightly rustdoc --color=always -- --document-private-items 2>&1;
 echo;
 echo "Internal docs written to: file://$PWD/target/doc/zerodmg_codes/index.html";
 echo;
-cargo fix --allow-dirty;
+cargo +nightly fix --allow-dirty 2>&1;
+echo;
+cargo +nightly test --doc --color=always 2>&1;
+cargo +nightly test --lib --color=always 2>&1;
 echo;
