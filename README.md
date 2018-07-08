@@ -20,6 +20,7 @@ to see what we've got.
 [![zerodmg package on crates.io](https://img.shields.io/crates/v/zerodmg.svg?style=flat-square&label=zerodmg+binary+crate)](https://crates.io/crates/zerodmg)
 [![docs](https://img.shields.io/badge/&-docs-880044.svg?style=flat-square)](https://docs.rs/zerodmg)  
 [![zerodmg-emulator package on crates.io](https://img.shields.io/crates/v/zerodmg-emulator.svg?style=flat-square&label=zerodmg-emulator+library+crate)](https://crates.io/crates/zerodmg-emulator) [![docs](https://img.shields.io/badge/&-docs-880044.svg?style=flat-square)](https://docs.rs/zerodmg-emulator)  
+[![zerodmg-codes package on crates.io](https://img.shields.io/crates/v/zerodmg-codes.svg?style=flat-square&label=zerodmg-codes+library+crate)](https://crates.io/crates/zerodmg-codes) [![docs](https://img.shields.io/badge/&-docs-880044.svg?style=flat-square)](https://docs.rs/zerodmg-codes)  
 [![zerodmg-utils package on crates.io](https://img.shields.io/crates/v/zerodmg-utils.svg?style=flat-square&label=zerodmg-utils+library+crate)](https://crates.io/crates/zerodmg-utils) 
 [![docs](https://img.shields.io/badge/&-docs-880044.svg?style=flat-square)](https://docs.rs/zerodmg-utils)
 
