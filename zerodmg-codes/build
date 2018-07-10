@@ -12,6 +12,8 @@ echo "Internal docs written to: file://$PWD/target/doc/zerodmg_codes/index.html"
 echo;
 cargo +nightly fix --allow-dirty 2>&1;
 echo;
+cargo +nightly clippy 2>&1;
+echo;
 cargo +nightly test --doc --color=always 2>&1;
 cargo +nightly test --lib --color=always 2>&1;
 echo;
