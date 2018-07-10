@@ -10,26 +10,26 @@ use crate::instruction::U8Register::*;
 
 /// Re-exports important traits and types for glob importing.
 pub mod prelude {
-    pub use super::AssembledROM;
-    pub use super::DisassembledROM;
-    pub use super::ROMBlock;
-    pub use super::ROMBlockContent::*;
+    pub use super::AssembledRom;
+    pub use super::DisassembledRom;
+    pub use super::RomBlock;
+    pub use super::RomBlockContent::*;
 }
 
 use self::prelude::*;
 
 /// A ROM in a disassembled assembly-like structure.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct DisassembledROM {
+pub struct DisassembledRom {
     /// An ordered list of blocks of code or data in the ROM.
-    pub blocks: Vec<ROMBlock>,
+    pub blocks: Vec<RomBlock>,
 }
 
 /// A contiguous block of ROM code or data, with optional metadata.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ROMBlock {
+pub struct RomBlock {
     /// The code or data in the block.
-    pub content: ROMBlockContent,
+    pub content: RomBlockContent,
     /// An optional address that this block must be located at in the compiled
     /// output.
     pub address: Option<u16>,
@@ -37,7 +37,7 @@ pub struct ROMBlock {
 
 /// A contiguous block of ROM code or data.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum ROMBlockContent {
+pub enum RomBlockContent {
     /// A block of instructions.
     Code(Vec<Instruction>),
     /// A block of raw binary data.
@@ -47,23 +47,23 @@ pub enum ROMBlockContent {
 /// A ROM of compiled machine code bytes, potentially with their decoded
 /// [Instruction] values attached.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct AssembledROM {
+pub struct AssembledRom {
     /// The compiled bytes of the ROM with associated disassembly information.
-    pub bytes: Vec<ROMByte>,
+    pub bytes: Vec<RomByte>,
 }
 
 /// A ROM byte and inferred information about its role.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct ROMByte {
+pub struct RomByte {
     /// The raw byte value.
     pub byte: u8,
     /// Current inferred information about the byte's role in the ROM.
-    pub role: ROMByteRole,
+    pub role: RomByteRole,
 }
 
 /// Potential roles a byte can have in a ROM.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ROMByteRole {
+pub enum RomByteRole {
     /// This may be data, unused, or code we don't understand.
     Unknown,
     /// The initial byte of an instruction; a point at which we can begin
@@ -151,11 +151,11 @@ impl ControlFlowsTo {
     }
 }
 
-impl DisassembledROM {
+impl DisassembledRom {
     /// Returns some arbitrary value of this type.
-    pub fn example() -> DisassembledROM {
-        DisassembledROM {
-            blocks: vec![ROMBlock {
+    pub fn example() -> DisassembledRom {
+        DisassembledRom {
+            blocks: vec![RomBlock {
                 address: None,
                 content: Code(vec![INC(A), INC(A), INC(B), INC(C)]),
             }],
@@ -163,8 +163,8 @@ impl DisassembledROM {
     }
 }
 
-impl AssembledROM {
-    /// Creates a new [AssembledROM] of the given raw bytes, with their roles
+impl AssembledRom {
+    /// Creates a new [AssembledRom] of the given raw bytes, with their roles
     /// inferred where possible from constant known instruction addresses.
     pub fn new(bytes: &Vec<u8>) -> Self {
         let mut assembled = Self::from(bytes);
@@ -191,23 +191,23 @@ impl AssembledROM {
     }
 
     /// Returns some arbitrary value of this type.
-    pub fn example() -> AssembledROM {
-        AssembledROM {
+    pub fn example() -> AssembledRom {
+        AssembledRom {
             bytes: vec![
-                ROMByte {
-                    role: ROMByteRole::InstructionStart(INC(A), IsJumpDestination::Yes),
+                RomByte {
+                    role: RomByteRole::InstructionStart(INC(A), IsJumpDestination::Yes),
                     byte: 0x3C,
                 },
-                ROMByte {
-                    role: ROMByteRole::InstructionStart(INC(A), IsJumpDestination::Unknown),
+                RomByte {
+                    role: RomByteRole::InstructionStart(INC(A), IsJumpDestination::Unknown),
                     byte: 0x3C,
                 },
-                ROMByte {
-                    role: ROMByteRole::InstructionStart(INC(B), IsJumpDestination::Unknown),
+                RomByte {
+                    role: RomByteRole::InstructionStart(INC(B), IsJumpDestination::Unknown),
                     byte: 0x04,
                 },
-                ROMByte {
-                    role: ROMByteRole::InstructionStart(INC(C), IsJumpDestination::Unknown),
+                RomByte {
+                    role: RomByteRole::InstructionStart(INC(C), IsJumpDestination::Unknown),
                     byte: 0x0C,
                 },
             ],
@@ -217,32 +217,32 @@ impl AssembledROM {
 
 #[test]
 fn test_disassembled_from_assembled() {
-    let assembled = AssembledROM::example();
-    let _disassembled = DisassembledROM::from(&assembled);
+    let assembled = AssembledRom::example();
+    let _disassembled = DisassembledRom::from(&assembled);
 }
 
-impl From<&AssembledROM> for DisassembledROM {
-    /// Constructs a [DisassembledROM] from the bytes and current role
-    /// information in an [AssembledROM]. You probably want to make sure you've
+impl From<&AssembledRom> for DisassembledRom {
+    /// Constructs a [DisassembledRom] from the bytes and current role
+    /// information in an [AssembledRom]. You probably want to make sure you've
     /// added as many known instruction addresses as possible (with
-    /// [AssembledROM::get_known_instruction()]) before calling this.
+    /// [AssembledRom::get_known_instruction()]) before calling this.
     ///
     /// Each byte which [IsJumpDestination::Yes] starts a new [Code] block, and
-    /// contiguous [ROMByteRole::Unknown] bytes are grouped into [Data] blocks.
-    fn from(_assembled: &AssembledROM) -> Self {
-        panic!("DisassembledROM from AssembledROM not yet implemented")
+    /// contiguous [RomByteRole::Unknown] bytes are grouped into [Data] blocks.
+    fn from(_assembled: &AssembledRom) -> Self {
+        panic!("DisassembledRom from AssembledRom not yet implemented")
     }
 }
 
 #[test]
 fn test_assembled_from_disassembled() {
-    let disassembled = DisassembledROM::example();
-    let _assembled = AssembledROM::from(&disassembled);
+    let disassembled = DisassembledRom::example();
+    let _assembled = AssembledRom::from(&disassembled);
 }
 
-impl From<&DisassembledROM> for AssembledROM {
-    /// Creates an [AssembledROM] by compiling [Code] blocks in a
-    /// [DisassembledROM], concatenating them with the [Data] blocks, and
+impl From<&DisassembledRom> for AssembledRom {
+    /// Creates an [AssembledRom] by compiling [Code] blocks in a
+    /// [DisassembledRom], concatenating them with the [Data] blocks, and
     /// inserting zero-padding to align with specified addresses.
     ///
     /// Panics if it's not possible to match a specified address because the
@@ -254,10 +254,10 @@ impl From<&DisassembledROM> for AssembledROM {
     /// become specified, and implied padding will become explicit as zeroed
     /// [Data] blocks.
     ///
-    /// TODO: well, we shouldn't lose instructions: ROMBlocks can preserve
+    /// TODO: well, we shouldn't lose instructions: RomBlocks can preserve
     /// those. Padding should be converted to NOPs.
-    fn from(disassembled: &DisassembledROM) -> Self {
-        let mut bytes: Vec<ROMByte> = vec![];
+    fn from(disassembled: &DisassembledRom) -> Self {
+        let mut bytes: Vec<RomByte> = vec![];
         for block in disassembled.blocks.iter() {
             let current_length = bytes.len();
             if let Some(address) = block.address {
@@ -270,9 +270,9 @@ impl From<&DisassembledROM> for AssembledROM {
                 }
 
                 for _padding_address in (current_length - 1)..address_usize {
-                    bytes.push(ROMByte {
+                    bytes.push(RomByte {
                         byte: 0x00,
-                        role: ROMByteRole::InstructionStart(NOP, IsJumpDestination::Unknown),
+                        role: RomByteRole::InstructionStart(NOP, IsJumpDestination::Unknown),
                     })
                 }
             }
@@ -281,22 +281,22 @@ impl From<&DisassembledROM> for AssembledROM {
                 Code(_instructions) => panic!("assembling code blocks not yet implemented"),
                 Data(block_bytes) => {
                     for byte in block_bytes {
-                        bytes.push(ROMByte {
+                        bytes.push(RomByte {
                             byte: *byte,
-                            role: ROMByteRole::Unknown,
+                            role: RomByteRole::Unknown,
                         })
                     }
                 }
             }
         }
-        AssembledROM { bytes }
+        AssembledRom { bytes }
     }
 }
 
 #[test]
 fn test_assembled_from_bytes_then_decode_trivial() {
     let bytes = vec![0x3Cu8, 0x3C, 0x04, 0x0C];
-    let mut assembled = AssembledROM::from(&bytes);
+    let mut assembled = AssembledRom::from(&bytes);
     assert_eq!(NOP, assembled.get_known_instruction(0x0000));
     assert_eq!(INC(A), assembled.get_known_instruction(0x0001));
     assert_eq!(INC(B), assembled.get_known_instruction(0x0002));
@@ -304,9 +304,9 @@ fn test_assembled_from_bytes_then_decode_trivial() {
     assert_eq!(NOP, assembled.get_known_instruction(0x0000));
 }
 
-impl From<&Vec<u8>> for AssembledROM {
-    /// Copies bytes into a new [AssembledROM] and marks them as as
-    /// [ROMByteRole::Unknown].
+impl From<&Vec<u8>> for AssembledRom {
+    /// Copies bytes into a new [AssembledRom] and marks them as as
+    /// [RomByteRole::Unknown].
     ///
     /// Used to load binary ROMs.
     fn from(bytes: &Vec<u8>) -> Self {
@@ -318,23 +318,23 @@ impl From<&Vec<u8>> for AssembledROM {
 
 #[test]
 fn test_bytes_from_assembled() {
-    let assembled = AssembledROM::example();
+    let assembled = AssembledRom::example();
     let _bytes = Vec::<u8>::from(&assembled);
 }
-impl From<&AssembledROM> for Vec<u8> {
-    /// Copies the bytes from [AssembledROM] into a new byte vector.
+impl From<&AssembledRom> for Vec<u8> {
+    /// Copies the bytes from [AssembledRom] into a new byte vector.
     ///
     /// Used to save binary ROMs.
     ///
     /// **This️ conversion is lossy** because byte role information is not
     /// preserved.
-    fn from(assembled: &AssembledROM) -> Self {
+    fn from(assembled: &AssembledRom) -> Self {
         assembled.bytes.iter().map(|&byte| byte.byte).collect()
     }
 }
 
-impl From<ROMBlockContent> for ROMBlock {
-    fn from(content: ROMBlockContent) -> Self {
+impl From<RomBlockContent> for RomBlock {
+    fn from(content: RomBlockContent) -> Self {
         Self {
             content,
             address: None,
@@ -342,24 +342,24 @@ impl From<ROMBlockContent> for ROMBlock {
     }
 }
 
-impl From<u8> for ROMByte {
+impl From<u8> for RomByte {
     fn from(byte: u8) -> Self {
         Self {
             byte,
-            role: ROMByteRole::Unknown,
+            role: RomByteRole::Unknown,
         }
     }
 }
 
-impl From<Vec<ROMBlock>> for DisassembledROM {
-    fn from(blocks: Vec<ROMBlock>) -> Self {
-        DisassembledROM { blocks }
+impl From<Vec<RomBlock>> for DisassembledRom {
+    fn from(blocks: Vec<RomBlock>) -> Self {
+        DisassembledRom { blocks }
     }
 }
 
-impl From<Vec<ROMBlockContent>> for DisassembledROM {
-    fn from(blocks_contents: Vec<ROMBlockContent>) -> Self {
-        DisassembledROM {
+impl From<Vec<RomBlockContent>> for DisassembledRom {
+    fn from(blocks_contents: Vec<RomBlockContent>) -> Self {
+        DisassembledRom {
             blocks: blocks_contents
                 .into_iter()
                 .map(|content| content.into())
@@ -368,45 +368,45 @@ impl From<Vec<ROMBlockContent>> for DisassembledROM {
     }
 }
 
-impl From<Vec<Instruction>> for DisassembledROM {
+impl From<Vec<Instruction>> for DisassembledRom {
     fn from(instructions: Vec<Instruction>) -> Self {
-        DisassembledROM {
+        DisassembledRom {
             blocks: vec![Code(instructions).into()],
         }
     }
 }
 
-impl From<Vec<u8>> for DisassembledROM {
+impl From<Vec<u8>> for DisassembledRom {
     fn from(bytes: Vec<u8>) -> Self {
-        (&AssembledROM::from(&bytes)).into()
+        (&AssembledRom::from(&bytes)).into()
     }
 }
 
-impl From<Vec<ROMBlock>> for AssembledROM {
-    fn from(blocks: Vec<ROMBlock>) -> Self {
-        (&DisassembledROM::from(blocks)).into()
+impl From<Vec<RomBlock>> for AssembledRom {
+    fn from(blocks: Vec<RomBlock>) -> Self {
+        (&DisassembledRom::from(blocks)).into()
     }
 }
 
-impl From<Vec<ROMBlockContent>> for AssembledROM {
-    fn from(blocks_contents: Vec<ROMBlockContent>) -> Self {
-        (&DisassembledROM::from(blocks_contents)).into()
+impl From<Vec<RomBlockContent>> for AssembledRom {
+    fn from(blocks_contents: Vec<RomBlockContent>) -> Self {
+        (&DisassembledRom::from(blocks_contents)).into()
     }
 }
 
-impl From<Vec<Instruction>> for AssembledROM {
+impl From<Vec<Instruction>> for AssembledRom {
     fn from(instructions: Vec<Instruction>) -> Self {
-        (&DisassembledROM::from(instructions)).into()
+        (&DisassembledRom::from(instructions)).into()
     }
 }
 
-impl From<&DisassembledROM> for Vec<u8> {
-    fn from(disassembled: &DisassembledROM) -> Self {
-        (&AssembledROM::from(disassembled)).into()
+impl From<&DisassembledRom> for Vec<u8> {
+    fn from(disassembled: &DisassembledRom) -> Self {
+        (&AssembledRom::from(disassembled)).into()
     }
 }
 
-impl Display for DisassembledROM {
+impl Display for DisassembledRom {
     /// Encodes this ROM as a pseudo-assembly string.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for block in self.blocks.iter() {
@@ -417,7 +417,7 @@ impl Display for DisassembledROM {
     }
 }
 
-impl Display for ROMBlock {
+impl Display for RomBlock {
     /// Encodes this block as a pseudo-assembly string.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if let Some(address) = self.address {
