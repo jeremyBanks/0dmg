@@ -187,7 +187,7 @@ impl AssembledROM {
     /// control flow and decode
     // the roles of following instruction bytes that can now be decoded.
     pub fn get_known_instruction(&mut self, _address: u16) -> Instruction {
-        unimplemented!();
+        panic!("get_known_instruction is not yet implemented");
     }
 
     /// Returns some arbitrary value of this type.
@@ -227,9 +227,10 @@ impl From<&AssembledROM> for DisassembledROM {
     /// added as many known instruction addresses as possible (with
     /// [AssembledROM::get_known_instruction()]) before calling this.
     ///
-    /// Each byte which [IsJumpDestination::Yes] starts a new [Code] block, and contiguous [ROMByteRole::Unknown] bytes are grouped into [Data] blocks.
+    /// Each byte which [IsJumpDestination::Yes] starts a new [Code] block, and
+    /// contiguous [ROMByteRole::Unknown] bytes are grouped into [Data] blocks.
     fn from(_assembled: &AssembledROM) -> Self {
-        unimplemented!()
+        panic!("DisassembledROM from AssembledROM not yet implemented")
     }
 }
 
@@ -252,8 +253,43 @@ impl From<&DisassembledROM> for AssembledROM {
     /// simple enough for our analysis, all flexible block addresses will
     /// become specified, and implied padding will become explicit as zeroed
     /// [Data] blocks.
-    fn from(_assembled: &DisassembledROM) -> Self {
-        unimplemented!()
+    ///
+    /// TODO: well, we shouldn't lose instructions: ROMBlocks can preserve
+    /// those. Padding should be converted to NOPs.
+    fn from(disassembled: &DisassembledROM) -> Self {
+        let mut bytes: Vec<ROMByte> = vec![];
+        for block in disassembled.blocks.iter() {
+            let current_length = bytes.len();
+            if let Some(address) = block.address {
+                let address_usize = usize::from(address);
+                if address_usize < bytes.len() {
+                    panic!(
+                        "target address {:X} is unsatisfiable, we are already at address {:X}",
+                        address, current_length
+                    )
+                }
+
+                for _padding_address in (current_length - 1)..address_usize {
+                    bytes.push(ROMByte {
+                        byte: 0x00,
+                        role: ROMByteRole::InstructionStart(NOP, IsJumpDestination::Unknown),
+                    })
+                }
+            }
+
+            match &block.content {
+                Code(_instructions) => panic!("assembling code blocks not yet implemented"),
+                Data(block_bytes) => {
+                    for byte in block_bytes {
+                        bytes.push(ROMByte {
+                            byte: *byte,
+                            role: ROMByteRole::Unknown,
+                        })
+                    }
+                }
+            }
+        }
+        AssembledROM { bytes }
     }
 }
 
