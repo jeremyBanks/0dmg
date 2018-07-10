@@ -12,7 +12,8 @@ pub struct Execution {
 }
 
 #[macro_export]
-// Macro for the output of an operation, allowing us to strip the trace info at compile time.
+// Macro for the output of an operation, allowing us to strip the trace info at
+// compile time.
 macro_rules! op_execution {
     {cycles: $cycles:expr; asm: $($asm:expr),*; trace: $($trace:expr),*;} => (
         if cfg!(debug_assertions) {

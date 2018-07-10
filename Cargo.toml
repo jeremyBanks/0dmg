@@ -16,6 +16,6 @@ zerodmg-utils = { version = "0.1.8", path = "zerodmg-utils" }
 zerodmg-codes = { version = "0.1.8", path = "zerodmg-codes" }
 futures = "0.1.*"
 hyper = "0.11.*"
-tokio = "0.1.8"
+tokio = "0.1.7"
 rand = "0.5.2"
 image = "0.19.0"

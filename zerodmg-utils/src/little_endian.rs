@@ -47,7 +47,7 @@ pub fn u16_to_u8s(x: u16) -> (u8, u8) {
 /// ```
 ///
 /// # Panics
-/// 
+///
 /// Panics if `offset` is out of bounds (0 - 7).
 ///
 /// ```should_panic
@@ -83,7 +83,7 @@ pub fn u8_get_bit(x: u8, offset: u8) -> bool {
 /// ```
 ///
 /// # Panics
-/// 
+///
 /// Panics if `offset` is out of bounds (0 - 7).
 ///
 /// ```should_panic

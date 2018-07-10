@@ -9,8 +9,8 @@ use std::time::Duration;
 
 use hyper::server::Http;
 
-use zerodmg_emulator as emulator;
 use zerodmg_codes;
+use zerodmg_emulator as emulator;
 
 mod server;
 

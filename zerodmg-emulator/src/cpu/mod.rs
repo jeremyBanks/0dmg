@@ -1,4 +1,4 @@
-use zerodmg_utils::little_endian::{u8s_to_u16, u16_to_u8s};
+use zerodmg_utils::little_endian::{u16_to_u8s, u8s_to_u16};
 
 use std::fmt;
 

@@ -161,13 +161,17 @@ impl VideoController for GameBoy {
 
                 let byte = !new_tile_data[j];
                 let a = (byte & 0b1100_0000) >> 6;
-                let a_color = image::Rgba([a * 0b0101_0101, a * 0b0101_0101, a * 0b0101_0101, 0xFF]);
+                let a_color =
+                    image::Rgba([a * 0b0101_0101, a * 0b0101_0101, a * 0b0101_0101, 0xFF]);
                 let b = (byte & 0b0011_0000) >> 4;
-                let b_color = image::Rgba([b * 0b0101_0101, b * 0b0101_0101, b * 0b0101_0101, 0xFF]);
+                let b_color =
+                    image::Rgba([b * 0b0101_0101, b * 0b0101_0101, b * 0b0101_0101, 0xFF]);
                 let c = (byte & 0b0000_1100) >> 2;
-                let c_color = image::Rgba([c * 0b0101_0101, c * 0b0101_0101, c * 0b0101_0101, 0xFF]);
+                let c_color =
+                    image::Rgba([c * 0b0101_0101, c * 0b0101_0101, c * 0b0101_0101, 0xFF]);
                 let d = (byte & 0b0000_0011) >> 0;
-                let d_color = image::Rgba([d * 0b0101_0101, d * 0b0101_0101, d * 0b0101_0101, 0xFF]);
+                let d_color =
+                    image::Rgba([d * 0b0101_0101, d * 0b0101_0101, d * 0b0101_0101, 0xFF]);
 
                 tiles.put_pixel(x + 0 + tile_col, y + tile_row, a_color);
                 tiles.put_pixel(x + 1 + tile_col, y + tile_row, b_color);
@@ -258,7 +262,11 @@ impl VideoController for GameBoy {
         let border_width: i16 = 12;
         for dy in -border_width..border_width {
             let dya: u8 = (if dy > 0 { dy + 1 } else { -dy }) as u8;
-            let dyp = if dy < 0 { dy  } else { dy + i16::from(GB_HEIGHT) };
+            let dyp = if dy < 0 {
+                dy
+            } else {
+                dy + i16::from(GB_HEIGHT)
+            };
             let y = u32::from((i16::from(self.scy()) + dyp) as u8);
 
             for x in 0..=0xFF {
@@ -278,7 +286,7 @@ impl VideoController for GameBoy {
                 bg_0.put_pixel(x, y, color);
             }
         }
-        
+
         {
             let mut self_output_buffer = self.output_buffer.lock().unwrap();
             self_output_buffer.display = display;
