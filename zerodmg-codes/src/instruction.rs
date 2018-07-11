@@ -113,9 +113,20 @@ impl Instruction {
         }
     }
 
+    /// The number of bytes this instruction will occupy in the ROM.
+    pub fn byte_length(&self) -> u16 {
+        match self {
+            NOP => 1,
+            INC(_) => 1,
+            DEC(_) => 1,
+            JP_NZ(_) => 3,
+            JP(_) => 3,
+        }
+    }
+
     /// Encodes this instruction back into machine code bytes.
     pub fn to_bytes(&self) -> Vec<u8> {
-        match self {
+        let bytes = match self {
             NOP => vec![0b0000_0000],
             INC(register) => vec![0b00_000_100 + 0b00_001_000 * register.index()],
             DEC(register) => vec![0b00_000_101 + 0b00_001_000 * register.index()],
@@ -127,7 +138,11 @@ impl Instruction {
                 let (low, high) = u16_to_u8s(*address);
                 vec![0b11000011, low, high]
             }
-        }
+        };
+
+        assert_eq!(bytes.len(), self.byte_length().into());
+
+        bytes
     }
 }
 
