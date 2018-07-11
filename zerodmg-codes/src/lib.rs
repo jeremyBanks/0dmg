@@ -1,5 +1,6 @@
 #![feature(rust_2018_preview)]
 #![feature(rust_2018_idioms)]
+#![feature(try_from)]
 #![warn(missing_docs, missing_debug_implementations)]
 #![allow(dead_code, unused_imports)]
 
@@ -59,11 +60,11 @@ pub fn main() -> Result<(), Box<std::any::Any + Send>> {
     println!("{}\n", disassembled);
 
     println!("=== Assembled ===");
-    let assembled = AssembledRom::from(&disassembled);
-    println!("{:?}\n", assembled);
+    let assembled = disassembled.assemble();
+    println!("{:?}\n", Vec::<u8>::from(&assembled));
 
     println!("=== Redisassembled ===");
-    let redisassembled = DisassembledRom::from(&assembled);
+    let redisassembled = assembled.disassemble();
     println!("{:?}\n", redisassembled);
     println!("{}\n", redisassembled);
 

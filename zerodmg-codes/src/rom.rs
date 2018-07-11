@@ -1,5 +1,6 @@
 use zerodmg_utils::little_endian::{u16_to_u8s, u8s_to_u16};
 
+use std::convert::TryFrom;
 use std::fmt;
 use std::fmt::{Debug, Display};
 
@@ -151,6 +152,12 @@ impl ControlFlowsTo {
     }
 }
 
+#[test]
+fn test_assemble() {
+    let disassembled = DisassembledRom::example();
+    let _assembled = disassembled.assemble();
+}
+
 impl DisassembledRom {
     /// Returns some arbitrary value of this type.
     pub fn example() -> DisassembledRom {
@@ -161,86 +168,7 @@ impl DisassembledRom {
             }],
         }
     }
-}
 
-impl AssembledRom {
-    /// Creates a new [AssembledRom] of the given raw bytes, with their roles
-    /// inferred where possible from constant known instruction addresses.
-    pub fn new(bytes: &Vec<u8>) -> Self {
-        let mut assembled = Self::from(bytes);
-
-        // For now, we're pretending that 0x0000 is the only known constant instruction
-        // address.
-        assembled.get_known_instruction(0x0000);
-        // In reality, 0x0000 is a constant instruction address for the boot ROM, but
-        // for games it's not, and the actual constant instruction addresses
-        // are the entry point at 0x0100 and the interrupt handlers at 0x0040,
-        // 0x0048, 0x0050, and 0x0048.
-
-        assembled
-    }
-
-    /// Returns the instruction starting at the specified address, which may
-    /// need to be newly decoded.
-    ///
-    /// If this instruction was not previously decoded, this will trace the
-    /// control flow and decode
-    // the roles of following instruction bytes that can now be decoded.
-    pub fn get_known_instruction(&mut self, _address: u16) -> Instruction {
-        panic!("get_known_instruction is not yet implemented");
-    }
-
-    /// Returns some arbitrary value of this type.
-    pub fn example() -> AssembledRom {
-        AssembledRom {
-            bytes: vec![
-                RomByte {
-                    role: RomByteRole::InstructionStart(INC(A), IsJumpDestination::Yes),
-                    byte: 0x3C,
-                },
-                RomByte {
-                    role: RomByteRole::InstructionStart(INC(A), IsJumpDestination::Unknown),
-                    byte: 0x3C,
-                },
-                RomByte {
-                    role: RomByteRole::InstructionStart(INC(B), IsJumpDestination::Unknown),
-                    byte: 0x04,
-                },
-                RomByte {
-                    role: RomByteRole::InstructionStart(INC(C), IsJumpDestination::Unknown),
-                    byte: 0x0C,
-                },
-            ],
-        }
-    }
-}
-
-#[test]
-fn test_disassembled_from_assembled() {
-    let assembled = AssembledRom::example();
-    let _disassembled = DisassembledRom::from(&assembled);
-}
-
-impl From<&AssembledRom> for DisassembledRom {
-    /// Constructs a [DisassembledRom] from the bytes and current role
-    /// information in an [AssembledRom]. You probably want to make sure you've
-    /// added as many known instruction addresses as possible (with
-    /// [AssembledRom::get_known_instruction()]) before calling this.
-    ///
-    /// Each byte which [IsJumpDestination::Yes] starts a new [Code] block, and
-    /// contiguous [RomByteRole::Unknown] bytes are grouped into [Data] blocks.
-    fn from(_assembled: &AssembledRom) -> Self {
-        panic!("DisassembledRom from AssembledRom not yet implemented")
-    }
-}
-
-#[test]
-fn test_assembled_from_disassembled() {
-    let disassembled = DisassembledRom::example();
-    let _assembled = AssembledRom::from(&disassembled);
-}
-
-impl From<&DisassembledRom> for AssembledRom {
     /// Creates an [AssembledRom] by compiling [Code] blocks in a
     /// [DisassembledRom], concatenating them with the [Data] blocks, and
     /// inserting zero-padding to align with specified addresses.
@@ -256,9 +184,9 @@ impl From<&DisassembledRom> for AssembledRom {
     ///
     /// TODO: well, we shouldn't lose instructions: RomBlocks can preserve
     /// those. Padding should be converted to NOPs.
-    fn from(disassembled: &DisassembledRom) -> Self {
+    pub fn assemble(&self) -> AssembledRom {
         let mut bytes: Vec<RomByte> = vec![];
-        for block in disassembled.blocks.iter() {
+        for block in self.blocks.iter() {
             let current_length = bytes.len();
             if let Some(address) = block.address {
                 let address_usize = usize::from(address);
@@ -305,12 +233,149 @@ impl From<&DisassembledRom> for AssembledRom {
                 }
             }
         }
+
         AssembledRom { bytes }
     }
 }
 
 #[test]
-fn test_assembled_from_bytes_then_decode_trivial() {
+fn test_disassemble() {
+    let assembled = AssembledRom::example();
+    let _disassembled = assembled.disassemble();
+}
+
+impl AssembledRom {
+    /// Creates a new [AssembledRom] of the given raw bytes, with their roles
+    /// inferred where possible from constant known instruction addresses.
+    pub fn new(bytes: &Vec<u8>) -> Self {
+        let mut assembled = Self::from(bytes);
+
+        // For now, we're pretending that 0x0000 is the only known constant instruction
+        // address.
+        assembled.get_known_instruction(0x0000);
+        // In reality, 0x0000 is a constant instruction address for the boot ROM, but
+        // for games it's not, and the actual constant instruction addresses
+        // are the entry point at 0x0100 and the interrupt handlers at 0x0040,
+        // 0x0048, 0x0050, and 0x0048.
+
+        assembled
+    }
+
+    /// Returns the instruction starting at the specified address, which may
+    /// need to be newly decoded.
+    ///
+    /// If this instruction was not previously decoded, this will trace the
+    /// control flow and decode
+    // the roles of following instruction bytes that can now be decoded.
+    pub fn get_known_instruction(&mut self, _address: u16) -> Instruction {
+        unimplemented!("get_known_instruction");
+    }
+
+    /// Returns some arbitrary value of this type.
+    pub fn example() -> AssembledRom {
+        AssembledRom {
+            bytes: vec![
+                RomByte {
+                    role: RomByteRole::InstructionStart(INC(A), IsJumpDestination::Yes),
+                    byte: 0x3C,
+                },
+                RomByte {
+                    role: RomByteRole::InstructionStart(INC(A), IsJumpDestination::Unknown),
+                    byte: 0x3C,
+                },
+                RomByte {
+                    role: RomByteRole::InstructionStart(INC(B), IsJumpDestination::Unknown),
+                    byte: 0x04,
+                },
+                RomByte {
+                    role: RomByteRole::InstructionStart(INC(C), IsJumpDestination::Unknown),
+                    byte: 0x0C,
+                },
+            ],
+        }
+    }
+
+    /// Constructs a [DisassembledRom] from the bytes and current role
+    /// information in an [AssembledRom]. You probably want to make sure you've
+    /// added as many known instruction addresses as possible (with
+    /// [AssembledRom::get_known_instruction()]) before calling this.
+    ///
+    /// Each byte which [IsJumpDestination::Yes] starts a new [Code] block, and
+    /// contiguous [RomByteRole::Unknown] bytes are grouped into [Data] blocks.
+    pub fn disassemble(&self) -> DisassembledRom {
+        let mut blocks = Vec::<RomBlock>::new();
+        let mut current_block: Option<RomBlock> = None;
+
+        for (address, byte) in self.bytes.iter().enumerate() {
+            let address = Some(u16::try_from(address).unwrap());
+            let mut new_block: Option<RomBlock> = None;
+
+            match byte.role {
+                RomByteRole::Unknown => {
+                    if let Some(ref mut block) = current_block {
+                        match block.content {
+                            RomBlockContent::Data(ref mut vec) => {
+                                vec.push(byte.byte);
+                            }
+                            RomBlockContent::Code(_) => {
+                                new_block = Some(RomBlock {
+                                    address,
+                                    content: RomBlockContent::Data(vec![byte.byte]),
+                                });
+                            }
+                        }
+                    } else {
+                        new_block = Some(RomBlock {
+                            address,
+                            content: RomBlockContent::Data(vec![byte.byte]),
+                        });
+                    }
+                }
+                RomByteRole::InstructionStart(instruction, _is_jump_target) => {
+                    // TODO: strip trailing nops from a code block?
+
+                    if let Some(ref mut block) = current_block {
+                        match block.content {
+                            RomBlockContent::Code(ref mut vec) => {
+                                vec.push(instruction);
+                            }
+                            RomBlockContent::Data(_) => {
+                                new_block = Some(RomBlock {
+                                    address,
+                                    content: RomBlockContent::Code(vec![instruction]),
+                                });
+                            }
+                        }
+                    } else {
+                        new_block = Some(RomBlock {
+                            address,
+                            content: RomBlockContent::Code(vec![instruction]),
+                        });
+                    }
+                }
+                RomByteRole::InstructionRest => {
+                    // do nothing; this instruction was already handled at the InstructionStart.
+                }
+            }
+            
+            if let Some(new_block) = new_block {
+                if let Some(current_block) = current_block {
+                    blocks.push(current_block);
+                }
+                current_block = Some(new_block);
+            }
+        }
+
+        if let Some(last_block) = current_block {
+            blocks.push(last_block);
+        }
+
+        DisassembledRom { blocks }
+    }
+}
+
+#[test]
+fn test_assembled_from_bytes_then_get_instructions_trivial() {
     let bytes = vec![0x3Cu8, 0x3C, 0x04, 0x0C];
     let mut assembled = AssembledRom::from(&bytes);
     assert_eq!(NOP, assembled.get_known_instruction(0x0000));
@@ -389,36 +454,6 @@ impl From<Vec<Instruction>> for DisassembledRom {
         DisassembledRom {
             blocks: vec![Code(instructions).into()],
         }
-    }
-}
-
-impl From<Vec<u8>> for DisassembledRom {
-    fn from(bytes: Vec<u8>) -> Self {
-        (&AssembledRom::from(&bytes)).into()
-    }
-}
-
-impl From<Vec<RomBlock>> for AssembledRom {
-    fn from(blocks: Vec<RomBlock>) -> Self {
-        (&DisassembledRom::from(blocks)).into()
-    }
-}
-
-impl From<Vec<RomBlockContent>> for AssembledRom {
-    fn from(blocks_contents: Vec<RomBlockContent>) -> Self {
-        (&DisassembledRom::from(blocks_contents)).into()
-    }
-}
-
-impl From<Vec<Instruction>> for AssembledRom {
-    fn from(instructions: Vec<Instruction>) -> Self {
-        (&DisassembledRom::from(instructions)).into()
-    }
-}
-
-impl From<&DisassembledRom> for Vec<u8> {
-    fn from(disassembled: &DisassembledRom) -> Self {
-        (&AssembledRom::from(disassembled)).into()
     }
 }
 
