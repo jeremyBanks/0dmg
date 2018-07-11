@@ -63,10 +63,15 @@ pub fn main() -> Result<(), Box<std::any::Any + Send>> {
     let assembled = disassembled.assemble();
     println!("{:?}\n", Vec::<u8>::from(&assembled));
 
-    println!("=== Redisassembled ===");
+    println!("=== Redisassembled (using metadata) ===");
     let redisassembled = assembled.disassemble();
     println!("{:?}\n", redisassembled);
     println!("{}\n", redisassembled);
+
+    println!("=== Redisassembled (just from the bytes) ===");
+    let really_disassembled = AssembledRom::new(Vec::<u8>::from(&assembled)).disassemble();
+    println!("{:?}\n", really_disassembled);
+    println!("{}\n", really_disassembled);
 
     Ok(())
 }

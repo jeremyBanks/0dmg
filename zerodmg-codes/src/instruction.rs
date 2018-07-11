@@ -74,7 +74,7 @@ impl Instruction {
     /// Decodes machine code bytes from the iterator to an Instruction.
     ///
     /// Returns [None] if the iterator is exhausted.
-    pub fn from_byte_iter(bytes: &mut Iterator<Item = &u8>) -> Option<Self> {
+    pub fn from_byte_iter(bytes: &mut Iterator<Item = u8>) -> Option<Self> {
         if let Some(first) = bytes.next() {
             Some(match first {
                 0b0000_0000 => NOP,
@@ -97,13 +97,13 @@ impl Instruction {
                 0b1100_0010 => {
                     let low = bytes.next().expect("TODO handle this gracefully");
                     let high = bytes.next().expect("TODO handle this gracefully");
-                    let address = u8s_to_u16(*low, *high);
+                    let address = u8s_to_u16(low, high);
                     JP_NZ(address)
                 }
                 0b1100_0011 => {
                     let low = bytes.next().expect("TODO handle this gracefully");
                     let high = bytes.next().expect("TODO handle this gracefully");
-                    let address = u8s_to_u16(*low, *high);
+                    let address = u8s_to_u16(low, high);
                     JP(address)
                 }
                 _ => unimplemented!(),

@@ -247,8 +247,8 @@ fn test_disassemble() {
 impl AssembledRom {
     /// Creates a new [AssembledRom] of the given raw bytes, with their roles
     /// inferred where possible from constant known instruction addresses.
-    pub fn new(bytes: &Vec<u8>) -> Self {
-        let mut assembled = Self::from(bytes);
+    pub fn new(bytes: Vec<u8>) -> Self {
+        let mut assembled = Self::from(&bytes);
 
         // For now, we're pretending that 0x0000 is the only known constant instruction
         // address.
@@ -265,10 +265,40 @@ impl AssembledRom {
     /// need to be newly decoded.
     ///
     /// If this instruction was not previously decoded, this will trace the
-    /// control flow and decode
-    // the roles of following instruction bytes that can now be decoded.
-    pub fn get_known_instruction(&mut self, _address: u16) -> Instruction {
-        unimplemented!("get_known_instruction");
+    /// control flow and decode the roles of following instruction bytes that
+    /// can now be decoded.
+    pub fn get_known_instruction(&mut self, address: u16) -> Instruction {
+        let byte = self.bytes[usize::from(address)];
+
+        match byte.role {
+            RomByteRole::InstructionStart(instruction, _is_jump_destination) => instruction,
+
+            RomByteRole::InstructionRest => panic!(
+                "requested instruction address mis-aligned with previously-decoded instructions"
+            ),
+
+            RomByteRole::Unknown => {
+                let instruction = {
+                    let mut byte_iter = self
+                        .bytes
+                        .iter()
+                        .skip(usize::from(address))
+                        .map(|ref b| b.byte);
+                    Instruction::from_byte_iter(&mut byte_iter).unwrap()
+                };
+                // TODO: not this
+                let len = u16::try_from(instruction.to_bytes().len()).unwrap();
+
+                self.bytes[usize::from(address)].role =
+                    RomByteRole::InstructionStart(instruction, IsJumpDestination::Unknown);
+                for i in (address + 1)..(address + len) {
+                    self.bytes[usize::from(i)].role = RomByteRole::InstructionRest;
+                }
+                // TODO: also trace anything
+
+                instruction
+            }
+        }
     }
 
     /// Returns some arbitrary value of this type.
@@ -331,7 +361,7 @@ impl AssembledRom {
                         });
                     }
                 }
-                RomByteRole::InstructionStart(instruction, _is_jump_target) => {
+                RomByteRole::InstructionStart(instruction, _is_jump_destination) => {
                     // TODO: strip trailing nops from a code block?
 
                     if let Some(ref mut block) = current_block {
@@ -357,7 +387,7 @@ impl AssembledRom {
                     // do nothing; this instruction was already handled at the InstructionStart.
                 }
             }
-            
+
             if let Some(new_block) = new_block {
                 if let Some(current_block) = current_block {
                     blocks.push(current_block);
@@ -376,7 +406,7 @@ impl AssembledRom {
 
 #[test]
 fn test_assembled_from_bytes_then_get_instructions_trivial() {
-    let bytes = vec![0x3Cu8, 0x3C, 0x04, 0x0C];
+    let bytes = vec![0u8, 0x3C, 0x04, 0x0C];
     let mut assembled = AssembledRom::from(&bytes);
     assert_eq!(NOP, assembled.get_known_instruction(0x0000));
     assert_eq!(INC(A), assembled.get_known_instruction(0x0001));
