@@ -23,9 +23,9 @@ use self::prelude::*;
 
 /// An example/experimental use of this crate.
 pub fn main() -> Result<(), Box<std::any::Any + Send>> {
-    let input = DisassembledRom::from({
+    let disassembled = DisassembledRom::from({
         let main_addr = 0x0000;
-        let init_addr = 0x0180;
+        let init_addr = 0x0030;
         vec![
             RomBlock {
                 address: Some(main_addr),
@@ -53,8 +53,20 @@ pub fn main() -> Result<(), Box<std::any::Any + Send>> {
             },
         ]
     });
-    println!("{:?}", input);
-    println!("{}", input);
+
+    println!("=== Disassembled ===");
+    println!("{:?}\n", disassembled);
+    println!("{}\n", disassembled);
+
+    println!("=== Assembled ===");
+    let assembled = AssembledRom::from(&disassembled);
+    println!("{:?}\n", assembled);
+
+    println!("=== Redisassembled ===");
+    let redisassembled = DisassembledRom::from(&assembled);
+    println!("{:?}\n", redisassembled);
+    println!("{}\n", redisassembled);
+
     Ok(())
 }
 

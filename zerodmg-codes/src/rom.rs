@@ -269,7 +269,7 @@ impl From<&DisassembledRom> for AssembledRom {
                     )
                 }
 
-                for _padding_address in (current_length - 1)..address_usize {
+                for _padding_address in current_length..address_usize {
                     bytes.push(RomByte {
                         byte: 0x00,
                         role: RomByteRole::InstructionStart(NOP, IsJumpDestination::Unknown),
@@ -278,7 +278,23 @@ impl From<&DisassembledRom> for AssembledRom {
             }
 
             match &block.content {
-                Code(_instructions) => panic!("assembling code blocks not yet implemented"),
+                Code(instructions) => {
+                    for instruction in instructions.iter() {
+                        for (i, byte) in instruction.to_bytes().iter().enumerate() {
+                            bytes.push(RomByte {
+                                byte: *byte,
+                                role: if i == 0 {
+                                    RomByteRole::InstructionStart(
+                                        *instruction,
+                                        IsJumpDestination::Unknown,
+                                    )
+                                } else {
+                                    RomByteRole::InstructionRest
+                                },
+                            })
+                        }
+                    }
+                }
                 Data(block_bytes) => {
                     for byte in block_bytes {
                         bytes.push(RomByte {
