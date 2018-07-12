@@ -175,15 +175,6 @@ impl DisassembledRom {
     ///
     /// Panics if it's not possible to match a specified address because the
     /// previous block has already written that far.
-    ///
-    /// **This conversion is lossy** because for new or modified ROMs we may be
-    /// unable to decode instructions back if the program structure isn't
-    /// simple enough for our analysis, all flexible block addresses will
-    /// become specified, and implied padding will become explicit as zeroed
-    /// [Data] blocks.
-    ///
-    /// TODO: well, we shouldn't lose instructions: RomBlocks can preserve
-    /// those. Padding should be converted to NOPs.
     pub fn assemble(&self) -> AssembledRom {
         let mut bytes: Vec<RomByte> = vec![];
         for block in self.blocks.iter() {
@@ -207,14 +198,20 @@ impl DisassembledRom {
 
             match &block.content {
                 Code(instructions) => {
-                    for instruction in instructions.iter() {
-                        for (i, byte) in instruction.to_bytes().iter().enumerate() {
+                    for (i, instruction) in instructions.iter().enumerate() {
+                        let is_first_instruction = i == 0;
+                        for (j, byte) in instruction.to_bytes().iter().enumerate() {
+                            let is_first_byte = j == 0;
                             bytes.push(RomByte {
                                 byte: *byte,
-                                role: if i == 0 {
+                                role: if is_first_byte {
                                     RomByteRole::InstructionStart(
                                         *instruction,
-                                        IsJumpDestination::Unknown,
+                                        if is_first_instruction {
+                                            IsJumpDestination::Yes
+                                        } else {
+                                            IsJumpDestination::Unknown
+                                        },
                                     )
                                 } else {
                                     RomByteRole::InstructionRest
@@ -336,68 +333,124 @@ impl AssembledRom {
         let mut blocks = Vec::<RomBlock>::new();
         let mut current_block: Option<RomBlock> = None;
 
+        enum BlockChange {
+            None,
+            New(RomBlock),
+            End,
+        }
+
         for (address, byte) in self.bytes.iter().enumerate() {
             let address = Some(u16::try_from(address).unwrap());
-            let mut new_block: Option<RomBlock> = None;
 
-            match byte.role {
-                RomByteRole::Unknown => {
-                    if let Some(ref mut block) = current_block {
-                        match block.content {
-                            RomBlockContent::Data(ref mut vec) => {
-                                vec.push(byte.byte);
-                            }
-                            RomBlockContent::Code(_) => {
-                                new_block = Some(RomBlock {
-                                    address,
-                                    content: RomBlockContent::Data(vec![byte.byte]),
-                                });
-                            }
-                        }
-                    } else {
-                        new_block = Some(RomBlock {
-                            address,
-                            content: RomBlockContent::Data(vec![byte.byte]),
-                        });
-                    }
-                }
-                RomByteRole::InstructionStart(instruction, _is_jump_destination) => {
-                    // TODO: strip trailing nops from a code block?
-
-                    if let Some(ref mut block) = current_block {
-                        match block.content {
-                            RomBlockContent::Code(ref mut vec) => {
-                                vec.push(instruction);
-                            }
-                            RomBlockContent::Data(_) => {
-                                new_block = Some(RomBlock {
-                                    address,
-                                    content: RomBlockContent::Code(vec![instruction]),
-                                });
-                            }
-                        }
-                    } else {
-                        new_block = Some(RomBlock {
+            let block_change = match byte.role {
+                RomByteRole::InstructionStart(instruction, is_jump_destination) => {
+                    // Each jump destination starts a new Code block.
+                    if is_jump_destination == IsJumpDestination::Yes {
+                        BlockChange::New(RomBlock {
                             address,
                             content: RomBlockContent::Code(vec![instruction]),
-                        });
+                        })
+                    } else {
+                        match current_block {
+                            Some(ref mut block) => match block.content {
+                                Code(ref mut vec) => {
+                                    // If we're already in a Code block, append this instruction.
+                                    vec.push(instruction);
+                                    BlockChange::None
+                                }
+                                Data(_) => {
+                                    if instruction != NOP {
+                                        // If we're in a Data block, and this instruction isn't NOP,
+                                        // start a new Code block.
+                                        BlockChange::New(RomBlock {
+                                            address,
+                                            content: RomBlockContent::Code(vec![instruction]),
+                                        })
+                                    } else {
+                                        // If we're in a Data block and the instruction is NOP,
+                                        // end the block but ignore the NOP as padding.
+                                        BlockChange::End
+                                    }
+                                }
+                            },
+                            None => {
+                                if instruction != NOP {
+                                    // If we're not in a block, and this instruction isn't NOP,
+                                    // start a new Code block.
+                                    BlockChange::New(RomBlock {
+                                        address,
+                                        content: RomBlockContent::Code(vec![instruction]),
+                                    })
+                                } else {
+                                    // If we're not in a block and the instruction is NOP,
+                                    // ignore it as padding.
+                                    BlockChange::End
+                                }
+                            }
+                        }
                     }
                 }
                 RomByteRole::InstructionRest => {
-                    // do nothing; this instruction was already handled at the InstructionStart.
+                    // Do nothing; this instruction was already handled at the InstructionStart.
+                    BlockChange::None
                 }
-            }
+                RomByteRole::Unknown => {
+                    // This byte is unknown or data role.
+                    match current_block {
+                        Some(ref mut block) => match block.content {
+                            RomBlockContent::Data(ref mut vec) => {
+                                // If we're in a Data block, append this byte.
+                                vec.push(byte.byte);
+                                BlockChange::None
+                            }
+                            // If we're in a Code block, start a new Data block.
+                            RomBlockContent::Code(_) => BlockChange::New(RomBlock {
+                                address,
+                                content: RomBlockContent::Data(vec![byte.byte]),
+                            }),
+                        },
+                        // If we aren't in anything, start a new Data block.
+                        None => BlockChange::New(RomBlock {
+                            address,
+                            content: RomBlockContent::Data(vec![byte.byte]),
+                        }),
+                    }
+                }
+            };
 
-            if let Some(new_block) = new_block {
-                if let Some(current_block) = current_block {
-                    blocks.push(current_block);
+            match block_change {
+                BlockChange::None => {}
+                BlockChange::New(new_block) => {
+                    if let Some(ref last_block) = current_block {
+                        blocks.push(last_block.clone());
+                    }
+                    current_block = Some(new_block);
                 }
-                current_block = Some(new_block);
+                BlockChange::End => {
+                    if let Some(ref last_block) = current_block {
+                        blocks.push(last_block.clone());
+                    }
+                    current_block = None
+                }
             }
         }
 
         if let Some(last_block) = current_block {
             blocks.push(last_block);
+        }
+
+        for ref mut block in blocks.iter_mut() {
+            match block.content {
+                Code(ref mut vec) => {
+                    // Strip trailing NOPs from Code blocks.
+                    for i in (1..vec.len()).rev() {
+                        if vec[i] == NOP {
+                            vec.pop();
+                        }
+                    }
+                }
+                Data(_) => {}
+            }
         }
 
         DisassembledRom { blocks }

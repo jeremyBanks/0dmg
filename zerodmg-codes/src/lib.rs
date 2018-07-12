@@ -37,7 +37,7 @@ pub fn main() -> Result<(), Box<std::any::Any + Send>> {
                 content: Code(vec![DEC(A)]),
             },
             RomBlock {
-                address: None,
+                address: Some(0x0005),
                 content: Code(vec![DEC(A), JP(init_addr)]),
             },
             RomBlock {
