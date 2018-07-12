@@ -446,6 +446,8 @@ impl AssembledRom {
                     for i in (1..vec.len()).rev() {
                         if vec[i] == NOP {
                             vec.pop();
+                        } else {
+                            break;
                         }
                     }
                 }
