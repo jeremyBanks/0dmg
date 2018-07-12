@@ -1,48 +1,41 @@
-use zerodmg_utils::little_endian::{u16_to_u8s, u8s_to_u16};
-
 use std::convert::TryFrom;
-use std::fmt;
-use std::fmt::{Debug, Display};
 
-use crate::instruction::Instruction;
-use crate::instruction::Instruction::*;
-use crate::instruction::U16Register::*;
-use crate::instruction::U8Register::*;
+use crate::disassembled::prelude::*;
+use crate::instruction::prelude::*;
 
 /// Re-exports important traits and types for glob importing.
 pub mod prelude {
     pub use super::AssembledRom;
-    pub use super::DisassembledRom;
-    pub use super::RomBlock;
-    pub use super::RomBlockContent::*;
+    pub use super::IsJumpDestination;
+    pub use super::RomByte;
+    pub use super::RomByteRole;
 }
 
-use self::prelude::*;
+// to considers:
+// - switch is_jump_destination to a named boolean instead of an anonymous enum
+// - use parallel arrays instead of RomByte structure
 
-/// A ROM in a disassembled assembly-like structure.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct DisassembledRom {
-    /// An ordered list of blocks of code or data in the ROM.
-    pub blocks: Vec<RomBlock>,
+#[test]
+fn test_disassemble() {
+    let assembled = AssembledRom::example();
+    let _disassembled = assembled.disassemble();
 }
 
-/// A contiguous block of ROM code or data, with optional metadata.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct RomBlock {
-    /// The code or data in the block.
-    pub content: RomBlockContent,
-    /// An optional address that this block must be located at in the compiled
-    /// output.
-    pub address: Option<u16>,
+#[test]
+fn test_assembled_from_bytes_then_get_instructions_trivial() {
+    let bytes = vec![0u8, 0x3C, 0x04, 0x0C];
+    let mut assembled = AssembledRom::from(&bytes);
+    assert_eq!(NOP, assembled.get_known_instruction(0x0000));
+    assert_eq!(INC(A), assembled.get_known_instruction(0x0001));
+    assert_eq!(INC(B), assembled.get_known_instruction(0x0002));
+    assert_eq!(INC(C), assembled.get_known_instruction(0x0003));
+    assert_eq!(NOP, assembled.get_known_instruction(0x0000));
 }
 
-/// A contiguous block of ROM code or data.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum RomBlockContent {
-    /// A block of instructions.
-    Code(Vec<Instruction>),
-    /// A block of raw binary data.
-    Data(Vec<u8>),
+#[test]
+fn test_bytes_from_assembled() {
+    let assembled = AssembledRom::example();
+    let _bytes = Vec::<u8>::from(&assembled);
 }
 
 /// A ROM of compiled machine code bytes, potentially with their decoded
@@ -50,7 +43,7 @@ pub enum RomBlockContent {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AssembledRom {
     /// The compiled bytes of the ROM with associated disassembly information.
-    pub bytes: Vec<RomByte>,
+    bytes: Vec<RomByte>,
 }
 
 /// A ROM byte and inferred information about its role.
@@ -109,138 +102,6 @@ enum JumpReference {
     Relative(i8),
 }
 
-impl FlowsTo for Instruction {
-    fn flows_to(&self) -> ControlFlowsTo {
-        match self {
-            NOP => ControlFlowsTo::next(),
-            INC(_) => ControlFlowsTo::next(),
-            DEC(_) => ControlFlowsTo::next(),
-            JP_NZ(address) => ControlFlowsTo::next_and_jump(JumpReference::Absolute(*address)),
-            JP(address) => ControlFlowsTo::jump(JumpReference::Absolute(*address)),
-        }
-    }
-}
-
-impl ControlFlowsTo {
-    /// No known control flow from here.
-    pub fn none() -> Self {
-        ControlFlowsTo {
-            next: false,
-            jump: None,
-        }
-    }
-    /// Control can flows to the next instruction (typical case).
-    pub fn next() -> Self {
-        ControlFlowsTo {
-            next: true,
-            jump: None,
-        }
-    }
-    /// Control can flow to a given jump reference.
-    pub fn jump(jump: JumpReference) -> Self {
-        ControlFlowsTo {
-            next: false,
-            jump: Some(jump),
-        }
-    }
-    /// Control can flow to the next instruction or a given jump reference.
-    pub fn next_and_jump(jump: JumpReference) -> Self {
-        ControlFlowsTo {
-            next: false,
-            jump: Some(jump),
-        }
-    }
-}
-
-#[test]
-fn test_assemble() {
-    let disassembled = DisassembledRom::example();
-    let _assembled = disassembled.assemble();
-}
-
-impl DisassembledRom {
-    /// Returns some arbitrary value of this type.
-    pub fn example() -> DisassembledRom {
-        DisassembledRom {
-            blocks: vec![RomBlock {
-                address: None,
-                content: Code(vec![INC(A), INC(A), INC(B), INC(C)]),
-            }],
-        }
-    }
-
-    /// Creates an [AssembledRom] by compiling [Code] blocks in a
-    /// [DisassembledRom], concatenating them with the [Data] blocks, and
-    /// inserting zero-padding to align with specified addresses.
-    ///
-    /// Panics if it's not possible to match a specified address because the
-    /// previous block has already written that far.
-    pub fn assemble(&self) -> AssembledRom {
-        let mut bytes: Vec<RomByte> = vec![];
-        for block in self.blocks.iter() {
-            let current_length = bytes.len();
-            if let Some(address) = block.address {
-                let address_usize = usize::from(address);
-                if address_usize < bytes.len() {
-                    panic!(
-                        "target address {:X} is unsatisfiable, we are already at address {:X}",
-                        address, current_length
-                    )
-                }
-
-                for _padding_address in current_length..address_usize {
-                    bytes.push(RomByte {
-                        byte: 0x00,
-                        role: RomByteRole::InstructionStart(NOP, IsJumpDestination::Unknown),
-                    })
-                }
-            }
-
-            match &block.content {
-                Code(instructions) => {
-                    for (i, instruction) in instructions.iter().enumerate() {
-                        let is_first_instruction = i == 0;
-                        for (j, byte) in instruction.to_bytes().iter().enumerate() {
-                            let is_first_byte = j == 0;
-                            bytes.push(RomByte {
-                                byte: *byte,
-                                role: if is_first_byte {
-                                    RomByteRole::InstructionStart(
-                                        *instruction,
-                                        if is_first_instruction {
-                                            IsJumpDestination::Yes
-                                        } else {
-                                            IsJumpDestination::Unknown
-                                        },
-                                    )
-                                } else {
-                                    RomByteRole::InstructionRest
-                                },
-                            })
-                        }
-                    }
-                }
-                Data(block_bytes) => {
-                    for byte in block_bytes {
-                        bytes.push(RomByte {
-                            byte: *byte,
-                            role: RomByteRole::Unknown,
-                        })
-                    }
-                }
-            }
-        }
-
-        AssembledRom { bytes }
-    }
-}
-
-#[test]
-fn test_disassemble() {
-    let assembled = AssembledRom::example();
-    let _disassembled = assembled.disassemble();
-}
-
 impl AssembledRom {
     /// Creates a new [AssembledRom] of the given raw bytes, with their roles
     /// inferred where possible from constant known instruction addresses.
@@ -283,15 +144,17 @@ impl AssembledRom {
                         .map(|ref b| b.byte);
                     Instruction::from_byte_iter(&mut byte_iter).unwrap()
                 };
-                // TODO: not this
-                let len = u16::try_from(instruction.to_bytes().len()).unwrap();
 
                 self.bytes[usize::from(address)].role =
                     RomByteRole::InstructionStart(instruction, IsJumpDestination::Unknown);
-                for i in (address + 1)..(address + len) {
+                for i in (address + 1)..(address + instruction.byte_length()) {
                     self.bytes[usize::from(i)].role = RomByteRole::InstructionRest;
                 }
-                // TODO: also trace anything
+
+                // TODO: trace anything, recursively is okay for now.
+                match instruction.flows_to() {
+                    _ => {}
+                }
 
                 instruction
             }
@@ -348,7 +211,7 @@ impl AssembledRom {
                     if is_jump_destination == IsJumpDestination::Yes {
                         BlockChange::New(RomBlock {
                             address,
-                            content: RomBlockContent::Code(vec![instruction]),
+                            content: Code(vec![instruction]),
                         })
                     } else {
                         match current_block {
@@ -364,7 +227,7 @@ impl AssembledRom {
                                         // start a new Code block.
                                         BlockChange::New(RomBlock {
                                             address,
-                                            content: RomBlockContent::Code(vec![instruction]),
+                                            content: Code(vec![instruction]),
                                         })
                                     } else {
                                         // If we're in a Data block and the instruction is NOP,
@@ -379,7 +242,7 @@ impl AssembledRom {
                                     // start a new Code block.
                                     BlockChange::New(RomBlock {
                                         address,
-                                        content: RomBlockContent::Code(vec![instruction]),
+                                        content: Code(vec![instruction]),
                                     })
                                 } else {
                                     // If we're not in a block and the instruction is NOP,
@@ -398,21 +261,21 @@ impl AssembledRom {
                     // This byte is unknown or data role.
                     match current_block {
                         Some(ref mut block) => match block.content {
-                            RomBlockContent::Data(ref mut vec) => {
+                            Data(ref mut vec) => {
                                 // If we're in a Data block, append this byte.
                                 vec.push(byte.byte);
                                 BlockChange::None
                             }
                             // If we're in a Code block, start a new Data block.
-                            RomBlockContent::Code(_) => BlockChange::New(RomBlock {
+                            Code(_) => BlockChange::New(RomBlock {
                                 address,
-                                content: RomBlockContent::Data(vec![byte.byte]),
+                                content: Data(vec![byte.byte]),
                             }),
                         },
                         // If we aren't in anything, start a new Data block.
                         None => BlockChange::New(RomBlock {
                             address,
-                            content: RomBlockContent::Data(vec![byte.byte]),
+                            content: Data(vec![byte.byte]),
                         }),
                     }
                 }
@@ -455,19 +318,51 @@ impl AssembledRom {
             }
         }
 
-        DisassembledRom { blocks }
+        DisassembledRom::from(blocks)
     }
 }
 
-#[test]
-fn test_assembled_from_bytes_then_get_instructions_trivial() {
-    let bytes = vec![0u8, 0x3C, 0x04, 0x0C];
-    let mut assembled = AssembledRom::from(&bytes);
-    assert_eq!(NOP, assembled.get_known_instruction(0x0000));
-    assert_eq!(INC(A), assembled.get_known_instruction(0x0001));
-    assert_eq!(INC(B), assembled.get_known_instruction(0x0002));
-    assert_eq!(INC(C), assembled.get_known_instruction(0x0003));
-    assert_eq!(NOP, assembled.get_known_instruction(0x0000));
+impl FlowsTo for Instruction {
+    fn flows_to(&self) -> ControlFlowsTo {
+        match self {
+            NOP => ControlFlowsTo::next(),
+            INC(_) => ControlFlowsTo::next(),
+            DEC(_) => ControlFlowsTo::next(),
+            JP_NZ(address) => ControlFlowsTo::next_and_jump(JumpReference::Absolute(*address)),
+            JP(address) => ControlFlowsTo::jump(JumpReference::Absolute(*address)),
+        }
+    }
+}
+
+impl ControlFlowsTo {
+    /// No known control flow from here.
+    pub fn none() -> Self {
+        ControlFlowsTo {
+            next: false,
+            jump: None,
+        }
+    }
+    /// Control can flows to the next instruction (typical case).
+    pub fn next() -> Self {
+        ControlFlowsTo {
+            next: true,
+            jump: None,
+        }
+    }
+    /// Control can flow to a given jump reference.
+    pub fn jump(jump: JumpReference) -> Self {
+        ControlFlowsTo {
+            next: false,
+            jump: Some(jump),
+        }
+    }
+    /// Control can flow to the next instruction or a given jump reference.
+    pub fn next_and_jump(jump: JumpReference) -> Self {
+        ControlFlowsTo {
+            next: false,
+            jump: Some(jump),
+        }
+    }
 }
 
 impl From<&Vec<u8>> for AssembledRom {
@@ -482,11 +377,12 @@ impl From<&Vec<u8>> for AssembledRom {
     }
 }
 
-#[test]
-fn test_bytes_from_assembled() {
-    let assembled = AssembledRom::example();
-    let _bytes = Vec::<u8>::from(&assembled);
+impl From<Vec<RomByte>> for AssembledRom {
+    fn from(bytes: Vec<RomByte>) -> Self {
+        Self { bytes }
+    }
 }
+
 impl From<&AssembledRom> for Vec<u8> {
     /// Copies the bytes from [AssembledRom] into a new byte vector.
     ///
@@ -499,95 +395,11 @@ impl From<&AssembledRom> for Vec<u8> {
     }
 }
 
-impl From<RomBlockContent> for RomBlock {
-    fn from(content: RomBlockContent) -> Self {
-        Self {
-            content,
-            address: None,
-        }
-    }
-}
-
 impl From<u8> for RomByte {
     fn from(byte: u8) -> Self {
         Self {
             byte,
             role: RomByteRole::Unknown,
         }
-    }
-}
-
-impl From<Vec<RomBlock>> for DisassembledRom {
-    fn from(blocks: Vec<RomBlock>) -> Self {
-        DisassembledRom { blocks }
-    }
-}
-
-impl From<Vec<RomBlockContent>> for DisassembledRom {
-    fn from(blocks_contents: Vec<RomBlockContent>) -> Self {
-        DisassembledRom {
-            blocks: blocks_contents
-                .into_iter()
-                .map(|content| content.into())
-                .collect(),
-        }
-    }
-}
-
-impl From<Vec<Instruction>> for DisassembledRom {
-    fn from(instructions: Vec<Instruction>) -> Self {
-        DisassembledRom {
-            blocks: vec![Code(instructions).into()],
-        }
-    }
-}
-
-impl Display for DisassembledRom {
-    /// Encodes this ROM as a pseudo-assembly string.
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for block in self.blocks.iter() {
-            Display::fmt(&block, f)?;
-            write!(f, "\n")?;
-        }
-        Ok(())
-    }
-}
-
-impl Display for RomBlock {
-    /// Encodes this block as a pseudo-assembly string.
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if let Some(address) = self.address {
-            write!(f, "0x{:04X}:\n", address)?;
-        } else {
-            write!(f, "0x____:\n")?;
-        }
-
-        match self.content {
-            Data(ref bytes) => {
-                let mut n = 0;
-                for byte in bytes.iter() {
-                    if n == 0 {
-                        write!(f, "    DATA 0x")?;
-                        n += 6;
-                    }
-
-                    write!(f, "{:02X}", byte)?;
-                    n += 2;
-
-                    if n >= 61 {
-                        write!(f, "\n")?;
-                        n = 0;
-                    }
-                }
-                write!(f, "\n")?;
-            }
-            Code(ref instructions) => {
-                // TODO: exclude trailing padding NOPs
-                for instruction in instructions.iter() {
-                    write!(f, "    {}\n", instruction)?;
-                }
-            }
-        }
-        Ok(())
     }
 }

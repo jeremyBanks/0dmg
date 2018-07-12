@@ -2,22 +2,23 @@
 #![feature(rust_2018_idioms)]
 #![feature(try_from)]
 #![warn(missing_docs, missing_debug_implementations)]
-#![allow(dead_code, unused_imports)]
 
 //! Experiments in decoding Game Boy machine code.
 
 /// Encoding/decoding individual CPU instructions.
 pub mod instruction;
 
-/// Encoding/decoding of complete ROMs.
-///
-/// Apparent logic errors in ROM data are currently "handled" by panicking.
-pub mod rom;
+/// Decoding and disassembling assembled ROMs binaries.
+pub mod assembled;
+
+/// Assembling and manipulating disassembled ROM programs.
+pub mod disassembled;
 
 /// Re-exports important traits and types for glob importing.
 pub mod prelude {
+    pub use crate::assembled::prelude::*;
+    pub use crate::disassembled::prelude::*;
     pub use crate::instruction::prelude::*;
-    pub use crate::rom::prelude::*;
 }
 
 use self::prelude::*;
