@@ -19,7 +19,7 @@ fn test_disassemble() {
 #[test]
 fn test_assembled_from_bytes_then_get_instructions_trivial() {
     let bytes = vec![0u8, 0x3C, 0x04, 0x0C];
-    let mut assembled = AssembledRom::from(&bytes);
+    let mut assembled = AssembledRom::from_bytes(&bytes);
     assert_eq!(NOP, assembled.get_known_instruction(0x0000));
     assert_eq!(INC(A), assembled.get_known_instruction(0x0001));
     assert_eq!(INC(B), assembled.get_known_instruction(0x0002));
@@ -30,12 +30,12 @@ fn test_assembled_from_bytes_then_get_instructions_trivial() {
 #[test]
 fn test_bytes_from_assembled() {
     let assembled = AssembledRom::example();
-    let _bytes = Vec::<u8>::from(&assembled);
+    let _bytes = assembled.to_bytes();
 }
 
 /// A ROM of compiled machine code bytes, potentially with their decoded
 /// [Instruction] values attached.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Default)]
 pub struct AssembledRom {
     /// The compiled bytes of the ROM with associated disassembly information.
     bytes: Vec<RomByte>,
@@ -109,7 +109,7 @@ impl AssembledRom {
     /// Creates a new [AssembledRom] of the given raw bytes, with their roles
     /// inferred where possible from constant known instruction addresses.
     pub fn new(bytes: Vec<u8>) -> Self {
-        let mut assembled = Self::from(&bytes);
+        let mut assembled = Self::from_bytes(&bytes);
 
         // For now, we're pretending that 0x0000 is the only known constant instruction
         // address.
@@ -120,6 +120,25 @@ impl AssembledRom {
         // 0x0048, 0x0050, and 0x0048.
 
         assembled
+    }
+
+    /// Copies bytes into a new [AssembledRom] and marks them as as
+    /// [RomByteRole::Unknown].
+    pub fn from_bytes(bytes: &Vec<u8>) -> Self {
+        Self {
+            bytes: bytes
+                .iter()
+                .map(|byte| RomByte {
+                    byte: *byte,
+                    role: RomByteRole::Unknown,
+                })
+                .collect(),
+        }
+    }
+
+    /// Copies the bytes from [AssembledRom] into a new byte vector.
+    pub fn to_bytes(&self) -> Vec<u8> {
+        self.bytes.iter().map(|&byte| byte.byte).collect()
     }
 
     /// Returns the instruction starting at the specified address, which may
@@ -382,41 +401,8 @@ impl ControlFlowsTo {
     }
 }
 
-impl From<&Vec<u8>> for AssembledRom {
-    /// Copies bytes into a new [AssembledRom] and marks them as as
-    /// [RomByteRole::Unknown].
-    ///
-    /// Used to load binary ROMs.
-    fn from(bytes: &Vec<u8>) -> Self {
-        Self {
-            bytes: bytes.iter().map(|byte| byte.clone().into()).collect(),
-        }
-    }
-}
-
 impl From<Vec<RomByte>> for AssembledRom {
     fn from(bytes: Vec<RomByte>) -> Self {
         Self { bytes }
-    }
-}
-
-impl From<&AssembledRom> for Vec<u8> {
-    /// Copies the bytes from [AssembledRom] into a new byte vector.
-    ///
-    /// Used to save binary ROMs.
-    ///
-    /// **This️ conversion is lossy** because byte role information is not
-    /// preserved.
-    fn from(assembled: &AssembledRom) -> Self {
-        assembled.bytes.iter().map(|&byte| byte.byte).collect()
-    }
-}
-
-impl From<u8> for RomByte {
-    fn from(byte: u8) -> Self {
-        Self {
-            byte,
-            role: RomByteRole::Unknown,
-        }
     }
 }

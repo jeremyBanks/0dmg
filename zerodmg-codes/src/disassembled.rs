@@ -19,7 +19,7 @@ fn test_assemble() {
 }
 
 /// A ROM in a disassembled assembly-like structure.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Default)]
 pub struct DisassembledRom {
     /// An ordered list of blocks of code or data in the ROM.
     blocks: Vec<RomBlock>,
@@ -121,15 +121,6 @@ impl DisassembledRom {
     }
 }
 
-impl From<RomBlockContent> for RomBlock {
-    fn from(content: RomBlockContent) -> Self {
-        Self {
-            content,
-            address: None,
-        }
-    }
-}
-
 impl From<Vec<RomBlock>> for DisassembledRom {
     fn from(blocks: Vec<RomBlock>) -> Self {
         DisassembledRom { blocks }
@@ -141,7 +132,10 @@ impl From<Vec<RomBlockContent>> for DisassembledRom {
         DisassembledRom {
             blocks: blocks_contents
                 .into_iter()
-                .map(|content| content.into())
+                .map(|content| RomBlock {
+                    content,
+                    address: None,
+                })
                 .collect(),
         }
     }
@@ -149,9 +143,7 @@ impl From<Vec<RomBlockContent>> for DisassembledRom {
 
 impl From<Vec<Instruction>> for DisassembledRom {
     fn from(instructions: Vec<Instruction>) -> Self {
-        DisassembledRom {
-            blocks: vec![Code(instructions).into()],
-        }
+        vec![Code(instructions)].into()
     }
 }
 
