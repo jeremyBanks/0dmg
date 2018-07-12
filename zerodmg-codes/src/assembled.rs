@@ -6,14 +6,12 @@ use crate::instruction::prelude::*;
 /// Re-exports important traits and types for glob importing.
 pub mod prelude {
     pub use super::AssembledRom;
-    pub use super::IsJumpDestination;
     pub use super::RomByte;
     pub use super::RomByteRole;
 }
 
 // to considers:
-// - switch is_jump_destination to a named boolean instead of an anonymous enum
-// - use parallel arrays instead of RomByte structure
+// enum - use parallel arrays instead of RomByte structure
 
 #[test]
 fn test_disassemble() {
@@ -55,6 +53,18 @@ pub struct RomByte {
     pub role: RomByteRole,
 }
 
+impl RomByte {
+    fn instruction_start(byte: u8, instruction: Instruction, known_jump_destination: bool) -> Self {
+        Self {
+            byte,
+            role: RomByteRole::InstructionStart {
+                instruction,
+                known_jump_destination,
+            },
+        }
+    }
+}
+
 /// Potential roles a byte can have in a ROM.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RomByteRole {
@@ -62,19 +72,15 @@ pub enum RomByteRole {
     Unknown,
     /// The initial byte of an instruction; a point at which we can begin
     /// parsing.
-    InstructionStart(Instruction, IsJumpDestination),
+    InstructionStart {
+        /// The instruction.
+        instruction: Instruction,
+        /// Whether we are confident an address is used as a jump destination
+        /// in the program.
+        known_jump_destination: bool,
+    },
     /// The non-initial byte of an instruction.
     InstructionRest,
-}
-
-/// Whether we are confident an address is used as a jump destination in the
-/// program.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum IsJumpDestination {
-    /// We don't know whether this instruction is a potential jump destination.
-    Unknown,
-    /// We are confident that this is a potential jump destination in the code.
-    Yes,
 }
 
 /// Internal trait used to trace static control flow from an instruction.
@@ -129,7 +135,10 @@ impl AssembledRom {
         let byte = self.bytes[usize::from(address)];
 
         match byte.role {
-            RomByteRole::InstructionStart(instruction, _is_jump_destination) => instruction,
+            RomByteRole::InstructionStart {
+                instruction,
+                known_jump_destination: _,
+            } => instruction,
 
             RomByteRole::InstructionRest => panic!(
                 "requested instruction address mis-aligned with previously-decoded instructions"
@@ -145,8 +154,10 @@ impl AssembledRom {
                     Instruction::from_byte_iter(&mut byte_iter).unwrap()
                 };
 
-                self.bytes[usize::from(address)].role =
-                    RomByteRole::InstructionStart(instruction, IsJumpDestination::Unknown);
+                self.bytes[usize::from(address)].role = RomByteRole::InstructionStart {
+                    instruction,
+                    known_jump_destination: false,
+                };
                 for i in (address + 1)..(address + instruction.byte_length()) {
                     self.bytes[usize::from(i)].role = RomByteRole::InstructionRest;
                 }
@@ -165,22 +176,10 @@ impl AssembledRom {
     pub fn example() -> AssembledRom {
         AssembledRom {
             bytes: vec![
-                RomByte {
-                    role: RomByteRole::InstructionStart(INC(A), IsJumpDestination::Yes),
-                    byte: 0x3C,
-                },
-                RomByte {
-                    role: RomByteRole::InstructionStart(INC(A), IsJumpDestination::Unknown),
-                    byte: 0x3C,
-                },
-                RomByte {
-                    role: RomByteRole::InstructionStart(INC(B), IsJumpDestination::Unknown),
-                    byte: 0x04,
-                },
-                RomByte {
-                    role: RomByteRole::InstructionStart(INC(C), IsJumpDestination::Unknown),
-                    byte: 0x0C,
-                },
+                RomByte::instruction_start(0x3C, INC(A), true),
+                RomByte::instruction_start(0x3C, INC(A), false),
+                RomByte::instruction_start(0x04, INC(B), false),
+                RomByte::instruction_start(0x0C, INC(C), false),
             ],
         }
     }
@@ -190,7 +189,7 @@ impl AssembledRom {
     /// added as many known instruction addresses as possible (with
     /// [AssembledRom::get_known_instruction()]) before calling this.
     ///
-    /// Each byte which [IsJumpDestination::Yes] starts a new [Code] block, and
+    /// Each byte which `is_jump_destination` starts a new [Code] block, and
     /// contiguous [RomByteRole::Unknown] bytes are grouped into [Data] blocks.
     pub fn disassemble(&self) -> DisassembledRom {
         let mut blocks = Vec::<RomBlock>::new();
@@ -206,9 +205,12 @@ impl AssembledRom {
             let address = Some(u16::try_from(address).unwrap());
 
             let block_change = match byte.role {
-                RomByteRole::InstructionStart(instruction, is_jump_destination) => {
+                RomByteRole::InstructionStart {
+                    instruction,
+                    known_jump_destination,
+                } => {
                     // Each jump destination starts a new Code block.
-                    if is_jump_destination == IsJumpDestination::Yes {
+                    if known_jump_destination {
                         BlockChange::New(RomBlock {
                             address,
                             content: Code(vec![instruction]),

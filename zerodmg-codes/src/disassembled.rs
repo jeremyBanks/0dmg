@@ -78,7 +78,10 @@ impl DisassembledRom {
                 for _padding_address in current_length..address_usize {
                     bytes.push(RomByte {
                         byte: 0x00,
-                        role: RomByteRole::InstructionStart(NOP, IsJumpDestination::Unknown),
+                        role: RomByteRole::InstructionStart {
+                            instruction: NOP,
+                            known_jump_destination: false,
+                        },
                     })
                 }
             }
@@ -92,14 +95,10 @@ impl DisassembledRom {
                             bytes.push(RomByte {
                                 byte: *byte,
                                 role: if is_first_byte {
-                                    RomByteRole::InstructionStart(
-                                        *instruction,
-                                        if is_first_instruction {
-                                            IsJumpDestination::Yes
-                                        } else {
-                                            IsJumpDestination::Unknown
-                                        },
-                                    )
+                                    RomByteRole::InstructionStart {
+                                        instruction: *instruction,
+                                        known_jump_destination: is_first_instruction,
+                                    }
                                 } else {
                                     RomByteRole::InstructionRest
                                 },
