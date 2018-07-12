@@ -10,9 +10,6 @@ pub mod prelude {
     pub use super::RomByteRole;
 }
 
-// to considers:
-// enum - use parallel arrays instead of RomByte structure
-
 #[test]
 fn test_disassemble() {
     let assembled = AssembledRom::example();
@@ -154,17 +151,35 @@ impl AssembledRom {
                     Instruction::from_byte_iter(&mut byte_iter).unwrap()
                 };
 
+                let next_address = address + instruction.byte_length();
+
                 self.bytes[usize::from(address)].role = RomByteRole::InstructionStart {
                     instruction,
                     known_jump_destination: false,
                 };
-                for i in (address + 1)..(address + instruction.byte_length()) {
+                for i in (address + 1)..next_address {
                     self.bytes[usize::from(i)].role = RomByteRole::InstructionRest;
                 }
 
-                // TODO: trace anything, recursively is okay for now.
-                match instruction.flows_to() {
-                    _ => {}
+                let flows_to = instruction.flows_to();
+                if flows_to.next {
+                    // Only flow to next instruction if there is a next instruction.
+                    if usize::from(next_address) < self.bytes.len() {
+                        self.get_known_instruction(next_address);
+                    }
+                }
+                if let Some(target) = flows_to.jump {
+                    match target {
+                        JumpReference::Absolute(address) => {
+                            self.get_known_instruction(address);
+                        }
+                        JumpReference::Relative(offset) => {
+                            let address = u16::try_from(
+                                (i32::from(next_address) + i32::from(offset) + 0xFFFF) % 0xFFFF,
+                            ).unwrap();
+                            self.get_known_instruction(address);
+                        }
+                    }
                 }
 
                 instruction
