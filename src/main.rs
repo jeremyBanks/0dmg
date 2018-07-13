@@ -17,9 +17,6 @@ mod server;
 pub fn main() -> Result<(), Box<Any + Send>> {
     zerodmg_codes::main()?;
 
-    return Ok(());
-    thread::sleep(Duration::from_millis(4000));
-
     let output_buffer = Arc::new(Mutex::new(emulator::Output::new()));
     let also_output_buffer = output_buffer.clone();
 
