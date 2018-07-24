@@ -27,6 +27,8 @@ pub enum Instruction {
     JP_NZ(u16),
     /// Unconditional absolute jump
     JP(u16),
+    /// Uncondition relative jump
+    JR(i8),
 }
 
 /// The 8-bit registers that are available in the CPU.
@@ -82,6 +84,10 @@ impl Instruction {
                 0b0000_0100 => INC(B),
                 0b0000_1100 => INC(C),
                 0b0001_0100 => INC(D),
+                0b0001_1000 => {
+                    let offset = bytes.next().unwrap() as i8;
+                    JR(offset)
+                }
                 0b0001_1100 => INC(E),
                 0b0010_0100 => INC(H),
                 0b0010_1100 => INC(L),
@@ -96,14 +102,14 @@ impl Instruction {
                 0b0011_0101 => DEC(AT_HL),
                 0b0011_1101 => DEC(A),
                 0b1100_0010 => {
-                    let low = bytes.next().expect("TODO handle this gracefully");
-                    let high = bytes.next().expect("TODO handle this gracefully");
+                    let low = bytes.next().unwrap();
+                    let high = bytes.next().unwrap();
                     let address = u8s_to_u16(low, high);
                     JP_NZ(address)
                 }
                 0b1100_0011 => {
-                    let low = bytes.next().expect("TODO handle this gracefully");
-                    let high = bytes.next().expect("TODO handle this gracefully");
+                    let low = bytes.next().unwrap();
+                    let high = bytes.next().unwrap();
                     let address = u8s_to_u16(low, high);
                     JP(address)
                 }
@@ -122,6 +128,7 @@ impl Instruction {
             DEC(_) => 1,
             JP_NZ(_) => 3,
             JP(_) => 3,
+            JR(_) => 2,
         }
     }
 
@@ -139,6 +146,7 @@ impl Instruction {
                 let (low, high) = u16_to_u8s(*address);
                 vec![0b11000011, low, high]
             }
+            JR(offset) => vec![0b0001_1000, *offset as u8]
         };
 
         assert_eq!(bytes.len(), self.byte_length().into());
@@ -156,6 +164,7 @@ impl Display for Instruction {
             DEC(register) => write!(f, "DEC {:?}", register),
             JP(address) => write!(f, "JP 0x{:04X}", address),
             JP_NZ(address) => write!(f, "JP NZ 0x{:04X}", address),
+            JR(offset) => write!(f, "JR 0x{:02X}", offset),
         }
     }
 }
