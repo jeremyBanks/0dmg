@@ -91,8 +91,8 @@ pub fn make_demo() -> DisassembledRom {
             // Set background palette
             LD_16_IMMEDIATE(HL, 0xFF47),
             // to [black, dark gray, light gray, white]
-            // LD_8_IMMEDIATE(A, 0b_00_01_10_11),
-            // LD_8_INTERNAL(AtHL, A),
+            LD_8_IMMEDIATE(A, 0b_00_01_10_11),
+            LD_8_INTERNAL(AT_HL, A),
         //     // Set first tile to black.
         //     LD(HL, 0x8000),
         //     LD(A, 0xFF),
@@ -205,6 +205,20 @@ pub fn make_demo() -> DisassembledRom {
         //     // // LD (HL), A
         //     // 0x77,
         //     //
+
+        
+        RomBlock {
+            address: None,
+            content: Code(vec![JP(0x0180)])
+        },
+        block(0x0180, vec![
+            // Mess with the pallet forever:
+            LD_16_IMMEDIATE(HL, 0xFF47),
+            LD_8_INTERNAL(A, AT_HL),
+            INC(A),
+            LD_8_INTERNAL(AT_HL, A),
+            JP(0x0180),
+        ]),
 
         RomBlock {
             address: None,
