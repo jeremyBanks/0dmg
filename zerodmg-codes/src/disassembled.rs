@@ -37,7 +37,7 @@ pub struct RomBlock {
 }
 
 /// A contiguous block of ROM code or data.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, From)]
 pub enum RomBlockContent {
     /// A block of instructions.
     Code(Vec<Instruction>),
