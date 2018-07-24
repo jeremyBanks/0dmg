@@ -367,6 +367,7 @@ impl FlowsTo for Instruction {
             JP_NZ(address) => ControlFlowsTo::next_and_jump(JumpReference::Absolute(*address)),
             JP(address) => ControlFlowsTo::jump(JumpReference::Absolute(*address)),
             JR(offset) => ControlFlowsTo::jump(JumpReference::Relative(*offset)),
+            LD_16_IMMEDIATE(_, _) => ControlFlowsTo::next(),
         }
     }
 }

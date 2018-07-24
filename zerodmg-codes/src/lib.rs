@@ -34,9 +34,33 @@ fn block(address: u16, value: impl Into<crate::disassembled::RomBlockContent>) -
     }
 }
 
-/// Returns a DisassembledRom with our demo program.
 pub fn demo() -> DisassembledRom {
-    DisassembledRom::from(vec![
+    let disassembled = make_demo();
+
+    println!("=== Demo Rom Source ===");
+    println!("{:?}\n", disassembled);
+    println!("{}\n", disassembled);
+
+    println!("=== Assembled ===");
+    let assembled = disassembled.assemble();
+    println!("{:?}\n", assembled.to_bytes());
+
+    println!("=== Redisassembled (using metadata) ===");
+    let redisassembled = assembled.disassemble();
+    println!("{:?}\n", redisassembled);
+    println!("{}\n", redisassembled);
+
+    println!("=== Redisassembled (just from the bytes) ===");
+    let really_disassembled = AssembledRom::new(assembled.to_bytes()).disassemble();
+    println!("{:?}\n", really_disassembled);
+    println!("{}\n", really_disassembled);
+
+    disassembled
+}
+
+/// Returns a DisassembledRom with our demo program.
+pub fn make_demo() -> DisassembledRom {
+    let generic_header = vec![
         // Game ROM entry point, from which we jump to our main function.
         block(0x0100, vec![JP(0x0150)]),
         
@@ -59,15 +83,16 @@ pub fn demo() -> DisassembledRom {
 
         // Global checksum of all other bytes in the ROM... but not verified, so'll neglect it.
         block(0x014E, vec![0x00, 0x00]),
+    ];
 
+    let demo_body = vec![
         // Main function.
-        // block(0x0150, vec![
-        //     // Set background palette
-        //     LD(HL, 0xFF47),
-        //     // to [black, dark gray, light gray, white]
-        //     LD(A, 0b_00_01_10_11),
-        //     LD(AtHL, A),
-
+        block(0x0150, vec![
+            // Set background palette
+            LD_16_IMMEDIATE(HL, 0xFF47),
+            // to [black, dark gray, light gray, white]
+            // LD_8_IMMEDIATE(A, 0b_00_01_10_11),
+            // LD_8_INTERNAL(AtHL, A),
         //     // Set first tile to black.
         //     LD(HL, 0x8000),
         //     LD(A, 0xFF),
@@ -124,7 +149,7 @@ pub fn demo() -> DisassembledRom {
         //     // // infinite loop
         //     // // JR -2
         //     // 0x18, (0xFF - 2 + 1),
-        // ]),
+        ]),
 
         // block(0x0200, vec![
         //     // // Set background palette to [black, dark gray, light gray, white].
@@ -180,12 +205,15 @@ pub fn demo() -> DisassembledRom {
         //     // // LD (HL), A
         //     // 0x77,
         //     //
+
         RomBlock {
             address: None,
-            // infinite loop
-            content: Code(vec![NOP, NOP, JR(-4)])
+            // Loop back to main.
+            content: Code(vec![JP(0x0150)])
         }
-    ])
+    ];
+
+    DisassembledRom::from(vec![generic_header, demo_body].concat())
 }
 
 #[test]
