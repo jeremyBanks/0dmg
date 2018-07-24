@@ -9,14 +9,11 @@ use std::time::Duration;
 
 use hyper::server::Http;
 
-use zerodmg_codes;
 use zerodmg_emulator as emulator;
 
 mod server;
 
 pub fn main() -> Result<(), Box<Any + Send>> {
-    zerodmg_codes::main()?;
-
     let output_buffer = Arc::new(Mutex::new(emulator::Output::new()));
     let also_output_buffer = output_buffer.clone();
 

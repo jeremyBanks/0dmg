@@ -23,38 +23,61 @@ pub mod prelude {
 
 use self::prelude::*;
 
-/// An example/experimental use of this crate.
-pub fn main() -> Result<(), Box<std::any::Any + Send>> {
-    let disassembled = DisassembledRom::from({
-        let main_addr = 0x0000;
-        let init_addr = 0x0030;
+/// Returns a DisassembledRom with our demo program.
+pub fn demo() -> DisassembledRom {
+    DisassembledRom::from({
         vec![
             RomBlock {
-                address: Some(main_addr),
-                content: Code(vec![INC(A), INC(A), INC(A)]),
-            },
-            RomBlock {
-                address: None,
-                content: Code(vec![DEC(A)]),
-            },
-            RomBlock {
-                address: Some(main_addr + 0x0005),
-                content: Code(vec![DEC(A), JP(init_addr)]),
-            },
-            RomBlock {
-                address: None,
-                content: Data(vec![
-                    0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-                    0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x02,
-                    0x03, 0x04, 0x05, 0x06, 0x07, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+                // Main entry point, jumping to main function.
+                address: Some(0x0100),
+                content: Code(vec![
+                    JP(0x0150),
                 ]),
             },
+            
             RomBlock {
-                address: Some(init_addr),
-                content: Code(vec![DEC(A), JP(main_addr)]),
+                // Nintendo Logo (for copyright check).
+                address: Some(0x0104),
+                content: Data(vec![
+                    0xCE, 0xED, 0x66, 0x66, 0xCC, 0x0D, 0x00, 0x0B,
+                    0x03, 0x73, 0x00, 0x83, 0x00, 0x0C, 0x00, 0x0D,
+                    0x00, 0x08, 0x11, 0x1F, 0x88, 0x89, 0x00, 0x0E,
+                    0xDC, 0xCC, 0x6E, 0xE6, 0xDD, 0xDD, 0xD9, 0x99,
+                    0xBB, 0xBB, 0x67, 0x63, 0x6E, 0x0E, 0xEC, 0xCC,
+                    0xDD, 0xDC, 0x99, 0x9F, 0xBB, 0xB9, 0x33, 0x3E,
+                ]),
+            },
+
+            RomBlock {
+                // Metadata.
+                address: Some(0x0134),
+                content: Data(vec![
+                    0x00, 0x00, 0x00, 0x00, 0x00, 
+                    0x00, 0x00, 0x00, 0x00, 0x00, 
+                    0x00, 0x00, 0x00, 0x00, 0x00, 
+                    0x00, 0x00, 0x00, 0x00, 0x00, 
+                    0x00, 0x00, 0x00, 0x00, 0x00,
+                ]),
+            },
+
+            RomBlock {
+                // Metadata checksum (sum of metadata bytes + 0xE7).
+                address: Some(0x014D),
+                content: Data(vec![0xE7]),
+            },
+            
+            RomBlock {
+                // Main function.
+                address: Some(0x0150),
+                content: Code(vec![INC(A), INC(A), INC(A), JP(0x0150)]),
             },
         ]
-    });
+    })
+}
+
+#[test]
+pub fn test() -> Result<(), Box<std::any::Any + Send>> {
+    let disassembled = demo();
 
     println!("=== Input ===");
     println!("{:?}\n", disassembled);
@@ -75,9 +98,4 @@ pub fn main() -> Result<(), Box<std::any::Any + Send>> {
     println!("{}\n", really_disassembled);
 
     Ok(())
-}
-
-#[test]
-fn test_main() -> Result<(), Box<std::any::Any + Send>> {
-    main()
 }

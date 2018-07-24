@@ -12,6 +12,8 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, SystemTime};
 
+use zerodmg_codes;
+
 const EXECUTIONS_BUFFER_SIZE: usize = 1024;
 use image::{DynamicImage, GenericImage, ImageBuffer};
 
@@ -128,11 +130,12 @@ impl Output {
 
 impl GameBoy {
     pub fn new(output_buffer: Arc<Mutex<Output>>) -> Self {
-        let default_game_rom = include_bytes!("test_roms/cpu_instrs/cpu_instrs.gb");
+        // let game_rom = include_bytes!("test_roms/cpu_instrs/cpu_instrs.gb").to_bytes;
+        let game_rom = zerodmg_codes::demo().assemble().to_bytes();
 
         Self {
             cpu: CPUData::new(),
-            mem: MemoryData::new(default_game_rom.to_vec()),
+            mem: MemoryData::new(game_rom),
             aud: AudioData::new(),
             vid: VideoData::new(),
             t: 0,
