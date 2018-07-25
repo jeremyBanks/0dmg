@@ -1,21 +1,17 @@
 #!/bin/bash
 set -eux;
 CARGO="cargo +nightly";
-function clean {
-    ${CARGO} clean;
-    for f in zerodmg-*; do
-        (
-            cd "${f}";
-            ${CARGO} clean;
-        );
-    done
-}
-
-clean;
-${CARGO} fmt;
-
-clean;
+${CARGO} build;
+${CARGO} clean;
+for f in zerodmg-*; do
+    (
+        cd "${f}";
+        ${CARGO} clean;
+        ${CARGO} fix --allow-dirty;
+        ${CARGO} fmt;
+        ${CARGO} clippy;
+    );
+done
 ${CARGO} fix --allow-dirty;
-
-clean;
+${CARGO} fmt;
 ${CARGO} clippy;

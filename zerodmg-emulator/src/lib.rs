@@ -130,8 +130,7 @@ impl Output {
 
 impl GameBoy {
     pub fn new(output_buffer: Arc<Mutex<Output>>) -> Self {
-        // let game_rom = include_bytes!("test_roms/cpu_instrs/cpu_instrs.gb").to_bytes;
-        let game_rom = zerodmg_codes::demo().assemble().to_bytes();
+        let game_rom = zerodmg_codes::roms::jeb_demo().assemble().to_bytes();
 
         Self {
             cpu: CPUData::new(),

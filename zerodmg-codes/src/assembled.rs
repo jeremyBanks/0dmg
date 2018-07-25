@@ -106,30 +106,35 @@ enum JumpReference {
 }
 
 impl AssembledRom {
-    /// Creates a new [AssembledRom] of the given raw bytes, with their roles
-    /// inferred where possible from constant known instruction addresses.
+    /// Creates a new [AssembledRom] of the given raw bytes.
+    /// This is assumed to be a game ROM, so standard game call targets are
+    /// immediately traced.
     pub fn new(bytes: Vec<u8>) -> Self {
         let mut assembled = Self::from_bytes(&bytes);
-
-        // RST call targets
-        assembled.get_known_instruction(0x0000);
-        assembled.get_known_instruction(0x0008);
-        assembled.get_known_instruction(0x0010);
-        assembled.get_known_instruction(0x0018);
-        assembled.get_known_instruction(0x0020);
-        assembled.get_known_instruction(0x0028);
-        assembled.get_known_instruction(0x0030);
-        assembled.get_known_instruction(0x0038);
-        // Interrupt handlers
-        assembled.get_known_instruction(0x0040);
-        assembled.get_known_instruction(0x0048);
-        assembled.get_known_instruction(0x0050);
-        assembled.get_known_instruction(0x0058);
-        assembled.get_known_instruction(0x0060);
-        // Entry point
-        assembled.get_known_instruction(0x0100);
-
+        assembled.trace_standard_game_instructions();
         assembled
+    }
+
+    /// Traces all known instructions from all standard known game ROM call
+    /// targets.
+    pub fn trace_standard_game_instructions(&mut self) {
+        // RST call targets
+        self.get_known_instruction(0x0000);
+        self.get_known_instruction(0x0008);
+        self.get_known_instruction(0x0010);
+        self.get_known_instruction(0x0018);
+        self.get_known_instruction(0x0020);
+        self.get_known_instruction(0x0028);
+        self.get_known_instruction(0x0030);
+        self.get_known_instruction(0x0038);
+        // Interrupt handlers
+        self.get_known_instruction(0x0040);
+        self.get_known_instruction(0x0048);
+        self.get_known_instruction(0x0050);
+        self.get_known_instruction(0x0058);
+        self.get_known_instruction(0x0060);
+        // Entry point
+        self.get_known_instruction(0x0100);
     }
 
     /// Copies bytes into a new [AssembledRom] and marks them as as

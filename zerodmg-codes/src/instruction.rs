@@ -37,11 +37,13 @@ pub enum Instruction {
     LD_8_INTERNAL(U8Register, U8Register),
     /// Pops PC+AF from the stack (return from call).
     RET,
-    /// Pops PC+AF from the stack and reenables interrupts (return from interrupt).
+    /// Pops PC+AF from the stack and reenables interrupts (return from
+    /// interrupt).
     RETI,
     /// Stops running the CPU until an interrupt occurs.
     HALT,
-    /// Halt and Catch Fire - invalid opcode used to panic in unexpected situations.
+    /// Halt and Catch Fire - invalid opcode used to panic in unexpected
+    /// situations.
     HCF,
 }
 
@@ -207,7 +209,7 @@ impl Instruction {
                 0xC3 => JP(d16(bytes)),
                 0xC9 => RET,
                 0xD9 => RETI,
-                
+
                 0xDD => HCF,
 
                 _ => unimplemented!("unsupported instruction code 0x{:02X}", first),
@@ -245,22 +247,24 @@ impl Instruction {
             JP_NZ(address) => {
                 let (low, high) = u16_to_u8s(*address);
                 vec![0xC2, low, high]
-            },
+            }
             JP(address) => {
                 let (low, high) = u16_to_u8s(*address);
                 vec![0xC3, low, high]
-            },
+            }
             JR(offset) => vec![0x18, *offset as u8],
             LD_16_IMMEDIATE(register, value) => {
                 let (low, high) = u16_to_u8s(*value);
                 let instruction = 0x01 + 0b00_01_0000 * register.index();
                 vec![instruction, low, high]
-            },
+            }
             LD_8_IMMEDIATE(register, value) => {
                 let instruction = 0x06 + 0b00_001_000 * register.index();
                 vec![instruction, *value]
-            },
-            LD_8_INTERNAL(dest, source) => vec![0x40 + 0b00_001_000 * dest.index() + source.index()],
+            }
+            LD_8_INTERNAL(dest, source) => {
+                vec![0x40 + 0b00_001_000 * dest.index() + source.index()]
+            }
             HALT => vec![0x76],
             RET => vec![0xC9],
             RETI => vec![0xD9],
