@@ -35,8 +35,14 @@ pub enum Instruction {
     LD_8_IMMEDIATE(U8Register, u8),
     /// Loads a value from one 8-bit register into another.
     LD_8_INTERNAL(U8Register, U8Register),
+    /// Pops PC+AF from the stack (return from call).
+    RET,
+    /// Pops PC+AF from the stack and reenables interrupts (return from interrupt).
+    RETI,
     /// Stops running the CPU until an interrupt occurs.
     HALT,
+    /// Halt and Catch Fire - invalid opcode used to panic in unexpected situations.
+    HCF,
 }
 
 /// The 8-bit registers that are available in the CPU.
@@ -199,8 +205,12 @@ impl Instruction {
 
                 0xC2 => JP_NZ(d16(bytes)),
                 0xC3 => JP(d16(bytes)),
+                0xC9 => RET,
+                0xD9 => RETI,
+                
+                0xDD => HCF,
 
-                _ => unimplemented!("unsupport instruction code 0x{:02X}", first),
+                _ => unimplemented!("unsupported instruction code 0x{:02X}", first),
             })
         } else {
             None
@@ -220,6 +230,9 @@ impl Instruction {
             LD_8_IMMEDIATE(_, _) => 2,
             LD_8_INTERNAL(_, _) => 1,
             HALT => 1,
+            HCF => 1,
+            RET => 1,
+            RETI => 1,
         }
     }
 
@@ -249,6 +262,9 @@ impl Instruction {
             },
             LD_8_INTERNAL(dest, source) => vec![0x40 + 0b00_001_000 * dest.index() + source.index()],
             HALT => vec![0x76],
+            RET => vec![0xC9],
+            RETI => vec![0xD9],
+            HCF => vec![0xDD],
         };
 
         assert_eq!(bytes.len(), self.byte_length().into());
@@ -271,6 +287,9 @@ impl Display for Instruction {
             LD_8_IMMEDIATE(register, value) => write!(f, "LD {:?} 0x{:02X}", register, value),
             LD_8_INTERNAL(dest, source) => write!(f, "LD {:?} {:?}", dest, source),
             HALT => write!(f, "HALT"),
+            RET => write!(f, "RET"),
+            RETI => write!(f, "RETI"),
+            HCF => write!(f, "HCF!"),
         }
     }
 }

@@ -8,7 +8,6 @@
 #[macro_use]
 extern crate derive_more;
 
-
 /// Encoding/decoding individual CPU instructions.
 pub mod instruction;
 
@@ -34,10 +33,12 @@ fn block(address: u16, value: impl Into<crate::disassembled::RomBlockContent>) -
     }
 }
 
+/// Returns a DisassembledRom with our demo program.
+/// Also runs some sanity checks.
 pub fn demo() -> DisassembledRom {
     let disassembled = make_demo();
 
-    println!("=== Demo Rom Source ===");
+    println!("=== Input ===");
     println!("{:?}\n", disassembled);
     println!("{}\n", disassembled);
 
@@ -45,22 +46,20 @@ pub fn demo() -> DisassembledRom {
     let assembled = disassembled.assemble();
     println!("{:?}\n", assembled.to_bytes());
 
-    println!("=== Redisassembled (using metadata) ===");
-    let redisassembled = assembled.disassemble();
-    println!("{:?}\n", redisassembled);
-    println!("{}\n", redisassembled);
+    println!("=== Redisassembled ===");
+    let disassembled = AssembledRom::new(assembled.to_bytes()).disassemble();
+    println!("{:?}\n", disassembled);
+    println!("{}\n", disassembled);
 
-    println!("=== Redisassembled (just from the bytes) ===");
-    let really_disassembled = AssembledRom::new(assembled.to_bytes()).disassemble();
-    println!("{:?}\n", really_disassembled);
-    println!("{}\n", really_disassembled);
+    let reassembled = disassembled.assemble();
+    assert_eq!(reassembled.to_bytes(), assembled.to_bytes());
 
     disassembled
 }
 
 /// Returns a DisassembledRom with our demo program.
-pub fn make_demo() -> DisassembledRom {
-    let generic_header = vec![
+fn make_demo() -> DisassembledRom {
+    let header_stub = vec![
         // Game ROM entry point, from which we jump to our main function.
         block(0x0100, vec![JP(0x0150)]),
         
@@ -83,6 +82,29 @@ pub fn make_demo() -> DisassembledRom {
 
         // Global checksum of all other bytes in the ROM... but not verified, so'll neglect it.
         block(0x014E, vec![0x00, 0x00]),
+    ];
+
+    let handlers = vec![
+        // One-byte RST instruction call targets.
+        block(0x0000, vec![HCF]),
+        block(0x0008, vec![HCF]),
+        block(0x0010, vec![HCF]),
+        block(0x0018, vec![HCF]),
+        block(0x0020, vec![HCF]),
+        block(0x0028, vec![HCF]),
+        block(0x0030, vec![HCF]),
+        block(0x0038, vec![HCF]),
+        // Interrupt handlers:
+        // V-Blank.
+        block(0x0040, vec![RETI]),
+        // LCD Status.
+        block(0x0048, vec![HCF]),
+        // Timer.
+        block(0x0050, vec![HCF]),
+        // Serial data.
+        block(0x0058, vec![HCF]),
+        // Button press.
+        block(0x0060, vec![HCF]),
     ];
 
     let demo_body = vec![
@@ -227,30 +249,11 @@ pub fn make_demo() -> DisassembledRom {
         }
     ];
 
-    DisassembledRom::from(vec![generic_header, demo_body].concat())
+    DisassembledRom::from(vec![handlers, header_stub, demo_body].concat())
 }
 
 #[test]
 pub fn test() -> Result<(), Box<std::any::Any + Send>> {
-    let disassembled = demo();
-
-    println!("=== Input ===");
-    println!("{:?}\n", disassembled);
-    println!("{}\n", disassembled);
-
-    println!("=== Assembled ===");
-    let assembled = disassembled.assemble();
-    println!("{:?}\n", assembled.to_bytes());
-
-    println!("=== Redisassembled (using metadata) ===");
-    let redisassembled = assembled.disassemble();
-    println!("{:?}\n", redisassembled);
-    println!("{}\n", redisassembled);
-
-    println!("=== Redisassembled (just from the bytes) ===");
-    let really_disassembled = AssembledRom::new(assembled.to_bytes()).disassemble();
-    println!("{:?}\n", really_disassembled);
-    println!("{}\n", really_disassembled);
-
+    demo();
     Ok(())
 }

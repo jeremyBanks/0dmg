@@ -111,13 +111,23 @@ impl AssembledRom {
     pub fn new(bytes: Vec<u8>) -> Self {
         let mut assembled = Self::from_bytes(&bytes);
 
-        // For now, we're pretending that 0x0000 is the only known constant instruction
-        // address.
+        // RST call targets
         assembled.get_known_instruction(0x0000);
-        // In reality, 0x0000 is a constant instruction address for the boot ROM, but
-        // for games it's not, and the actual constant instruction addresses
-        // are the entry point at 0x0100 and the interrupt handlers at 0x0040,
-        // 0x0048, 0x0050, and 0x0048.
+        assembled.get_known_instruction(0x0008);
+        assembled.get_known_instruction(0x0010);
+        assembled.get_known_instruction(0x0018);
+        assembled.get_known_instruction(0x0020);
+        assembled.get_known_instruction(0x0028);
+        assembled.get_known_instruction(0x0030);
+        assembled.get_known_instruction(0x0038);
+        // Interrupt handlers
+        assembled.get_known_instruction(0x0040);
+        assembled.get_known_instruction(0x0048);
+        assembled.get_known_instruction(0x0050);
+        assembled.get_known_instruction(0x0058);
+        assembled.get_known_instruction(0x0060);
+        // Entry point
+        assembled.get_known_instruction(0x0100);
 
         assembled
     }
@@ -371,13 +381,16 @@ impl FlowsTo for Instruction {
             LD_8_IMMEDIATE(_, _) => ControlFlowsTo::next(),
             LD_8_INTERNAL(_, _) => ControlFlowsTo::next(),
             HALT => ControlFlowsTo::next(),
+            RET => ControlFlowsTo::unknown(),
+            RETI => ControlFlowsTo::unknown(),
+            HCF => ControlFlowsTo::unknown(),
         }
     }
 }
 
 impl ControlFlowsTo {
     /// No known control flow from here.
-    pub fn none() -> Self {
+    pub fn unknown() -> Self {
         ControlFlowsTo {
             next: false,
             jump: None,
