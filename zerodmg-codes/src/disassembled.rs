@@ -198,7 +198,6 @@ impl Display for RomBlock {
     }
 }
 
-/// Convenience wrapper for RomBlock constructor.
 pub fn block(address: u16, value: impl Into<crate::disassembled::RomBlockContent>) -> RomBlock {
     RomBlock {
         address: Some(address),

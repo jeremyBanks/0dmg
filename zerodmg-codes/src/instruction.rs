@@ -7,8 +7,12 @@ use std::fmt::Display;
 pub mod prelude {
     pub use super::Instruction;
     pub use super::Instruction::*;
+    pub use super::LD;
     pub use super::U16Register::*;
     pub use super::U8Register::*;
+    pub use super::U8SecondaryRegister::*;
+    pub use super::RSTTarget::*;
+    pub use super::FlagCondition::*;
 }
 
 use self::prelude::*;
@@ -23,28 +27,71 @@ pub enum Instruction {
     INC(U8Register),
     /// Decrement u8 register
     DEC(U8Register),
-    /// Conditional absolute jump, if Z flag bit is non-zero
-    JP_NZ(u16),
-    /// Unconditional absolute jump
-    JP(u16),
-    /// Uncondition relative jump
-    JR(i8),
     /// Load immediate bytes into a 16-bit register.
     LD_16_IMMEDIATE(U16Register, u16),
     /// Loads immediates bytes into an 8-bit register.
     LD_8_IMMEDIATE(U8Register, u8),
-    /// Loads a value from one 8-bit register into another.
+    /// Loads the value from one 8-bit register into another.
     LD_8_INTERNAL(U8Register, U8Register),
-    /// Pops PC+AF from the stack (return from call).
+    /// Loads the value from A into a secondary pointer/register.
+    LD_8_TO_SECONDARY(U8SecondaryRegister),
+    /// Loads the value from secondary pointer/register into A.
+    LD_8_FROM_SECONDARY(U8SecondaryRegister),
+    // A += x
+    ADD(U8Register),
+    // A += x + Z_C
+    ADC(U8Register),
+    // A -= x
+    SUB(U8Register),
+    // A -= x + Z_C
+    SBC(U8Register),
+    // A &= x
+    AND(U8Register),
+    // A ^= x
+    XOR(U8Register),
+    // A |= x
+    OR(U8Register),
+    // (A - x)
+    // Updates flags, but doesn't update any other registers.
+    CP(U8Register),
+    /// Unconditional absolute jump, updates PC.
+    JP(u16),
+    /// Uncondition relative jump, updates PC.
+    JR(i8),
+    /// Conditional absolute jump, may update PC.
+    JP_IF(u16, FlagCondition),
+    /// Conditional relative jump, may update PC.
+    JR_IF(u16, FlagCondition),
+    /// Unconditional call. Pushes PC on the stack, then updates it.
+    CALL(i16),
+    /// Conditional call. Pushes PC on the stack, then updates it.
+    CALL_IF(i16, FlagCondition),
+    /// Pops PC from the stack (return from call).
     RET,
-    /// Pops PC+AF from the stack and reenables interrupts (return from
+    /// Pops PC from the stack and reenables interrupts (return from
     /// interrupt).
     RETI,
     /// Stops running the CPU until an interrupt occurs.
     HALT,
+    /// Jumps to a hard-coded single-byte address.
+    RST(RSTTarget),
     /// Halt and Catch Fire - invalid opcode used to panic in unexpected
     /// situations.
     HCF,
+}
+
+/// Flag conditions that can be used by branching instructions.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[allow(non_camel_case_types)]
+pub enum FlagCondition {
+    /// Zero flag bit is not set; last instruction had non-zero result.
+    NZ,
+    /// Zero flag bit is set; last instruction had zero result.
+    Z,
+    /// Carry flag bit is not set; last instruction did not overflow.
+    NC,
+    /// Carry flag bit is set; last instruction overflowed.
+    C,
 }
 
 /// The 8-bit registers that are available in the CPU.
@@ -85,6 +132,87 @@ pub enum U16Register {
     SP,
 }
 
+/// The 16-bit registers that are available in the CPU.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[allow(non_camel_case_types)]
+pub enum U8SecondaryRegister {
+    /// Value in memory address represented indicated by [BC] register.
+    AT_BC,
+    /// Value in memory address represented indicated by [BC] register.
+    AT_DE,
+    /// Value in memory address represented indicated by [HL] register,
+    /// which is then incremented.
+    AT_HL_Plus,
+    /// Value in memory address represented indicated by [HL] register,
+    /// which is then decremented.
+    AT_HL_Minus,
+}
+
+/// Addresses that can be called by single-byte RST instructions.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[allow(non_camel_case_types)]
+pub enum RSTTarget {
+    to00,
+    to08,
+    to10,
+    to18,
+    to20,
+    to28,
+    to30,
+    to38,
+}
+
+impl RSTTarget {
+    fn address(self) -> u8 {
+        match self {
+            to00 => 0x00,
+            to08 => 0x08,
+            to10 => 0x10,
+            to18 => 0x08,
+            to20 => 0x20,
+            to28 => 0x28,
+            to30 => 0x30,
+            to38 => 0x38,
+        }
+    }
+}
+
+/// Invalid instruction opcodes.
+/// These should never be executed.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[allow(non_camel_case_types)]
+pub enum InvalidInstruction {
+    xxD3,
+    xxDB,
+    xxDD,
+    xxE3,
+    xxE4,
+    xxEB,
+    xxEC,
+    xxED,
+    XXF4,
+    XXFC,
+    XXFD,
+}
+
+impl RSTTarget {
+    fn opcode(self) -> u8 {
+        match self {
+            xxD3 => 0xD3,
+            xxDB => 0xDB,
+            xxDD => 0xDD,
+            xxE3 => 0xE3,
+            xxE4 => 0xE4,
+            xxEB => 0xEB,
+            xxEC => 0xEC,
+            xxED => 0xED,
+            XXF4 => 0xF4,
+            XXFC => 0xFC,
+            XXFD => 0xFD,
+        }
+    }
+}
+
 impl Instruction {
     /// Decodes machine code bytes from the iterator to an Instruction.
     ///
@@ -106,10 +234,20 @@ impl Instruction {
             Some(match first {
                 0x00 => NOP,
 
-                0x01 => LD_16_IMMEDIATE(BC, d16(bytes)),
-                0x11 => LD_16_IMMEDIATE(DE, d16(bytes)),
-                0x21 => LD_16_IMMEDIATE(HL, d16(bytes)),
-                0x31 => LD_16_IMMEDIATE(SP, d16(bytes)),
+                0x01 => LD(BC, d16(bytes)),
+                0x11 => LD(DE, d16(bytes)),
+                0x21 => LD(HL, d16(bytes)),
+                0x31 => LD(SP, d16(bytes)),
+
+                0x02 => LD(AT_BC, A),
+                0x12 => LD(AT_DE, A),
+                0x22 => LD(AT_HL_Plus, A),
+                0x32 => LD(AT_HL_Minus, A),
+
+                0x0A => LD(A, AT_BC),
+                0x1A => LD(A, AT_DE),
+                0x2A => LD(A, AT_HL_Plus),
+                0x3A => LD(A, AT_HL_Minus),
 
                 0x04 => INC(B),
                 0x0C => INC(C),
@@ -130,80 +268,152 @@ impl Instruction {
                 0x35 => DEC(AT_HL),
                 0x3D => DEC(A),
 
-                0x06 => LD_8_IMMEDIATE(B, d8(bytes)),
-                0x0E => LD_8_IMMEDIATE(C, d8(bytes)),
-                0x16 => LD_8_IMMEDIATE(D, d8(bytes)),
-                0x1E => LD_8_IMMEDIATE(E, d8(bytes)),
-                0x26 => LD_8_IMMEDIATE(H, d8(bytes)),
-                0x2E => LD_8_IMMEDIATE(L, d8(bytes)),
-                0x36 => LD_8_IMMEDIATE(AT_HL, d8(bytes)),
-                0x3E => LD_8_IMMEDIATE(A, d8(bytes)),
+                0x06 => LD(B, d8(bytes)),
+                0x0E => LD(C, d8(bytes)),
+                0x16 => LD(D, d8(bytes)),
+                0x1E => LD(E, d8(bytes)),
+                0x26 => LD(H, d8(bytes)),
+                0x2E => LD(L, d8(bytes)),
+                0x36 => LD(AT_HL, d8(bytes)),
+                0x3E => LD(A, d8(bytes)),
 
-                0x40 => LD_8_INTERNAL(B, B),
-                0x41 => LD_8_INTERNAL(B, C),
-                0x42 => LD_8_INTERNAL(B, D),
-                0x43 => LD_8_INTERNAL(B, E),
-                0x44 => LD_8_INTERNAL(B, H),
-                0x45 => LD_8_INTERNAL(B, L),
-                0x46 => LD_8_INTERNAL(B, AT_HL),
-                0x47 => LD_8_INTERNAL(B, A),
-                0x48 => LD_8_INTERNAL(C, B),
-                0x49 => LD_8_INTERNAL(C, C),
-                0x4A => LD_8_INTERNAL(C, D),
-                0x4B => LD_8_INTERNAL(C, E),
-                0x4C => LD_8_INTERNAL(C, H),
-                0x4D => LD_8_INTERNAL(C, L),
-                0x4E => LD_8_INTERNAL(C, AT_HL),
-                0x4F => LD_8_INTERNAL(C, A),
-                0x50 => LD_8_INTERNAL(D, B),
-                0x51 => LD_8_INTERNAL(D, C),
-                0x52 => LD_8_INTERNAL(D, D),
-                0x53 => LD_8_INTERNAL(D, E),
-                0x54 => LD_8_INTERNAL(D, H),
-                0x55 => LD_8_INTERNAL(D, L),
-                0x56 => LD_8_INTERNAL(D, AT_HL),
-                0x57 => LD_8_INTERNAL(D, A),
-                0x58 => LD_8_INTERNAL(E, B),
-                0x59 => LD_8_INTERNAL(E, C),
-                0x5A => LD_8_INTERNAL(E, D),
-                0x5B => LD_8_INTERNAL(E, E),
-                0x5C => LD_8_INTERNAL(E, H),
-                0x5D => LD_8_INTERNAL(E, L),
-                0x5E => LD_8_INTERNAL(E, AT_HL),
-                0x5F => LD_8_INTERNAL(E, A),
-                0x60 => LD_8_INTERNAL(H, B),
-                0x61 => LD_8_INTERNAL(H, C),
-                0x62 => LD_8_INTERNAL(H, D),
-                0x63 => LD_8_INTERNAL(H, E),
-                0x64 => LD_8_INTERNAL(H, H),
-                0x65 => LD_8_INTERNAL(H, L),
-                0x66 => LD_8_INTERNAL(H, AT_HL),
-                0x67 => LD_8_INTERNAL(H, A),
-                0x68 => LD_8_INTERNAL(L, B),
-                0x69 => LD_8_INTERNAL(L, C),
-                0x6A => LD_8_INTERNAL(L, D),
-                0x6B => LD_8_INTERNAL(L, E),
-                0x6C => LD_8_INTERNAL(L, H),
-                0x6D => LD_8_INTERNAL(L, L),
-                0x6E => LD_8_INTERNAL(L, AT_HL),
-                0x6F => LD_8_INTERNAL(L, A),
-                0x70 => LD_8_INTERNAL(AT_HL, B),
-                0x71 => LD_8_INTERNAL(AT_HL, C),
-                0x72 => LD_8_INTERNAL(AT_HL, D),
-                0x73 => LD_8_INTERNAL(AT_HL, E),
-                0x74 => LD_8_INTERNAL(AT_HL, H),
-                0x75 => LD_8_INTERNAL(AT_HL, L),
-                0x77 => LD_8_INTERNAL(AT_HL, A),
-                0x78 => LD_8_INTERNAL(A, B),
-                0x79 => LD_8_INTERNAL(A, C),
-                0x7A => LD_8_INTERNAL(A, D),
-                0x7B => LD_8_INTERNAL(A, E),
-                0x7C => LD_8_INTERNAL(A, H),
-                0x7D => LD_8_INTERNAL(A, L),
-                0x7E => LD_8_INTERNAL(A, AT_HL),
-                0x7F => LD_8_INTERNAL(A, A),
+                0x40 => LD(B, B),
+                0x41 => LD(B, C),
+                0x42 => LD(B, D),
+                0x43 => LD(B, E),
+                0x44 => LD(B, H),
+                0x45 => LD(B, L),
+                0x46 => LD(B, AT_HL),
+                0x47 => LD(B, A),
+                0x48 => LD(C, B),
+                0x49 => LD(C, C),
+                0x4A => LD(C, D),
+                0x4B => LD(C, E),
+                0x4C => LD(C, H),
+                0x4D => LD(C, L),
+                0x4E => LD(C, AT_HL),
+                0x4F => LD(C, A),
+                0x50 => LD(D, B),
+                0x51 => LD(D, C),
+                0x52 => LD(D, D),
+                0x53 => LD(D, E),
+                0x54 => LD(D, H),
+                0x55 => LD(D, L),
+                0x56 => LD(D, AT_HL),
+                0x57 => LD(D, A),
+                0x58 => LD(E, B),
+                0x59 => LD(E, C),
+                0x5A => LD(E, D),
+                0x5B => LD(E, E),
+                0x5C => LD(E, H),
+                0x5D => LD(E, L),
+                0x5E => LD(E, AT_HL),
+                0x5F => LD(E, A),
+                0x60 => LD(H, B),
+                0x61 => LD(H, C),
+                0x62 => LD(H, D),
+                0x63 => LD(H, E),
+                0x64 => LD(H, H),
+                0x65 => LD(H, L),
+                0x66 => LD(H, AT_HL),
+                0x67 => LD(H, A),
+                0x68 => LD(L, B),
+                0x69 => LD(L, C),
+                0x6A => LD(L, D),
+                0x6B => LD(L, E),
+                0x6C => LD(L, H),
+                0x6D => LD(L, L),
+                0x6E => LD(L, AT_HL),
+                0x6F => LD(L, A),
+                0x70 => LD(AT_HL, B),
+                0x71 => LD(AT_HL, C),
+                0x72 => LD(AT_HL, D),
+                0x73 => LD(AT_HL, E),
+                0x74 => LD(AT_HL, H),
+                0x75 => LD(AT_HL, L),
+                0x77 => LD(AT_HL, A),
+                0x78 => LD(A, B),
+                0x79 => LD(A, C),
+                0x7A => LD(A, D),
+                0x7B => LD(A, E),
+                0x7C => LD(A, H),
+                0x7D => LD(A, L),
+                0x7E => LD(A, AT_HL),
+                0x7F => LD(A, A),
 
                 0x76 => HALT,
+
+                0x80 => ADD(B),
+                0x81 => ADD(C),
+                0x82 => ADD(D),
+                0x83 => ADD(E),
+                0x84 => ADD(H),
+                0x85 => ADD(L),
+                0x86 => ADD(AT_HL),
+                0x87 => ADD(A),
+
+                0x88 => ADC(B),
+                0x89 => ADC(C),
+                0x8A => ADC(D),
+                0x8B => ADC(E),
+                0x8C => ADC(H),
+                0x8D => ADC(L),
+                0x8E => ADC(AT_HL),
+                0x8F => ADC(A),
+
+                0x90 => SUB(B),
+                0x91 => SUB(C),
+                0x92 => SUB(D),
+                0x93 => SUB(E),
+                0x94 => SUB(H),
+                0x95 => SUB(L),
+                0x96 => SUB(AT_HL),
+                0x97 => SUB(A),
+
+                0x98 => SBC(B),
+                0x99 => SBC(C),
+                0x9A => SBC(D),
+                0x9B => SBC(E),
+                0x9C => SBC(H),
+                0x9D => SBC(L),
+                0x9E => SBC(AT_HL),
+                0x9F => SBC(A),
+
+                0xA0 => AND(B),
+                0xA1 => AND(C),
+                0xA2 => AND(D),
+                0xA3 => AND(E),
+                0xA4 => AND(H),
+                0xA5 => AND(L),
+                0xA6 => AND(AT_HL),
+                0xA7 => AND(A),
+
+                0xA8 => XOR(B),
+                0xA9 => XOR(C),
+                0xAA => XOR(D),
+                0xAB => XOR(E),
+                0xAC => XOR(H),
+                0xAD => XOR(L),
+                0xAE => XOR(AT_HL),
+                0xAF => XOR(A),
+
+                0xB0 => OR(B),
+                0xB1 => OR(C),
+                0xB2 => OR(D),
+                0xB3 => OR(E),
+                0xB4 => OR(H),
+                0xB5 => OR(L),
+                0xB6 => OR(AT_HL),
+                0xB7 => OR(A),
+
+                0xB8 => CP(B),
+                0xB9 => CP(C),
+                0xBA => CP(D),
+                0xBB => CP(E),
+                0xBC => CP(H),
+                0xBD => CP(L),
+                0xBE => CP(AT_HL),
+                0xBF => CP(A),
 
                 0xC2 => JP_NZ(d16(bytes)),
                 0xC3 => JP(d16(bytes)),
@@ -223,18 +433,29 @@ impl Instruction {
     pub fn byte_length(&self) -> u16 {
         match self {
             NOP => 1,
-            INC(_) => 1,
-            DEC(_) => 1,
-            JP_NZ(_) => 3,
-            JP(_) => 3,
-            JR(_) => 2,
             LD_16_IMMEDIATE(_, _) => 3,
             LD_8_IMMEDIATE(_, _) => 2,
             LD_8_INTERNAL(_, _) => 1,
+            LD_8_FROM_SECONDARY(_) => 1,
+            LD_8_TO_SECONDARY(_) => 1,
+            INC(_) => 1,
+            DEC(_) => 1,
+            ADD(_) => 1,
+            SUB(_) => 1,
+            ADC(_) => 1,
+            SBC(_) => 1,
+            AND(_) => 1,
+            OR(_) => 1,
+            XOR(_) => 1,
+            CP(_) => 1,
+            JP_NZ(_) => 3,
+            JP(_) => 3,
+            JR(_) => 2,
             HALT => 1,
             HCF => 1,
             RET => 1,
             RETI => 1,
+            RST(_) => 1,
         }
     }
 
@@ -255,12 +476,12 @@ impl Instruction {
             JR(offset) => vec![0x18, *offset as u8],
             LD_16_IMMEDIATE(register, value) => {
                 let (low, high) = u16_to_u8s(*value);
-                let instruction = 0x01 + 0b00_01_0000 * register.index();
-                vec![instruction, low, high]
+                let opcode = 0x01 + 0b00_01_0000 * register.index();
+                vec![opcode, low, high]
             }
             LD_8_IMMEDIATE(register, value) => {
-                let instruction = 0x06 + 0b00_001_000 * register.index();
-                vec![instruction, *value]
+                let opcode = 0x06 + 0b00_001_000 * register.index();
+                vec![opcode, *value]
             }
             LD_8_INTERNAL(dest, source) => {
                 vec![0x40 + 0b00_001_000 * dest.index() + source.index()]
@@ -268,7 +489,8 @@ impl Instruction {
             HALT => vec![0x76],
             RET => vec![0xC9],
             RETI => vec![0xD9],
-            HCF => vec![0xDD],
+            HCF(variant) => vec![variant.opcode()],
+            RST(target) => vec![0xC7 + target.address()],
         };
 
         assert_eq!(bytes.len(), self.byte_length().into());
@@ -285,15 +507,18 @@ impl Display for Instruction {
             INC(register) => write!(f, "INC {:?}", register),
             DEC(register) => write!(f, "DEC {:?}", register),
             JP(address) => write!(f, "JP 0x{:04X}", address),
-            JP_NZ(address) => write!(f, "JP NZ 0x{:04X}", address),
+            JP_IF(address, condition) => write!(f, "JP {:?} 0x{:04X}", condition, address),
             JR(offset) => write!(f, "JR 0x{:02X}", offset),
+            JR_IF(address, condition) => write!(f, "JR {:?} 0x{:04X}", condition, address),
             LD_16_IMMEDIATE(register, value) => write!(f, "LD {:?} 0x{:04X}", register, value),
             LD_8_IMMEDIATE(register, value) => write!(f, "LD {:?} 0x{:02X}", register, value),
             LD_8_INTERNAL(dest, source) => write!(f, "LD {:?} {:?}", dest, source),
+            LD_8_TO_SECONDARY(dest) => write!(f, "LD {:?} A", dest),
+            LD_8_FROM_SECONDARY(source) => write!(f, "LD A {:?}", source),
             HALT => write!(f, "HALT"),
             RET => write!(f, "RET"),
             RETI => write!(f, "RETI"),
-            HCF => write!(f, "HCF!"),
+            HCF(variant) => write!(f, "HCF {:?} !!!", variant),
         }
     }
 }
@@ -322,6 +547,61 @@ impl U16Register {
             DE => 0b01,
             HL => 0b10,
             SP => 0b11,
+        }
+    }
+}
+impl U8SecondaryRegister {
+    /// The integer/bit pattern representing this register in the machine code.
+    pub fn index(self) -> u8 {
+        match self {
+            AT_BC => 0b00,
+            AT_DE => 0b01,
+            AT_HL_Plus => 0b10,
+            AT_HL_Minus => 0b11,
+        }
+    }
+}
+
+pub fn LD<A : Ld<B>, B>(a: A, b: B) -> Instruction {
+    Ld::LD(a, b)
+}
+
+pub trait Ld<Source> {
+    fn LD(destination: Self, source: Source) -> Instruction;
+}
+
+impl Ld<u8> for U8Register {
+    fn LD(destination: U8Register, value: u8) -> Instruction {
+        LD_8_IMMEDIATE(destination, value)
+    }
+}
+
+impl Ld<u16> for U16Register {
+    fn LD(destination: U16Register, value: u16) -> Instruction {
+        LD_16_IMMEDIATE(destination, value)
+    }
+}
+
+impl Ld<U8Register> for U8Register {
+    fn LD(destination: U8Register, source: U8Register) -> Instruction {
+        LD_8_INTERNAL(destination, source)
+    }
+}
+
+impl Ld<U8SecondaryRegister> for U8Register {
+    fn LD(destination: U8Register, source: U8SecondaryRegister) -> Instruction {
+        match destination {
+            A => LD_8_FROM_SECONDARY(source), 
+            _ => panic!("You can only LD a U8SecondaryRegister to A, not {:?}.", destination)
+        }
+    }
+}
+
+impl Ld<U8Register> for U8SecondaryRegister {
+    fn LD(destination: U8SecondaryRegister, source: U8Register) -> Instruction {
+        match source {
+            A => LD_8_TO_SECONDARY(destination), 
+            _ => panic!("You can only LD a U8SecondaryRegister from A, not {:?}.", destination)
         }
     }
 }

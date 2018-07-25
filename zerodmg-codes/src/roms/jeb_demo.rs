@@ -4,6 +4,14 @@ use crate::instruction::prelude::*;
 
 /// My demo/test game ROM.
 pub fn jeb_demo() -> DisassembledRom {
+
+    let header_stub = blocks![
+        // Game ROM entry point, from which we jump to our main function.
+        main = 0x0100: [
+            JP(0x0150), 
+        ],
+    ];
+
     let header_stub = vec![
         // Game ROM entry point, from which we jump to our main function.
         block(0x0100, vec![JP(0x0150)]),
@@ -55,34 +63,35 @@ pub fn jeb_demo() -> DisassembledRom {
             0x0150,
             vec![
                 // Set background palette
-                LD_16_IMMEDIATE(HL, 0xFF47),
+                LD(HL, 0xFF47),
                 // to [black, dark gray, light gray, white]
-                LD_8_IMMEDIATE(A, 0b_00_01_10_11),
-                LD_8_INTERNAL(AT_HL, A),
-                //     // Set first tile to black.
-            //     LD(HL, 0x8000),
-            //     LD(A, 0xFF),
-            //     LD(AtHLPostIncrement, A), // *(HL++) = A
-            //     LD(AtHLPostIncrement, A),
-            //     LD(AtHLPostIncrement, A),
-            //     LD(AtHLPostIncrement, A),
-            //     LD(AtHLPostIncrement, A),
-            //     LD(AtHLPostIncrement, A),
-            //     LD(AtHLPostIncrement, A),
-            //     LD(AtHLPostIncrement, A),
-            //     LD(AtHLPostIncrement, A),
-            //     LD(AtHLPostIncrement, A),
-            //     LD(AtHLPostIncrement, A),
-            //     LD(AtHLPostIncrement, A),
-            //     LD(AtHLPostIncrement, A),
-            //     LD(AtHLPostIncrement, A),
-            //     LD(AtHLPostIncrement, A),
-            //     LD(AtHLPostIncrement, A),
+                LD(A, 0b_00_01_10_11),
+                LD(AT_HL, A),
 
-            //     // Set tiles to draw my logo in the corner.
-            //     // We're using the second tile (0x01), which is white by default.
-            //     LD(A, 0x01),
-            //     LD(HL, 0x9800),
+                // Set first tile to black.
+                LD(HL, 0x8000),
+                LD(A, 0xFF),
+                LD(AT_HL_Plus, A),
+                LD(AT_HL_Plus, A),
+                LD(AT_HL_Plus, A),
+                LD(AT_HL_Plus, A),
+                LD(AT_HL_Plus, A),
+                LD(AT_HL_Plus, A),
+                LD(AT_HL_Plus, A),
+                LD(AT_HL_Plus, A),
+                LD(AT_HL_Plus, A),
+                LD(AT_HL_Plus, A),
+                LD(AT_HL_Plus, A),
+                LD(AT_HL_Plus, A),
+                LD(AT_HL_Plus, A),
+                LD(AT_HL_Plus, A),
+                LD(AT_HL_Plus, A),
+                LD(AT_HL_Plus, A),
+
+                // Set tiles to draw my logo in the corner.
+                // We're using the second tile (0x01), which is white by default.
+                LD(A, 0x01),
+                LD(HL, 0x9800),
 
             //     LD (HL+), A
             //     and INC HL
@@ -179,10 +188,10 @@ pub fn jeb_demo() -> DisassembledRom {
             0x0180,
             vec![
                 // Mess with the pallet forever:
-                LD_16_IMMEDIATE(HL, 0xFF47),
-                LD_8_INTERNAL(A, AT_HL),
+                LD(HL, 0xFF47),
+                LD(A, AT_HL),
                 INC(A),
-                LD_8_INTERNAL(AT_HL, A),
+                LD(AT_HL, A),
                 JP(0x0180),
             ],
         ),

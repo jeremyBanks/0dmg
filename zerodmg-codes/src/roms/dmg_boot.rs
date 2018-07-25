@@ -45,7 +45,7 @@ fn verify(rom: &DisassembledRom) {
     println!("=== Disassembled Boot ROM ===");
     let mut assembled = AssembledRom::from_bytes(&assembled_bytes);
     // TODO: actually be able to safely trace this without exploding
-    // assembled.get_known_instruction(0x0000);
+    assembled.get_known_instruction(0x0000);
     let disassembled = assembled.disassemble();
     println!("{:?}\n", disassembled);
     println!("{}\n", disassembled);
