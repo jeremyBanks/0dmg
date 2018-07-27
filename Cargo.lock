@@ -842,38 +842,38 @@ dependencies = [
 
 [[package]]
 name = "zerodmg"
-version = "0.1.8"
+version = "0.1.9"
 dependencies = [
  "futures 0.1.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.11.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "image 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "zerodmg-codes 0.1.8",
- "zerodmg-emulator 0.1.8",
- "zerodmg-utils 0.1.8",
+ "zerodmg-codes 0.1.9",
+ "zerodmg-emulator 0.1.9",
+ "zerodmg-utils 0.1.9",
 ]
 
 [[package]]
 name = "zerodmg-codes"
-version = "0.1.8"
+version = "0.1.9"
 dependencies = [
  "derive_more 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "zerodmg-utils 0.1.8",
+ "zerodmg-utils 0.1.9",
 ]
 
 [[package]]
 name = "zerodmg-emulator"
-version = "0.1.8"
+version = "0.1.9"
 dependencies = [
  "image 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "zerodmg-codes 0.1.8",
- "zerodmg-utils 0.1.8",
+ "zerodmg-codes 0.1.9",
+ "zerodmg-utils 0.1.9",
 ]
 
 [[package]]
 name = "zerodmg-utils"
-version = "0.1.8"
+version = "0.1.9"
 dependencies = [
  "image 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]

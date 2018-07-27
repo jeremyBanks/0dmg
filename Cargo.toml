@@ -3,7 +3,7 @@ cargo-features = ["edition", "publish-lockfile"]
 [package]
 edition = "2018"
 name = "zerodmg"
-version = "0.1.8"
+version = "0.1.9"
 license = "MIT"
 authors = ["Jeremy Banks <_@jeremy.ca>"]
 repository = "https://github.com/jeremyBanks/0dmg"
@@ -12,9 +12,9 @@ readme = "README.md"
 publish-lockfile = true
 
 [dependencies]
-zerodmg-emulator = { version = "0.1.8", path = "zerodmg-emulator" }
-zerodmg-utils = { version = "0.1.8", path = "zerodmg-utils" }
-zerodmg-codes = { version = "0.1.8", path = "zerodmg-codes" }
+zerodmg-emulator = { version = "0.1.9", path = "zerodmg-emulator" }
+zerodmg-utils = { version = "0.1.9", path = "zerodmg-utils" }
+zerodmg-codes = { version = "0.1.9", path = "zerodmg-codes" }
 futures = "0.1.*"
 hyper = "0.11.*"
 tokio = "0.1.7"
