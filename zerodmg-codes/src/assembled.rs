@@ -375,21 +375,44 @@ impl AssembledRom {
 
 impl FlowsTo for Instruction {
     fn flows_to(&self) -> ControlFlowsTo {
+        use self::ControlFlowsTo as to;
+        use self::JumpReference::*;
+
         match self {
-            NOP => ControlFlowsTo::next(),
-            INC(_) => ControlFlowsTo::next(),
-            DEC(_) => ControlFlowsTo::next(),
-            JP_IF(_, address) => ControlFlowsTo::next_and_jump(JumpReference::Absolute(*address)),
-            JR_IF(_, offset) => ControlFlowsTo::next_and_jump(JumpReference::Relative(*offset)),
-            JP(address) => ControlFlowsTo::jump(JumpReference::Absolute(*address)),
-            JR(offset) => ControlFlowsTo::jump(JumpReference::Relative(*offset)),
-            LD_16_IMMEDIATE(_, _) => ControlFlowsTo::next(),
-            LD_8_IMMEDIATE(_, _) => ControlFlowsTo::next(),
-            LD_8_INTERNAL(_, _) => ControlFlowsTo::next(),
-            HALT => ControlFlowsTo::next(),
-            RET => ControlFlowsTo::unknown(),
-            RETI => ControlFlowsTo::unknown(),
-            HCF(_) => ControlFlowsTo::unknown(),
+            // Control
+            NOP => to::next(),
+            HALT => to::next(),
+            HCF(_) => to::unknown(),
+            // 8-Bit Arithmatic and Logic
+            INC(_) => to::next(),
+            DEC(_) => to::next(),
+            ADD(_) => to::next(),
+            ADC(_) => to::next(),
+            SUB(_) => to::next(),
+            SBC(_) => to::next(),
+            AND(_) => to::next(),
+            XOR(_) => to::next(),
+            OR(_) => to::next(),
+            CP(_) => to::next(),
+            // 16-Bit Arithmatic and Logic
+            // 8-Bit Bitwise Operations (0xCB Opcodes)
+            // 8-Bit Loads
+            LD_8_INTERNAL(_, _) => to::next(),
+            LD_8_TO_SECONDARY(_) => to::next(),
+            LD_8_FROM_SECONDARY(_) => to::next(),
+            LD_8_IMMEDIATE(_, _) => to::next(),
+            // 16-Bit Loads
+            LD_16_IMMEDIATE(_, _) => to::next(),
+            // Jumps and Calls
+            JP(address) => to::jump(Absolute(*address)),
+            JP_IF(_, address) => to::next_and_jump(Absolute(*address)),
+            JR(offset) => to::jump(Relative(*offset)),
+            JR_IF(_, offset) => to::next_and_jump(Relative(*offset)),
+            CALL(address) => to::next_and_jump(Absolute(*address)),
+            CALL_IF(_, address) => to::next_and_jump(Absolute(*address)),
+            RST(target) => to::next_and_jump(Absolute(u16::from(target.address()))),
+            RET => to::unknown(),
+            RETI => to::unknown(),
         }
     }
 }

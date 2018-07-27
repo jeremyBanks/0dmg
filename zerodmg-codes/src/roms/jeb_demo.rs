@@ -4,8 +4,7 @@ use crate::instruction::prelude::*;
 
 /// My demo/test game ROM.
 pub fn jeb_demo() -> DisassembledRom {
-
-    let header_stub = vec![
+    let _header_stub = vec![
         // Game ROM entry point, from which we jump to our main function.
         block(0x0100, vec![JP(0x0150)]),
     ];
@@ -65,7 +64,6 @@ pub fn jeb_demo() -> DisassembledRom {
                 // to [black, dark gray, light gray, white]
                 LD(A, 0b_00_01_10_11),
                 LD(AT_HL, A),
-
                 // Set first tile to black.
                 LD(HL, 0x8000),
                 LD(A, 0xFF),
@@ -85,43 +83,41 @@ pub fn jeb_demo() -> DisassembledRom {
                 LD(AT_HL_Plus, A),
                 LD(AT_HL_Plus, A),
                 LD(AT_HL_Plus, A),
-
                 // Set tiles to draw my logo in the corner.
                 // We're using the second tile (0x01), which is white by default.
                 LD(A, 0x01),
                 LD(HL, 0x9800),
-
-            //     LD (HL+), A
-            //     and INC HL
-            //     // mixed to set/skip tiles to display logo
-            //     // 0x23, 0x23, 0x23, 0x22, 0x22, 0x23, 0x23, 0x23,
-            //     // // LD HL, 0x9820
-            //     // 0x21, 0x20, 0x98,
-            //     // 0x23, 0x23, 0x22, 0x23, 0x23, 0x22, 0x23, 0x23,
-            //     // 0x21, 0x40, 0x98,
-            //     // 0x23, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x23,
-            //     // 0x21, 0x60, 0x98,
-            //     // 0x22, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x22,
-            //     // 0x21, 0x80, 0x98,
-            //     // 0x23, 0x22, 0x23, 0x23, 0x23, 0x23, 0x22, 0x23,
-            //     // 0x21, 0xA0, 0x98,
-            //     // 0x22, 0x22, 0x22, 0x23, 0x23, 0x22, 0x22, 0x22,
-            //     ///
-            //     // // scroll background into middle of screen
-            //     // // LD A, -32
-            //     // 0x3E, 0xFF - 0x32 + 1,
-            //     // // LD HL, 0xFF42 ; y-scroll register
-            //     // 0x21, 0x42, 0xFF,
-            //     // // LD (HL), A
-            //     // 0x77,
-            //     // // LD HL, 0xFF43 ; x-scroll register
-            //     // 0x21, 0x43, 0xFF,
-            //     // // LD (HL), A
-            //     // 0x77,
-            //     //
-            //     // // infinite loop
-            //     // // JR -2
-            //     // 0x18, (0xFF - 2 + 1),
+                /*     LD (HL+), A
+                 *     and INC HL
+                 *     // mixed to set/skip tiles to display logo
+                 *     // 0x23, 0x23, 0x23, 0x22, 0x22, 0x23, 0x23, 0x23,
+                 *     // // LD HL, 0x9820
+                 *     // 0x21, 0x20, 0x98,
+                 *     // 0x23, 0x23, 0x22, 0x23, 0x23, 0x22, 0x23, 0x23,
+                 *     // 0x21, 0x40, 0x98,
+                 *     // 0x23, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x23,
+                 *     // 0x21, 0x60, 0x98,
+                 *     // 0x22, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x22,
+                 *     // 0x21, 0x80, 0x98,
+                 *     // 0x23, 0x22, 0x23, 0x23, 0x23, 0x23, 0x22, 0x23,
+                 *     // 0x21, 0xA0, 0x98,
+                 *     // 0x22, 0x22, 0x22, 0x23, 0x23, 0x22, 0x22, 0x22,
+                 *     ///
+                 *     // // scroll background into middle of screen
+                 *     // // LD A, -32
+                 *     // 0x3E, 0xFF - 0x32 + 1,
+                 *     // // LD HL, 0xFF42 ; y-scroll register
+                 *     // 0x21, 0x42, 0xFF,
+                 *     // // LD (HL), A
+                 *     // 0x77,
+                 *     // // LD HL, 0xFF43 ; x-scroll register
+                 *     // 0x21, 0x43, 0xFF,
+                 *     // // LD (HL), A
+                 *     // 0x77,
+                 *     //
+                 *     // // infinite loop
+                 *     // // JR -2
+                 *     // 0x18, (0xFF - 2 + 1), */
             ],
         ),
         // block(0x0200, vec![
