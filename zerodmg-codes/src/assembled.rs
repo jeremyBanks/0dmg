@@ -379,7 +379,8 @@ impl FlowsTo for Instruction {
             NOP => ControlFlowsTo::next(),
             INC(_) => ControlFlowsTo::next(),
             DEC(_) => ControlFlowsTo::next(),
-            JP_NZ(address) => ControlFlowsTo::next_and_jump(JumpReference::Absolute(*address)),
+            JP_IF(_, address) => ControlFlowsTo::next_and_jump(JumpReference::Absolute(*address)),
+            JR_IF(_, offset) => ControlFlowsTo::next_and_jump(JumpReference::Relative(*offset)),
             JP(address) => ControlFlowsTo::jump(JumpReference::Absolute(*address)),
             JR(offset) => ControlFlowsTo::jump(JumpReference::Relative(*offset)),
             LD_16_IMMEDIATE(_, _) => ControlFlowsTo::next(),
@@ -388,7 +389,7 @@ impl FlowsTo for Instruction {
             HALT => ControlFlowsTo::next(),
             RET => ControlFlowsTo::unknown(),
             RETI => ControlFlowsTo::unknown(),
-            HCF => ControlFlowsTo::unknown(),
+            HCF(_) => ControlFlowsTo::unknown(),
         }
     }
 }

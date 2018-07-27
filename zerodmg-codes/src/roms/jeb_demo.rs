@@ -5,11 +5,9 @@ use crate::instruction::prelude::*;
 /// My demo/test game ROM.
 pub fn jeb_demo() -> DisassembledRom {
 
-    let header_stub = blocks![
+    let header_stub = vec![
         // Game ROM entry point, from which we jump to our main function.
-        main = 0x0100: [
-            JP(0x0150), 
-        ],
+        block(0x0100, vec![JP(0x0150)]),
     ];
 
     let header_stub = vec![
@@ -36,25 +34,25 @@ pub fn jeb_demo() -> DisassembledRom {
 
     let handlers = vec![
         // One-byte RST instruction call targets.
-        block(0x0000, vec![HCF]),
-        block(0x0008, vec![HCF]),
-        block(0x0010, vec![HCF]),
-        block(0x0018, vec![HCF]),
-        block(0x0020, vec![HCF]),
-        block(0x0028, vec![HCF]),
-        block(0x0030, vec![HCF]),
-        block(0x0038, vec![HCF]),
+        block(0x0000, vec![HCF(xxDD)]),
+        block(0x0008, vec![HCF(xxDD)]),
+        block(0x0010, vec![HCF(xxDD)]),
+        block(0x0018, vec![HCF(xxDD)]),
+        block(0x0020, vec![HCF(xxDD)]),
+        block(0x0028, vec![HCF(xxDD)]),
+        block(0x0030, vec![HCF(xxDD)]),
+        block(0x0038, vec![HCF(xxDD)]),
         // Interrupt handlers:
         // V-Blank.
         block(0x0040, vec![RETI]),
         // LCD Status.
-        block(0x0048, vec![HCF]),
+        block(0x0048, vec![HCF(xxDD)]),
         // Timer.
-        block(0x0050, vec![HCF]),
+        block(0x0050, vec![HCF(xxDD)]),
         // Serial data.
-        block(0x0058, vec![HCF]),
+        block(0x0058, vec![HCF(xxDD)]),
         // Button press.
-        block(0x0060, vec![HCF]),
+        block(0x0060, vec![HCF(xxDD)]),
     ];
 
     let demo_body = vec![

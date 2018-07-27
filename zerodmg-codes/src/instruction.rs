@@ -12,7 +12,10 @@ pub mod prelude {
     pub use super::U8Register::*;
     pub use super::U8SecondaryRegister::*;
     pub use super::RSTTarget::*;
+    pub use super::FlagCondition;
     pub use super::FlagCondition::*;
+    pub use super::InvalidOpcode;
+    pub use super::InvalidOpcode::*;
 }
 
 use self::prelude::*;
@@ -59,9 +62,9 @@ pub enum Instruction {
     /// Uncondition relative jump, updates PC.
     JR(i8),
     /// Conditional absolute jump, may update PC.
-    JP_IF(u16, FlagCondition),
+    JP_IF(FlagCondition, u16),
     /// Conditional relative jump, may update PC.
-    JR_IF(u16, FlagCondition),
+    JR_IF(FlagCondition, i8),
     /// Unconditional call. Pushes PC on the stack, then updates it.
     CALL(i16),
     /// Conditional call. Pushes PC on the stack, then updates it.
@@ -77,7 +80,7 @@ pub enum Instruction {
     RST(RSTTarget),
     /// Halt and Catch Fire - invalid opcode used to panic in unexpected
     /// situations.
-    HCF,
+    HCF(InvalidOpcode),
 }
 
 /// Flag conditions that can be used by branching instructions.
@@ -85,13 +88,24 @@ pub enum Instruction {
 #[allow(non_camel_case_types)]
 pub enum FlagCondition {
     /// Zero flag bit is not set; last instruction had non-zero result.
-    NZ,
+    if_NZ,
     /// Zero flag bit is set; last instruction had zero result.
-    Z,
+    if_Z,
     /// Carry flag bit is not set; last instruction did not overflow.
-    NC,
+    if_NC,
     /// Carry flag bit is set; last instruction overflowed.
-    C,
+    if_C,
+}
+
+impl FlagCondition {
+    fn index(self) -> u8 {
+        match self {
+            if_NZ => 0,
+            if_Z => 1,
+            if_NC => 2,
+            if_C => 3,
+        }
+    }
 }
 
 /// The 8-bit registers that are available in the CPU.
@@ -181,7 +195,7 @@ impl RSTTarget {
 /// These should never be executed.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
-pub enum InvalidInstruction {
+pub enum InvalidOpcode {
     xxD3,
     xxDB,
     xxDD,
@@ -190,12 +204,12 @@ pub enum InvalidInstruction {
     xxEB,
     xxEC,
     xxED,
-    XXF4,
-    XXFC,
-    XXFD,
+    xxF4,
+    xxFC,
+    xxFD,
 }
 
-impl RSTTarget {
+impl InvalidOpcode {
     fn opcode(self) -> u8 {
         match self {
             xxD3 => 0xD3,
@@ -206,9 +220,9 @@ impl RSTTarget {
             xxEB => 0xEB,
             xxEC => 0xEC,
             xxED => 0xED,
-            XXF4 => 0xF4,
-            XXFC => 0xFC,
-            XXFD => 0xFD,
+            xxF4 => 0xF4,
+            xxFC => 0xFC,
+            xxFD => 0xFD,
         }
     }
 }
@@ -415,12 +429,22 @@ impl Instruction {
                 0xBE => CP(AT_HL),
                 0xBF => CP(A),
 
-                0xC2 => JP_NZ(d16(bytes)),
+                0xC2 => JP_IF(if_NZ, d16(bytes)),
                 0xC3 => JP(d16(bytes)),
                 0xC9 => RET,
                 0xD9 => RETI,
 
-                0xDD => HCF,
+                0xD3 => HCF(xxD3),
+                0xDB => HCF(xxDB),
+                0xDD => HCF(xxDD),
+                0xE3 => HCF(xxE3),
+                0xE4 => HCF(xxE4),
+                0xEB => HCF(xxEB),
+                0xEC => HCF(xxEC),
+                0xED => HCF(xxED),
+                0xF4 => HCF(xxF4),
+                0xFC => HCF(xxFC),
+                0xFD => HCF(xxFD),
 
                 _ => unimplemented!("unsupported instruction code 0x{:02X}", first),
             })
@@ -448,11 +472,12 @@ impl Instruction {
             OR(_) => 1,
             XOR(_) => 1,
             CP(_) => 1,
-            JP_NZ(_) => 3,
+            JP_IF(_, _) => 3,
+            JR_IF(_, _) => 2,
             JP(_) => 3,
             JR(_) => 2,
             HALT => 1,
-            HCF => 1,
+            HCF(_) => 1,
             RET => 1,
             RETI => 1,
             RST(_) => 1,
@@ -465,9 +490,9 @@ impl Instruction {
             NOP => vec![0x00],
             INC(register) => vec![0x04 + 0b00_001_000 * register.index()],
             DEC(register) => vec![0x05 + 0b00_001_000 * register.index()],
-            JP_NZ(address) => {
+            JP_IF(condition, address) => {
                 let (low, high) = u16_to_u8s(*address);
-                vec![0xC2, low, high]
+                vec![0xC2 + condition.index() << 4, low, high]
             }
             JP(address) => {
                 let (low, high) = u16_to_u8s(*address);
@@ -507,9 +532,9 @@ impl Display for Instruction {
             INC(register) => write!(f, "INC {:?}", register),
             DEC(register) => write!(f, "DEC {:?}", register),
             JP(address) => write!(f, "JP 0x{:04X}", address),
-            JP_IF(address, condition) => write!(f, "JP {:?} 0x{:04X}", condition, address),
+            JP_IF(condition, address) => write!(f, "JP {:?} 0x{:04X}", condition, address),
             JR(offset) => write!(f, "JR 0x{:02X}", offset),
-            JR_IF(address, condition) => write!(f, "JR {:?} 0x{:04X}", condition, address),
+            JR_IF(condition, address) => write!(f, "JR {:?} 0x{:04X}", condition, address),
             LD_16_IMMEDIATE(register, value) => write!(f, "LD {:?} 0x{:04X}", register, value),
             LD_8_IMMEDIATE(register, value) => write!(f, "LD {:?} 0x{:02X}", register, value),
             LD_8_INTERNAL(dest, source) => write!(f, "LD {:?} {:?}", dest, source),
