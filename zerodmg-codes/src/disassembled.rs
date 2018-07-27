@@ -1,3 +1,5 @@
+#![macro_use]
+
 use std::fmt;
 use std::fmt::Display;
 
@@ -203,4 +205,41 @@ pub fn block(address: u16, value: impl Into<crate::disassembled::RomBlockContent
         address: Some(address),
         content: value.into(),
     }
+}
+
+#[macro_export]
+macro_rules! code_blocks {
+    (
+        $(
+            $(let $id:ident =)*
+            $address:expr =>
+            $([$($bytes:expr$(,)*)*])*
+            $({$($instructions:expr$(;)*)*})*
+            $(Data($data:expr))*
+            $(Code($code:expr))*
+            $(,)+
+        )*
+    ) => {
+        {
+            // use my stuff here
+            $(
+                $(let $id = $address;)*
+            )*
+            vec![$(
+                RomBlock {
+                    address: Some($address),
+                    content: {
+                        $(
+                            Data(vec![$($bytes),*])
+                        )*
+                        $(
+                            Code(Vec::<Instruction>::from(vec![$($instructions),*]))
+                        )*
+                        $(Data($data.to_vec()))*
+                        $(Code($code.to_vec()))*
+                    }
+                },
+            )*]
+        }
+    };
 }
