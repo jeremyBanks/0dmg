@@ -12,62 +12,68 @@ const NINTENDO_LOGO: [u8; 48] = [
 pub fn jeb_demo() -> DisassembledRom {
     let code = code_blocks![
         // One-byte RST instruction call targets.
-        0x0000 => {HCF(xxDD)},
-        0x0008 => {HCF(xxDD)},
-        0x0010 => {HCF(xxDD)},
-        0x0018 => {HCF(xxDD)},
-        0x0020 => {HCF(xxDD)},
-        0x0028 => {HCF(xxDD)},
-        0x0030 => {HCF(xxDD)},
-        0x0038 => {HCF(xxDD)},
+        at 0x0000 => {HCF(xxDD)},
+        at 0x0008 => {HCF(xxDD)},
+        at 0x0010 => {HCF(xxDD)},
+        at 0x0018 => {HCF(xxDD)},
+        at 0x0020 => {HCF(xxDD)},
+        at 0x0028 => {HCF(xxDD)},
+        at 0x0030 => {HCF(xxDD)},
+        at 0x0038 => {HCF(xxDD)},
         // Interrupt handlers:
         // V-Blank.
-        0x0040 => {RETI},
+        at 0x0040 => {RETI},
         // LCD Status.
-        0x0048 => {HCF(xxDD)},
+        at 0x0048 => {HCF(xxDD)},
         // Timer.
-        0x0050 => {HCF(xxDD)},
+        at 0x0050 => {HCF(xxDD)},
         // Serial data.
-        0x0058 => {HCF(xxDD)},
+        at 0x0058 => {HCF(xxDD)},
         // Button press.
-        0x0060 => {HCF(xxDD)},
+        at 0x0060 => {HCF(xxDD)},
 
         // Game ROM entry point, from which we jump to our main function.
-        0x0100 => {JP(main)},
+        at 0x0100 => {JP(main)},
         // Nintendo logo, required for boot ROM copyright check.
-        0x0104 => Data(NINTENDO_LOGO),
+        at 0x0104 => Data(NINTENDO_LOGO),
         // Game metadata.
         // Since we only require the minimal feature set we can leave this zeroed.
-        0x0134 => Data([0x00; 25]),
+        at 0x0134 => Data([0x00; 25]),
         // Metadata checksum, must be sum of metadata bytes + 0xE7 or boot ROM will freeze.
-        0x014D => [0xE7],
+        at 0x014D => [0xE7],
         // Global checksum of all other bytes in the ROM... but not verified, so we can ignore it.
-        0x014E => [0x00, 0x00],
-        let main = 0x150 => {
+        at 0x014E => [0x00, 0x00],
+
+        def main at 0x0150 => {
             // Set background palette
             LD(HL, 0xFF47);
             // to [black, dark gray, light gray, white]
             LD(A, 0b_00_01_10_11);
             LD(AT_HL, A);
-            // Set first tile to black.
+        },
+        // Set first tile to white.
+        next => {
             LD(HL, 0x8000);
-            LD(A, 0xFF);
-            LD(AT_HL_Plus, A);
-            LD(AT_HL_Plus, A);
-            LD(AT_HL_Plus, A);
-            LD(AT_HL_Plus, A);
-            LD(AT_HL_Plus, A);
-            LD(AT_HL_Plus, A);
-            LD(AT_HL_Plus, A);
-            LD(AT_HL_Plus, A);
-            LD(AT_HL_Plus, A);
-            LD(AT_HL_Plus, A);
-            LD(AT_HL_Plus, A);
-            LD(AT_HL_Plus, A);
-            LD(AT_HL_Plus, A);
-            LD(AT_HL_Plus, A);
-            LD(AT_HL_Plus, A);
-            LD(AT_HL_Plus, A);
+            LD(A, 0x10);
+        },
+        next as tile_loop => {
+            LD(AT_HL, 0xFF);
+            INC(L); // should be INC(HL);
+            DEC(A);
+            JP_IF(if_NZ, tile_loop);
+        },
+        // Set second tile to black.
+        next => {
+            LD(HL, 0x8010);
+            LD(A, 0x10);
+        },
+        next as tile_loop => {
+            LD(AT_HL, 0x00);
+            INC(L); // should be INC(HL);
+            DEC(A);
+            JP_IF(if_NZ, tile_loop);
+        },
+        next => {
             // Set tiles to draw my logo in the corner.
             // We're using the second tile (0x01), which is white by default.
             LD(A, 0x01);
@@ -104,7 +110,8 @@ pub fn jeb_demo() -> DisassembledRom {
                 *     // // JR -2
                 *     // 0x18, (0xFF - 2 + 1), */
         },
-        let pallet_loop = 0x0180 => {
+
+        def pallet_loop at 0x2000 => {
             // Mess with the pallet forever:
             LD(HL, 0xFF47);
             LD(A, AT_HL);

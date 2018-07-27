@@ -294,7 +294,7 @@ impl Instruction {
             RETI => vec![0xD9],
         };
 
-        assert_eq!(bytes.len(), self.byte_length().into());
+        assert_eq!(bytes.len(), self.byte_len().into());
 
         bytes
     }
@@ -533,7 +533,7 @@ impl Instruction {
     }
 
     /// The number of bytes this instruction will occupy in the ROM.
-    pub fn byte_length(&self) -> u16 {
+    pub fn byte_len(&self) -> u16 {
         match self {
             // Control
             NOP => 1,

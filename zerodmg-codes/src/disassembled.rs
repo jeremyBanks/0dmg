@@ -161,6 +161,21 @@ impl Display for DisassembledRom {
     }
 }
 
+impl RomBlock {
+    pub fn byte_len(&self) -> u16 {
+        match self.content {
+            Data(ref bytes) => bytes.len() as u16,
+            Code(ref instructions) => {
+                let len = 0;
+                for instruction in instructions {
+                    len + instruction.byte_len();
+                }
+                len
+            }
+        }
+    }
+}
+
 impl Display for RomBlock {
     /// Encodes this block as a pseudo-assembly string.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -211,23 +226,33 @@ pub fn block(address: u16, value: impl Into<crate::disassembled::RomBlockContent
 macro_rules! code_blocks {
     (
         $(
-            $(let $id:ident =)*
-            $address:expr =>
+            $(def $id:ident)*
+            $(at $address:expr =>)*
+            $(next $(as $section_name:ident)* =>)*
             $([$($bytes:expr$(,)*)*])*
             $({$($instructions:expr$(;)*)*})*
             $(Data($data:expr))*
             $(Code($code:expr))*
+
             $(,)+
         )*
     ) => {
         {
-            // use my stuff here
             $(
-                $(let $id = $address;)*
+                $(let $id =)* $($address)*;
             )*
-            vec![$(
-                RomBlock {
-                    address: Some($address),
+
+            let mut LAST = 0xFFFF;
+            let mut NEXT = 0x0000;
+            let mut blocks = Vec::new();
+            let mut SELF = 0x000;
+
+            $({
+                $(SELF = NEXT; $(let $section_name = SELF;)*)*
+                $(SELF = $address;)*
+
+                let block = RomBlock {
+                    address: Some(SELF),
                     content: {
                         $(
                             Data(vec![$($bytes),*])
@@ -238,8 +263,13 @@ macro_rules! code_blocks {
                         $(Data($data.to_vec()))*
                         $(Code($code.to_vec()))*
                     }
-                },
-            )*]
+                };
+
+                LAST = SELF;
+                NEXT = LAST + block.byte_len();
+                blocks.push(block);
+            })*
+            blocks
         }
     };
 }

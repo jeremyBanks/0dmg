@@ -185,7 +185,7 @@ impl AssembledRom {
                     Instruction::from_byte_iter(&mut byte_iter).unwrap()
                 };
 
-                let next_address = address + instruction.byte_length();
+                let next_address = address + instruction.byte_len();
 
                 self.bytes[usize::from(address)].role = RomByteRole::InstructionStart {
                     instruction,
