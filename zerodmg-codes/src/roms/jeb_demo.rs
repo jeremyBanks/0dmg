@@ -109,7 +109,7 @@ pub fn jeb_demo() -> DisassembledRom {
             CP(AT_HL);
             JP_IF(if_NZ, d_loop_to_logo_width);
         },
-        next as end_c_loop_to_logo_height => {
+        next as _end_c_loop_to_logo_height => {
             INC(C);
 
             // skip tiles to next row of background
@@ -117,7 +117,7 @@ pub fn jeb_demo() -> DisassembledRom {
             LD(L, 32 - 8)
             ADD(L);
             LD(E, A);
-            
+
             LD(A, C);
             LD(HL, logo_height);
             CP(AT_HL);
@@ -125,7 +125,7 @@ pub fn jeb_demo() -> DisassembledRom {
 
             RET;
         },
-        
+
         def pallet_loop at 0x0600 => {
             // Mess with the pallet forever:
             LD(HL, 0xFF47);
@@ -137,7 +137,7 @@ pub fn jeb_demo() -> DisassembledRom {
 
         def logo_width at 0x0800 => [0x08],
         def logo_height at 0x0801 => [0x06],
-        def logo at 0x0900 => Data({
+        def _logo at 0x0900 => Data({
             let black = 0x00;
             let white = 0x01;
             [
