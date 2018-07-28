@@ -63,7 +63,7 @@ pub enum Instruction {
     // Updates flags, but doesn't update any other registers.
     CP(U8Register),
     /// Rotates A register left by one bit, wrapping through the carry flag bit.
-    RL_A,
+    RLA,
     // A += x
     ADD_IMMEDIATE(u8),
     // A += x + Z_C
@@ -306,7 +306,7 @@ impl Instruction {
             XOR(register) => vec![0xA8 | register.index()],
             OR(register) => vec![0xB0 | register.index()],
             CP(register) => vec![0xB8 | register.index()],
-            RL_A => vec![0x17],
+            RLA => vec![0x17],
             ADD_IMMEDIATE(value) => vec![0xC6, value],
             ADC_IMMEDIATE(value) => vec![0xCE, value],
             SUB_IMMEDIATE(value) => vec![0xD6, value],
@@ -371,7 +371,14 @@ impl Instruction {
             RETI => vec![0xD9],
         };
 
-        assert_eq!(bytes.len(), self.byte_len().into(), "{:?}.len() != {} for {:?}", bytes, self.byte_len(), self);
+        assert_eq!(
+            bytes.len(),
+            self.byte_len().into(),
+            "{:?}.len() != {} for {:?}",
+            bytes,
+            self.byte_len(),
+            self
+        );
 
         bytes
     }
@@ -415,7 +422,7 @@ impl Instruction {
                 0xA8..=0xAF => XOR(U8Register::from_index(0b111 & opcode)),
                 0xB0..=0xB7 => OR(U8Register::from_index(0b111 & opcode)),
                 0xB8..=0xBF => CP(U8Register::from_index(0b111 & opcode)),
-                0x17 => RL_A,
+                0x17 => RLA,
                 0xC6 => ADD_IMMEDIATE(d8(bytes)),
                 0xCE => ADC_IMMEDIATE(d8(bytes)),
                 0xD6 => SUB_IMMEDIATE(d8(bytes)),
@@ -543,7 +550,7 @@ impl Instruction {
             XOR(_) => 1,
             OR(_) => 1,
             CP(_) => 1,
-            RL_A => 1,
+            RLA => 1,
             ADD_IMMEDIATE(_) => 2,
             ADC_IMMEDIATE(_) => 2,
             SUB_IMMEDIATE(_) => 2,
@@ -607,7 +614,7 @@ impl Display for Instruction {
             XOR(register) => write!(f, "XOR A, {}", register),
             OR(register) => write!(f, "OR A, {}", register),
             CP(register) => write!(f, "CP A, {}", register),
-            RL_A => write!(f, "RL_A"),
+            RLA => write!(f, "RLA"),
             ADD_IMMEDIATE(value) => write!(f, "ADD A, 0x{:02X}", value),
             ADC_IMMEDIATE(value) => write!(f, "ADC A, 0x{:02X}", value),
             SUB_IMMEDIATE(value) => write!(f, "SUB A, 0x{:02X}", value),

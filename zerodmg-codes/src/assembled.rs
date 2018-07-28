@@ -178,7 +178,7 @@ impl AssembledRom {
                     };
                 }
                 instruction
-            },
+            }
 
             RomByteRole::InstructionRest => panic!(
                 "requested instruction address mis-aligned with previously-decoded instructions"
@@ -415,7 +415,7 @@ impl FlowsTo for Instruction {
             // 8-Bit Arithmatic and Logic
             INC(_) | DEC(_) | ADD(_) | ADC(_) | SUB(_) | SBC(_) | AND(_) | XOR(_) | OR(_)
             | CP(_) | ADD_IMMEDIATE(_) | ADC_IMMEDIATE(_) | SUB_IMMEDIATE(_) | SBC_IMMEDIATE(_)
-            | AND_IMMEDIATE(_) | XOR_IMMEDIATE(_) | OR_IMMEDIATE(_) | CP_IMMEDIATE(_) | RL_A => {
+            | AND_IMMEDIATE(_) | XOR_IMMEDIATE(_) | OR_IMMEDIATE(_) | CP_IMMEDIATE(_) | RLA => {
                 to::next()
             }
             // 16-Bit Arithmatic and Logic
