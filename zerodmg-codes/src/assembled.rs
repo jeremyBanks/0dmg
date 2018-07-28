@@ -353,7 +353,10 @@ impl AssembledRom {
             blocks.push(last_block);
         }
 
+        let mut filtered_blocks = vec![];
+
         for ref mut block in blocks.iter_mut() {
+            let mut skip_block = false;
             match block.content {
                 Code(ref mut vec) => {
                     // Strip trailing NOPs from Code blocks.
@@ -365,11 +368,28 @@ impl AssembledRom {
                         }
                     }
                 }
-                Data(_) => {}
+                Data(ref mut bytes) => {
+                    // Strip all-NOP Data blocks entirely.
+                    let mut all_nop = true;
+                    for ref byte in bytes {
+                        if **byte != 0x00 {
+                            all_nop = false;
+                            break;
+                        }
+                    }
+
+                    if all_nop {
+                        skip_block = true;
+                    }
+                }
+            }
+
+            if !skip_block {
+                filtered_blocks.push(block.clone());
             }
         }
 
-        DisassembledRom::from(blocks)
+        DisassembledRom::from(filtered_blocks)
     }
 }
 
@@ -396,11 +416,18 @@ impl FlowsTo for Instruction {
             CP(_) => to::next(),
             // 16-Bit Arithmatic and Logic
             // 8-Bit Bitwise Operations (0xCB Opcodes)
+            BIT(_, _) => to::next(),
             // 8-Bit Loads
             LD_8_INTERNAL(_, _) => to::next(),
             LD_8_TO_SECONDARY(_) => to::next(),
             LD_8_FROM_SECONDARY(_) => to::next(),
             LD_8_IMMEDIATE(_, _) => to::next(),
+            LD_8_TO_FF_IMMEDIATE(_) => to::next(),
+            LD_8_FROM_FF_IMMEDIATE(_) => to::next(),
+            LD_8_TO_FF_C => to::next(),
+            LD_8_FROM_FF_C => to::next(),
+            LD_8_TO_MEMORY_IMMEDIATE(_) => to::next(),
+            LD_8_FROM_MEMORY_IMMEDIATE(_) => to::next(),
             // 16-Bit Loads
             LD_16_IMMEDIATE(_, _) => to::next(),
             // Jumps and Calls
@@ -442,7 +469,7 @@ impl ControlFlowsTo {
     /// Control can flow to the next instruction or a given jump reference.
     pub fn next_and_jump(jump: JumpReference) -> Self {
         ControlFlowsTo {
-            next: false,
+            next: true,
             jump: Some(jump),
         }
     }

@@ -11,10 +11,16 @@ pub mod prelude {
     pub use super::Instruction::*;
     pub use super::InvalidOpcode;
     pub use super::InvalidOpcode::*;
+    pub use super::RSTTarget;
     pub use super::RSTTarget::*;
+    pub use super::U16Register;
     pub use super::U16Register::*;
+    pub use super::U8Register;
     pub use super::U8Register::*;
+    pub use super::U8SecondaryRegister;
     pub use super::U8SecondaryRegister::*;
+    pub use super::BitIndex;
+    pub use super::BitIndex::*;
     pub use super::LD;
 }
 
@@ -61,7 +67,11 @@ pub enum Instruction {
 
     // 8-Bit Bitwise Operations (0xCB Opcodes)
 
+    /// Checks whether a given bit in a given register is set.
+    BIT(BitIndex, U8Register),
+
     // 8-Bit Loads
+
     /// Loads the value from one 8-bit register into another.
     LD_8_INTERNAL(U8Register, U8Register),
     /// Loads the value from A into a secondary pointer/register.
@@ -70,6 +80,18 @@ pub enum Instruction {
     LD_8_FROM_SECONDARY(U8SecondaryRegister),
     /// Loads immediates bytes into an 8-bit register.
     LD_8_IMMEDIATE(U8Register, u8),
+    // /// Loads the value from 0xFF00 + an 8-bit immediate offset into A.
+    LD_8_TO_FF_IMMEDIATE(u8),
+    // /// Loads the value from A into 0xFF00 + an 8-bit immediate offset.
+    LD_8_FROM_FF_IMMEDIATE(u8),
+    /// Loads the value from A into 0xFF00 + C.
+    LD_8_TO_FF_C,
+    // /// Loads the value from 0xFF00 + C into A.
+    LD_8_FROM_FF_C,
+    // /// Loads the value from A into an immediate 16-bit address.
+    LD_8_TO_MEMORY_IMMEDIATE(u16),
+    // /// Loads the value from an immediate 16-bit address into A.
+    LD_8_FROM_MEMORY_IMMEDIATE(u16),
 
     // 16-Bit Loads
     /// Load immediate bytes into a 16-bit register.
@@ -109,27 +131,6 @@ pub enum FlagCondition {
     if_NC,
     /// Carry flag bit is set; last instruction overflowed.
     if_C,
-}
-
-impl FlagCondition {
-    fn index(self) -> u8 {
-        match self {
-            if_NZ => 0,
-            if_Z => 1,
-            if_NC => 2,
-            if_C => 3,
-        }
-    }
-
-    pub fn from_index(value: u8) -> Self {
-        match value {
-            0 => if_NZ,
-            1 => if_Z,
-            2 => if_NC,
-            3 => if_C,
-            _ => panic!("invalid FlagCondition index"),
-        }
-    }
 }
 
 /// The 8-bit registers that are available in the CPU.
@@ -206,7 +207,7 @@ impl RSTTarget {
             to00 => 0x00,
             to08 => 0x08,
             to10 => 0x10,
-            to18 => 0x08,
+            to18 => 0x18,
             to20 => 0x20,
             to28 => 0x28,
             to30 => 0x30,
@@ -219,7 +220,7 @@ impl RSTTarget {
             0x00 => to00,
             0x08 => to08,
             0x10 => to10,
-            0x08 => to18,
+            0x18 => to18,
             0x20 => to20,
             0x28 => to28,
             0x30 => to30,
@@ -247,91 +248,85 @@ pub enum InvalidOpcode {
     xxFD,
 }
 
-impl InvalidOpcode {
-    fn opcode(self) -> u8 {
-        match self {
-            xxD3 => 0xD3,
-            xxDB => 0xDB,
-            xxDD => 0xDD,
-            xxE3 => 0xE3,
-            xxE4 => 0xE4,
-            xxEB => 0xEB,
-            xxEC => 0xEC,
-            xxED => 0xED,
-            xxF4 => 0xF4,
-            xxFC => 0xFC,
-            xxFD => 0xFD,
-        }
-    }
-
-    pub fn from_opcode(value: u8) -> Self {
-        match value {
-            0xD3 => xxD3,
-            0xDB => xxDB,
-            0xDD => xxDD,
-            0xE3 => xxE3,
-            0xE4 => xxE4,
-            0xEB => xxEB,
-            0xEC => xxEC,
-            0xED => xxED,
-            0xF4 => xxF4,
-            0xFC => xxFC,
-            0xFD => xxFD,
-            _ => panic!("invalid invalid opcode"),
-        }
-    }
+/// Indexes of bits within a byte.
+/// Used for bitwise operations.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[allow(non_camel_case_types, missing_docs)]
+pub enum BitIndex {
+    bit0,
+    bit1,
+    bit2,
+    bit3,
+    bit4,
+    bit5,
+    bit6,
+    bit7,
 }
 
 impl Instruction {
     /// Encodes this instruction back into machine code bytes.
-    pub fn to_bytes(&self) -> Vec<u8> {
+    pub fn to_bytes(self) -> Vec<u8> {
         let bytes = match self {
             // Control
             NOP => vec![0x00],
             HALT => vec![0x76],
             HCF(variant) => vec![variant.opcode()],
             // 8-Bit Arithmatic and Logic
-            INC(register) => vec![0x04 + (register.index() << 3)],
-            DEC(register) => vec![0x05 + (register.index() << 3)],
-            ADD(register) => vec![0x80 + register.index()],
-            ADC(register) => vec![0x88 + register.index()],
-            SUB(register) => vec![0x90 + register.index()],
-            SBC(register) => vec![0x98 + register.index()],
-            AND(register) => vec![0xA0 + register.index()],
-            XOR(register) => vec![0xA8 + register.index()],
-            OR(register) => vec![0xB0 + register.index()],
-            CP(register) => vec![0xB8 + register.index()],
+            INC(register) => vec![0x04 | (register.index() << 3)],
+            DEC(register) => vec![0x05 | (register.index() << 3)],
+            ADD(register) => vec![0x80 | register.index()],
+            ADC(register) => vec![0x88 | register.index()],
+            SUB(register) => vec![0x90 | register.index()],
+            SBC(register) => vec![0x98 | register.index()],
+            AND(register) => vec![0xA0 | register.index()],
+            XOR(register) => vec![0xA8 | register.index()],
+            OR(register) => vec![0xB0 | register.index()],
+            CP(register) => vec![0xB8 | register.index()],
             // 16-Bit Arithmatic and Logic
             // 8-Bit Bitwise Operations (0xCB Opcodes)
+            BIT(bit, register) =>
+                vec![0xCB, 0x40 | (bit.index() << 3) | register.index()],
             // 8-Bit Loads
-            LD_8_INTERNAL(dest, source) => vec![0x40 + (dest.index() << 3) + source.index()],
-            LD_8_IMMEDIATE(register, value) => vec![0x06 + (register.index() << 3), *value],
-            LD_8_TO_SECONDARY(register) => vec![0x02 + (register.index() << 4)],
-            LD_8_FROM_SECONDARY(register) => vec![0x0A + (register.index() << 4)],
+            LD_8_INTERNAL(dest, source) => vec![0x40 | (dest.index() << 3) + source.index()],
+            LD_8_IMMEDIATE(register, value) => vec![0x06 | (register.index() << 3), value],
+            LD_8_TO_SECONDARY(register) => vec![0x02 | (register.index() << 4)],
+            LD_8_FROM_SECONDARY(register) => vec![0x0A | (register.index() << 4)],
+            LD_8_TO_FF_IMMEDIATE(offset) => vec![0xE0, offset],
+            LD_8_FROM_FF_IMMEDIATE(offset) => vec![0xF0, offset],
+            LD_8_TO_FF_C => vec![0xE2],
+            LD_8_FROM_FF_C => vec![0xF2],
+            LD_8_TO_MEMORY_IMMEDIATE(address) => {
+                let (low, high) = u16_to_u8s(address);
+                vec![0xEA, low, high]
+            }
+            LD_8_FROM_MEMORY_IMMEDIATE(address) => {
+                let (low, high) = u16_to_u8s(address);
+                vec![0xFA, low, high]
+            }
             // 16-Bit Loads
             LD_16_IMMEDIATE(register, value) => {
-                let (low, high) = u16_to_u8s(*value);
-                let opcode = 0x01 + (register.index() << 4);
+                let (low, high) = u16_to_u8s(value);
+                let opcode = 0x01 | (register.index() << 4);
                 vec![opcode, low, high]
             }
             // Jumps and Calls
             JP(address) => {
-                let (low, high) = u16_to_u8s(*address);
+                let (low, high) = u16_to_u8s(address);
                 vec![0xC3, low, high]
             }
             JP_IF(condition, address) => {
-                let (low, high) = u16_to_u8s(*address);
-                vec![0xC2 + (condition.index() << 3), low, high]
+                let (low, high) = u16_to_u8s(address);
+                vec![0xC2 | (condition.index() << 3), low, high]
             }
-            JR(offset) => vec![0x18, *offset as u8],
-            JR_IF(condition, offset) => vec![0x20 + (condition.index() << 3), *offset as u8],
+            JR(offset) => vec![0x18, offset as u8],
+            JR_IF(condition, offset) => vec![0x20 | (condition.index() << 3), offset as u8],
             CALL(address) => {
-                let (low, high) = u16_to_u8s(*address);
+                let (low, high) = u16_to_u8s(address);
                 vec![0xCD, low, high]
             }
             CALL_IF(condition, address) => {
-                let (low, high) = u16_to_u8s(*address);
-                vec![0xC4 + (condition.index() << 3), low, high]
+                let (low, high) = u16_to_u8s(address);
+                vec![0xC4 | (condition.index() << 3), low, high]
             }
             RST(target) => vec![0xC7 + target.address()],
             RET => vec![0xC9],
@@ -384,7 +379,36 @@ impl Instruction {
                 0xB8..=0xBF => CP(U8Register::from_index(0b111 & opcode)),
                 // 16-Bit Arithmatic and Logic
                 // 8-Bit Bitwise Operations (0xCB Opcodes)
-                0xCB => Self::cb_instruction(d8(bytes)),
+                0xCB => {
+                    let opcode_2 = d8(bytes);
+                    match opcode_2 {
+                        // 0x00..=0x07 => RLC(U8Register::from_index(0b111 & opcode_2)),
+                        // 0x08..=0x0F => RRC(U8Register::from_index(0b111 & opcode_2)),
+                        // 0x10..=0x17 => RL(U8Register::from_index(0b111 & opcode_2)),
+                        // 0x18..=0x1F => RR(U8Register::from_index(0b111 & opcode_2)),
+                        // 0x20..=0x27 => SLA(U8Register::from_index(0b111 & opcode_2)),
+                        // 0x28..=0x2F => SRA(U8Register::from_index(0b111 & opcode_2)),
+                        // 0x30..=0x37 => SWAP(U8Register::from_index(0b111 & opcode_2)),
+                        // 0x38..=0x3F => SRL(U8Register::from_index(0b111 & opcode_2)),
+                        0x40..=0x7F => {
+                            let bit = BitIndex::from_index(0b111 & (opcode_2 >> 3));
+                            let register = U8Register::from_index(0b111 & opcode_2);
+                            BIT(bit, register)
+                        }
+                        // 0x80..=0xBF => {
+                        //     let index = BitIndex::from_index(0b111 & (opcode_2 >> 3));
+                        //     let register = U8Register::from_index(0b111 & opcode_2);
+                        //     RES(index, register)
+                        // }
+                        // 0xC0..=0xFF => {
+                        //     let index = BitIndex::from_index(0b111 & (opcode_2 >> 3));
+                        //     let register = U8Register::from_index(0b111 & opcode_2);
+                        //     SET(index, register)
+                        // }
+                        // TODO: implement everything
+                        _ => unimplemented!("unsupported instruction code 0x{:02X}{:02X}", opcode, opcode_2),
+                    }
+                }
                 // 8-Bit Loads
                 0x06 | 0x0E | 0x16 | 0x1E | 0x26 | 0x2E | 0x36 | 0x3E => {
                     let register = U8Register::from_index(0b111 & (opcode >> 3));
@@ -401,6 +425,13 @@ impl Instruction {
                     let source = U8Register::from_index(0b111 & opcode);
                     LD_8_INTERNAL(dest, source)
                 }
+                0xE0 => LD_8_TO_FF_IMMEDIATE(d8(bytes)),
+                0xF0 => LD_8_FROM_FF_IMMEDIATE(d8(bytes)),
+                0xE2 => LD_8_TO_FF_C,
+                0xF2 => LD_8_FROM_FF_C,
+                0xEA => LD_8_TO_MEMORY_IMMEDIATE(d16(bytes)),
+                0xFA => LD_8_FROM_MEMORY_IMMEDIATE(d16(bytes)),
+
                 // 16-Bit Loads
                 0x01 | 0x11 | 0x21 | 0x31 => {
                     let register = U16Register::from_index(0b11 & (opcode >> 4));
@@ -436,15 +467,6 @@ impl Instruction {
         }
     }
 
-    fn cb_instruction(second_byte: u8) -> Instruction {
-        match second_byte {
-            _ => unimplemented!(
-                "8-bit bitwise opcode 0xCB 0x{:02X} not implemented",
-                second_byte
-            ),
-        }
-    }
-
     /// The number of bytes this instruction will occupy in the ROM.
     pub fn byte_len(&self) -> u16 {
         match self {
@@ -465,11 +487,18 @@ impl Instruction {
             CP(_) => 1,
             // 16-Bit Arithmatic and Logic
             // 8-Bit Bitwise Operations (0xCB Opcodes)
+            BIT(_, _) => 2,
             // 8-Bit Loads
             LD_8_INTERNAL(_, _) => 1,
             LD_8_IMMEDIATE(_, _) => 2,
             LD_8_TO_SECONDARY(_) => 1,
             LD_8_FROM_SECONDARY(_) => 1,
+            LD_8_TO_FF_IMMEDIATE(_) => 2,
+            LD_8_FROM_FF_IMMEDIATE(_) => 2,
+            LD_8_TO_FF_C => 1,
+            LD_8_FROM_FF_C => 1,
+            LD_8_TO_MEMORY_IMMEDIATE(_) => 3,
+            LD_8_FROM_MEMORY_IMMEDIATE(_) => 3,
             // 16-Bit Loads
             LD_16_IMMEDIATE(_, _) => 3,
             // Jumps and Calls
@@ -507,11 +536,18 @@ impl Display for Instruction {
             CP(register) => write!(f, "CP {:?}", register),
             // 16-Bit Arithmatic and Logic
             // 8-Bit Bitwise Operations (0xCB Opcodes)
+            BIT(index, register) => write!(f, "BIT {:?} {:?}", index.index(), register),
             // 8-Bit Loads
             LD_8_INTERNAL(dest, source) => write!(f, "LD {:?} {:?}", dest, source),
             LD_8_TO_SECONDARY(dest) => write!(f, "LD {:?} A", dest),
             LD_8_FROM_SECONDARY(source) => write!(f, "LD A {:?}", source),
             LD_8_IMMEDIATE(register, value) => write!(f, "LD {:?} 0x{:02X}", register, value),
+            LD_8_TO_FF_IMMEDIATE(offset) => write!(f, "LD (0xFF00 + 0x{:02X}), A", offset),
+            LD_8_FROM_FF_IMMEDIATE(offset) => write!(f, "LD A, (0xFF00 + 0x{:02X})", offset),
+            LD_8_TO_FF_C => write!(f, "LD (0xFF00 + C), A"),
+            LD_8_FROM_FF_C => write!(f, "LD A, (0xFF00 + C)"),
+            LD_8_TO_MEMORY_IMMEDIATE(address) => write!(f, "LD (0x{:04X}), A", address),
+            LD_8_FROM_MEMORY_IMMEDIATE(address) => write!(f, "LD A, (0x{:04X})", address),
             // 16-Bit Loads
             LD_16_IMMEDIATE(register, value) => write!(f, "LD {:?} 0x{:04X}", register, value),
             // Jumps and Calls
@@ -524,6 +560,62 @@ impl Display for Instruction {
             RST(target) => write!(f, "RST 0x{:02X}", target.address()),
             RET => write!(f, "RET"),
             RETI => write!(f, "RETI"),
+        }
+    }
+}
+
+impl FlagCondition {
+    fn index(self) -> u8 {
+        match self {
+            if_NZ => 0,
+            if_Z => 1,
+            if_NC => 2,
+            if_C => 3,
+        }
+    }
+
+    pub fn from_index(value: u8) -> Self {
+        match value {
+            0 => if_NZ,
+            1 => if_Z,
+            2 => if_NC,
+            3 => if_C,
+            _ => panic!("invalid FlagCondition index"),
+        }
+    }
+}
+
+impl InvalidOpcode {
+    fn opcode(self) -> u8 {
+        match self {
+            xxD3 => 0xD3,
+            xxDB => 0xDB,
+            xxDD => 0xDD,
+            xxE3 => 0xE3,
+            xxE4 => 0xE4,
+            xxEB => 0xEB,
+            xxEC => 0xEC,
+            xxED => 0xED,
+            xxF4 => 0xF4,
+            xxFC => 0xFC,
+            xxFD => 0xFD,
+        }
+    }
+
+    pub fn from_opcode(value: u8) -> Self {
+        match value {
+            0xD3 => xxD3,
+            0xDB => xxDB,
+            0xDD => xxDD,
+            0xE3 => xxE3,
+            0xE4 => xxE4,
+            0xEB => xxEB,
+            0xEC => xxEC,
+            0xED => xxED,
+            0xF4 => xxF4,
+            0xFC => xxFC,
+            0xFD => xxFD,
+            _ => panic!("invalid invalid opcode"),
         }
     }
 }
@@ -554,6 +646,35 @@ impl U8Register {
             0b101 => L,
             0b110 => AT_HL,
             _ => panic!("invalid U8Register index"),
+        }
+    }
+}
+
+impl BitIndex {
+    pub fn index(self) -> u8 {
+        match self {
+            bit0 => 0,
+            bit1 => 1,
+            bit2 => 2,
+            bit3 => 3,
+            bit4 => 4,
+            bit5 => 5,
+            bit6 => 6,
+            bit7 => 7,
+        }
+    }
+
+    pub fn from_index(value: u8) -> Self {
+        match value {
+            0 => bit0,
+            1 => bit1,
+            2 => bit2,
+            3 => bit3,
+            4 => bit4,
+            5 => bit5,
+            6 => bit6,
+            7 => bit7,
+            _ => panic!("invalid BitIndex index"),
         }
     }
 }
