@@ -404,32 +404,26 @@ impl FlowsTo for Instruction {
             HALT => to::next(),
             HCF(_) => to::unknown(),
             // 8-Bit Arithmatic and Logic
-            INC(_) => to::next(),
-            DEC(_) => to::next(),
-            ADD(_) => to::next(),
-            ADC(_) => to::next(),
-            SUB(_) => to::next(),
-            SBC(_) => to::next(),
-            AND(_) => to::next(),
-            XOR(_) => to::next(),
-            OR(_) => to::next(),
-            CP(_) => to::next(),
+            INC(_) | DEC(_) | ADD(_) | ADC(_) | SUB(_) | SBC(_) | AND(_) | XOR(_) | OR(_)
+            | CP(_) | ADD_IMMEDIATE(_) | ADC_IMMEDIATE(_) | SUB_IMMEDIATE(_) | SBC_IMMEDIATE(_)
+            | AND_IMMEDIATE(_) | XOR_IMMEDIATE(_) | OR_IMMEDIATE(_) | CP_IMMEDIATE(_) | RL_A => to::next(),
             // 16-Bit Arithmatic and Logic
-            // 8-Bit Bitwise Operations (0xCB Opcodes)
-            BIT(_, _) => to::next(),
+            INC_16(_) | DEC_16(_) | ADD_TO_HL(_) => to::next(),
+            // 0xCB 8-Bit Bitwise Operations
+            BIT(_, _) | RL(_) => to::next(),
             // 8-Bit Loads
-            LD_8_INTERNAL(_, _) => to::next(),
-            LD_8_TO_SECONDARY(_) => to::next(),
-            LD_8_FROM_SECONDARY(_) => to::next(),
-            LD_8_IMMEDIATE(_, _) => to::next(),
-            LD_8_TO_FF_IMMEDIATE(_) => to::next(),
-            LD_8_FROM_FF_IMMEDIATE(_) => to::next(),
-            LD_8_TO_FF_C => to::next(),
-            LD_8_FROM_FF_C => to::next(),
-            LD_8_TO_MEMORY_IMMEDIATE(_) => to::next(),
-            LD_8_FROM_MEMORY_IMMEDIATE(_) => to::next(),
+            LD_8_INTERNAL(_, _)
+            | LD_8_TO_SECONDARY(_)
+            | LD_8_FROM_SECONDARY(_)
+            | LD_8_IMMEDIATE(_, _)
+            | LD_8_TO_FF_IMMEDIATE(_)
+            | LD_8_FROM_FF_IMMEDIATE(_)
+            | LD_8_TO_FF_C
+            | LD_8_FROM_FF_C
+            | LD_8_TO_MEMORY_IMMEDIATE(_)
+            | LD_8_FROM_MEMORY_IMMEDIATE(_) => to::next(),
             // 16-Bit Loads
-            LD_16_IMMEDIATE(_, _) => to::next(),
+            LD_16_IMMEDIATE(_, _) | POP(_) | PUSH(_) => to::next(),
             // Jumps and Calls
             JP(address) => to::jump(Absolute(*address)),
             JP_IF(_, address) => to::next_and_jump(Absolute(*address)),
