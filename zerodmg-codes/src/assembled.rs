@@ -168,8 +168,17 @@ impl AssembledRom {
         match byte.role {
             RomByteRole::InstructionStart {
                 instruction,
-                known_jump_destination: _,
-            } => instruction,
+                known_jump_destination,
+            } => {
+                if !known_jump_destination {
+                    // Mark as known jump destination.
+                    self.bytes[usize::from(address)].role = RomByteRole::InstructionStart {
+                        instruction,
+                        known_jump_destination: true,
+                    };
+                }
+                instruction
+            },
 
             RomByteRole::InstructionRest => panic!(
                 "requested instruction address mis-aligned with previously-decoded instructions"
@@ -406,7 +415,9 @@ impl FlowsTo for Instruction {
             // 8-Bit Arithmatic and Logic
             INC(_) | DEC(_) | ADD(_) | ADC(_) | SUB(_) | SBC(_) | AND(_) | XOR(_) | OR(_)
             | CP(_) | ADD_IMMEDIATE(_) | ADC_IMMEDIATE(_) | SUB_IMMEDIATE(_) | SBC_IMMEDIATE(_)
-            | AND_IMMEDIATE(_) | XOR_IMMEDIATE(_) | OR_IMMEDIATE(_) | CP_IMMEDIATE(_) | RL_A => to::next(),
+            | AND_IMMEDIATE(_) | XOR_IMMEDIATE(_) | OR_IMMEDIATE(_) | CP_IMMEDIATE(_) | RL_A => {
+                to::next()
+            }
             // 16-Bit Arithmatic and Logic
             INC_16(_) | DEC_16(_) | ADD_TO_HL(_) => to::next(),
             // 0xCB 8-Bit Bitwise Operations

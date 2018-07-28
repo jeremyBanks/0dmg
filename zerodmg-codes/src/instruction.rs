@@ -320,7 +320,7 @@ impl Instruction {
             DEC_16(register) => vec![0x0B + (register.index() << 4)],
             ADD_TO_HL(register) => vec![0x09 + (register.index() << 4)],
             // 0xCB 8-Bit Bitwise Operations
-            RL(register) => vec![0x10 | register.index()],
+            RL(register) => vec![0xCB, 0x10 | register.index()],
             BIT(bit, register) => vec![0xCB, 0x40 | (bit.index() << 3) | register.index()],
             // 8-Bit Loads
             LD_8_INTERNAL(dest, source) => vec![0x40 | (dest.index() << 3) + source.index()],
@@ -371,7 +371,7 @@ impl Instruction {
             RETI => vec![0xD9],
         };
 
-        assert_eq!(bytes.len(), self.byte_len().into());
+        assert_eq!(bytes.len(), self.byte_len().into(), "{:?}.len() != {} for {:?}", bytes, self.byte_len(), self);
 
         bytes
     }
@@ -427,7 +427,9 @@ impl Instruction {
                 // 16-Bit Arithmatic and Logic
                 0x03 | 0x13 | 0x23 | 0x33 => INC_16(U16Register::from_index(0b11 & (opcode >> 4))),
                 0x0B | 0x1B | 0x2B | 0x3B => DEC_16(U16Register::from_index(0b11 & (opcode >> 4))),
-                0x09 | 0x19 | 0x29 | 0x39 => ADD_TO_HL(U16Register::from_index(0b11 & (opcode >> 4))),
+                0x09 | 0x19 | 0x29 | 0x39 => {
+                    ADD_TO_HL(U16Register::from_index(0b11 & (opcode >> 4)))
+                }
                 0xC5 | 0xD5 | 0xE5 | 0xF5 => PUSH(U16Register::from_index(0b11 & (opcode >> 4))),
                 0xC1 | 0xD1 | 0xE1 | 0xF1 => POP(U16Register::from_index(0b11 & (opcode >> 4))),
                 // 0xCB 8-Bit Bitwise Operations
@@ -516,7 +518,7 @@ impl Instruction {
                 0xC9 => RET,
                 0xD9 => RETI,
                 // TODO: implement everything
-                _ =>  unimplemented!("unsupported instruction code 0x{:02X}", opcode),
+                _ => unimplemented!("unsupported instruction code 0x{:02X}", opcode),
             })
         } else {
             None
@@ -671,7 +673,6 @@ impl FlagCondition {
     }
 }
 
-
 impl Display for FlagCondition {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -682,7 +683,6 @@ impl Display for FlagCondition {
         }
     }
 }
-
 
 impl InvalidOpcode {
     fn opcode(self) -> u8 {
