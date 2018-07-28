@@ -162,13 +162,14 @@ impl Display for DisassembledRom {
 }
 
 impl RomBlock {
+    /// Returns the number of bytes this block would occupy in a compiled ROM.
     pub fn byte_len(&self) -> u16 {
         match self.content {
             Data(ref bytes) => bytes.len() as u16,
             Code(ref instructions) => {
-                let len = 0;
+                let mut len = 0;
                 for instruction in instructions {
-                    len + instruction.byte_len();
+                    len += instruction.byte_len();
                 }
                 len
             }
@@ -238,38 +239,51 @@ macro_rules! code_blocks {
         )*
     ) => {
         {
-            $(
-                $(let $id =)* $($address)*;
-            )*
+            #[allow(non_snake_case)]
+            fn f() -> Vec<RomBlock> {
+                $(
+                    $(let $id =)* $($address)*;
+                )*
 
-            let mut LAST = 0xFFFF;
-            let mut NEXT = 0x0000;
-            let mut blocks = Vec::new();
-            let mut SELF = 0x000;
+                let mut LAST = 0xFFFF;
+                let mut NEXT = 0x0000;
+                let mut blocks = Vec::new();
+                let mut SELF = 0x000;
 
-            $({
-                $(SELF = NEXT; $(let $section_name = SELF;)*)*
-                $(SELF = $address;)*
+                let _ = LAST;
+                let _ = NEXT;
+                let _ = SELF;
 
-                let block = RomBlock {
-                    address: Some(SELF),
-                    content: {
-                        $(
-                            Data(vec![$($bytes),*])
-                        )*
-                        $(
-                            Code(Vec::<Instruction>::from(vec![$($instructions),*]))
-                        )*
-                        $(Data($data.to_vec()))*
-                        $(Code($code.to_vec()))*
-                    }
-                };
+                $({
+                    $(SELF = NEXT; $(let $section_name = SELF;)*)*
+                    $(SELF = $address;)*
 
-                LAST = SELF;
-                NEXT = LAST + block.byte_len();
-                blocks.push(block);
-            })*
-            blocks
+                    let block = RomBlock {
+                        address: Some(SELF),
+                        content: {
+                            $(
+                                Data(vec![$($bytes),*])
+                            )*
+                            $(
+                                Code(Vec::<Instruction>::from(vec![$($instructions),*]))
+                            )*
+                            $(Data($data.to_vec()))*
+                            $(Code($code.to_vec()))*
+                        }
+                    };
+
+                    LAST = SELF;
+                    NEXT = LAST + block.byte_len();
+                    blocks.push(block);
+
+                    let _ = LAST;
+                    let _ = NEXT;
+                    let _ = SELF;
+                })*
+
+                blocks
+            }
+            f()
         }
     };
 }

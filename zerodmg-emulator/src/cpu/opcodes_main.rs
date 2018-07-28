@@ -281,7 +281,18 @@ pub static OPCODES: [operation::Operation; 0x100] = [
     },
     operation::INC,
     operation::DEC,
-    /* 36 */ operation::UNIMPLEMENTED,
+    |_36, gb| {
+        let hl = gb.hl();
+        let value = gb.read_immediate_u8();
+
+        gb.set_mem(hl, value);
+
+        op_execution!{
+            cycles: 3;
+            asm: "LD (HL), 0x{:02x}", value;
+            trace: "HL = ${:04x}, A = ${:02x}", hl, value;
+        }
+    },
     /* 37 */ operation::UNIMPLEMENTED,
     |_38, gb| {
         let n = gb.read_immediate_i8();
@@ -450,7 +461,24 @@ pub static OPCODES: [operation::Operation; 0x100] = [
             trace: "P₁ = ${:04x}, BC₀ = ${:04x}, BC₁ = ${:04x}", gb.cpu.sp, bc0, bc1;
         }
     },
-    /* c2 */ operation::UNIMPLEMENTED,
+    |_c2, gb| {
+        let addr = gb.read_immediate_u16();
+        let z = gb.z_flag();
+        if !z {
+            gb.cpu.pc = addr;
+            op_execution!{
+                cycles: 4;
+                asm: "JP NZ ${:04x}", addr;
+                trace: "F_Z = false (branch executed)";
+            }
+        } else {
+            op_execution!{
+                cycles: 3;
+                asm: "JP NZ ${:04x}", addr;
+                trace: "F_Z = true (branch skipped)";
+            }
+        }
+    },
     |_c3, gb| {
         let addr = gb.read_immediate_u16();
         gb.cpu.pc = addr;
