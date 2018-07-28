@@ -1,6 +1,35 @@
 use crate::assembled::prelude::*;
 use crate::disassembled::prelude::*;
 
+/// The initial boot ROM for the original Game Boy.
+pub fn dmg_boot() -> AssembledRom {
+    let rom = AssembledRom::from_bytes(&DMG_BOOT.to_vec());
+    if cfg!(debug_assertions) {
+        verify(&rom);
+    }
+    rom
+}
+
+/// A sanity-check/test of the result, only checked in debug mode and tests.
+fn verify(assembled: &AssembledRom) {
+    let known_vec = DMG_BOOT.to_vec();
+
+    println!("=== Disassembled DMG Boot ROM ===");
+    let mut assembled = assembled.clone();
+    assembled.get_known_instruction(0x0000);
+    let disassembled = assembled.disassemble();
+    println!("{:?}\n", disassembled);
+    println!("{}\n", disassembled);
+
+    let reassembled_bytes = disassembled.assemble().to_bytes();
+    assert_eq!(known_vec, reassembled_bytes);
+}
+
+#[test]
+fn test_verified() {
+    dmg_boot();
+}
+
 const DMG_BOOT: &[u8; 0x0100] = &[
     0x31, 0xFE, 0xFF, 0xAF, 0x21, 0xFF, 0x9F, 0x32, 0xCB, 0x7C, 0x20, 0xFB, 0x21, 0x26, 0xFF, 0x0E,
     0x11, 0x3E, 0x80, 0x32, 0xE2, 0x0C, 0x3E, 0xF3, 0xE2, 0x32, 0x3E, 0x77, 0x77, 0x3E, 0xFC, 0xE0,
@@ -19,41 +48,3 @@ const DMG_BOOT: &[u8; 0x0100] = &[
     0x21, 0x04, 0x01, 0x11, 0xA8, 0x00, 0x1A, 0x13, 0xBE, 0x20, 0xFE, 0x23, 0x7D, 0xFE, 0x34, 0x20,
     0xF5, 0x06, 0x19, 0x78, 0x86, 0x23, 0x05, 0x20, 0xFB, 0x86, 0x20, 0xFE, 0x3E, 0x01, 0xE0, 0x50,
 ];
-
-/// The initial boot ROM for the original Game Boy.
-pub fn dmg_boot() -> DisassembledRom {
-    let rom = DisassembledRom::from(vec![block(0x0000, DMG_BOOT.to_vec())]);
-    if cfg!(debug_assertions) {
-        verify(&rom);
-    }
-    rom
-}
-
-/// A sanity-check/test of the result, only checked in debug mode and tests.
-fn verify(rom: &DisassembledRom) {
-    let known_vec = DMG_BOOT.to_vec();
-
-    println!("=== Boot ROM ===");
-    println!("{:?}\n", rom);
-    println!("{}\n", rom);
-
-    println!("=== Assembled Boot ROM ===");
-    let assembled_bytes = rom.assemble().to_bytes();
-    println!("{:?}\n", assembled_bytes);
-    assert_eq!(known_vec, assembled_bytes);
-
-    println!("=== Disassembled Boot ROM ===");
-    let mut assembled = AssembledRom::from_bytes(&assembled_bytes);
-    assembled.get_known_instruction(0x0000);
-    let disassembled = assembled.disassemble();
-    println!("{:?}\n", disassembled);
-    println!("{}\n", disassembled);
-
-    let reassembled_bytes = disassembled.assemble().to_bytes();
-    assert_eq!(known_vec, reassembled_bytes);
-}
-
-#[test]
-fn test_verified() {
-    dmg_boot();
-}

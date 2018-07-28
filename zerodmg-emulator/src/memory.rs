@@ -18,7 +18,7 @@ impl MemoryData {
             wram: [0x00; 0x2000],
             stack_ram: [0x00; 0x80],
             game_rom,
-            boot_rom: zerodmg_codes::roms::dmg_boot().assemble().to_bytes(),
+            boot_rom: zerodmg_codes::roms::dmg_boot().to_bytes(),
             boot_rom_mapped: true,
         }
     }

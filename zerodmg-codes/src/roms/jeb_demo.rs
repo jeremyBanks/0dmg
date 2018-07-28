@@ -160,14 +160,8 @@ pub fn jeb_demo() -> DisassembledRom {
 
 /// A sanity-check/test of the result, only checked in debug mode and tests.
 fn verify(rom: &DisassembledRom) {
-    println!("=== Demo ROM ===");
-    println!("{:?}\n", rom);
-    println!("{}\n", rom);
-
-    println!("=== Assembled Demo ROM ===");
     let assembled_bytes = rom.assemble().to_bytes();
-    println!("{:?}\n", assembled_bytes);
-
+    
     println!("=== Disassembled Demo ROM ===");
     let mut assembled = AssembledRom::from_bytes(&assembled_bytes);
     assembled.trace_standard_game_instructions();
