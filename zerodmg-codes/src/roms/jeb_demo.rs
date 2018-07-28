@@ -50,9 +50,7 @@ pub fn jeb_demo() -> DisassembledRom {
             // to [black, dark gray, light gray, white]
             LD(A, 0b_00_01_10_11);
             LD(AT_HL, A);
-        },
-        // Set first tile to white.
-        next => {
+            // Set first tile to white.
             LD(HL, 0x8000);
             LD(A, 0x10);
         },
@@ -62,8 +60,8 @@ pub fn jeb_demo() -> DisassembledRom {
             DEC(A);
             JP_IF(if_NZ, tile_loop);
         },
-        // Set second tile to black.
         next => {
+            // Set second tile to black.
             LD(HL, 0x8010);
             LD(A, 0x10);
         },
@@ -74,19 +72,61 @@ pub fn jeb_demo() -> DisassembledRom {
             JP_IF(if_NZ, tile_loop);
         },
         next => {
-            // set some tiles
+            CALL(set_logo_tiles_in_first_sprite);
+            CALL(pallet_loop);
 
-            LD(HL, 0x9800);
-            LD(AT_HL, 0x00);
-
-            LD(HL, 0x9801);
-            LD(AT_HL, 0x01);
-
-            LD(HL, 0x9802);
-            LD(AT_HL, 0x01);
+            HCF(xxDD);
         },
 
-        def pallet_loop at 0x2000 => {
+        def set_logo_tiles_in_first_sprite at 0x0200 => {
+            // We increment B through logo memory indicies...
+            LD(B, 0);
+            // ...and advance E through sprite OAM offsets...
+            LD(E, 0);
+            // ...as we loop over C to logo_height...
+            LD(C, 0x00);
+        },
+        def c_loop_to_logo_height at 0x0210 => {
+            // ....over D to logo_width.
+            LD(D, 0x00);
+        },
+        def d_loop_to_logo_width at 0x0220 => {
+            // Load logo byte into A.
+            LD(H, 0x09);
+            LD(L, B);
+            LD(A, AT_HL);
+            // Write logo data into BG1
+            LD(H, 0x98);
+            LD(L, E);
+            LD(AT_HL, A);
+
+            INC(B);
+            INC(E);
+            INC(D);
+
+            LD(A, D);
+            LD(HL, logo_width);
+            CP(AT_HL);
+            JP_IF(if_NZ, d_loop_to_logo_width);
+        },
+        next as end_c_loop_to_logo_height => {
+            INC(C);
+
+            // skip tiles to next row of background
+            LD(A, E);
+            LD(L, 32 - 8)
+            ADD(L);
+            LD(E, A);
+            
+            LD(A, C);
+            LD(HL, logo_height);
+            CP(AT_HL);
+            JP_IF(if_NZ, c_loop_to_logo_height);
+
+            RET;
+        },
+        
+        def pallet_loop at 0x0600 => {
             // Mess with the pallet forever:
             LD(HL, 0xFF47);
             LD(A, AT_HL);
@@ -94,6 +134,21 @@ pub fn jeb_demo() -> DisassembledRom {
             LD(AT_HL, A);
             JP(pallet_loop);
         },
+
+        def logo_width at 0x0800 => [0x08],
+        def logo_height at 0x0801 => [0x06],
+        def logo at 0x0900 => Data({
+            let black = 0x00;
+            let white = 0x01;
+            [
+                white, white, white, black, black, white, white, white,
+                white, white, black, white, white, black, white, white,
+                white, black, black, black, black, black, black, white,
+                black, white, white, white, white, white, white, black,
+                white, black, white, white, white, white, black, white,
+                black, black, black, white, white, black, black, black,
+            ]
+        }),
     ];
 
     let rom = DisassembledRom::from(code);

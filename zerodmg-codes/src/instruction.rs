@@ -284,7 +284,10 @@ impl Instruction {
             }
             JR(offset) => vec![0x18, *offset as u8],
             JR_IF(condition, offset) => vec![0x20 + (condition.index() << 3), *offset as u8],
-            CALL(offset) => vec![0xCD, *offset as u8],
+            CALL(address) => {
+                let (low, high) = u16_to_u8s(*address);
+                vec![0xCD, low, high]
+            }
             CALL_IF(condition, address) => {
                 let (low, high) = u16_to_u8s(*address);
                 vec![0xC4 + (condition.index() << 3), low, high]
