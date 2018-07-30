@@ -36,8 +36,12 @@ pub enum Instruction {
     NOP,
     /// Stops running the CPU until an interrupt occurs.
     HALT,
+    /// Disables interrupts after the *next* instruction (not after this one).
+    DI,
+    /// Enables interrupts after the *next* instruction (not after this one).
+    EI,
     /// Invalid opcodes.
-    /// Used to panic in unexpected situations.
+    /// May be used in development to panic in unexpected situations.
     HCF(InvalidOpcode),
 
     // 8-Bit Arithmatic and Logic
@@ -270,6 +274,8 @@ impl Instruction {
             // Control
             NOP => vec![0x00],
             HALT => vec![0x76],
+            DI => vec![0xF3],
+            EI => vec![0xFB],
             HCF(variant) => vec![variant.opcode()],
             // 8-Bit Arithmatic and Logic
             INC(register) => vec![0x04 | (register.index() << 3)],
@@ -380,6 +386,8 @@ impl Instruction {
                 // Control
                 0x00 => NOP,
                 0x76 => HALT,
+                0xF3 => DI,
+                0xFB => EI,
                 0xD3 | 0xDB | 0xDD | 0xE3 | 0xE4 | 0xEB | 0xEC | 0xED | 0xF4 | 0xFC | 0xFD => {
                     HCF(InvalidOpcode::from_opcode(opcode))
                 }
@@ -514,6 +522,8 @@ impl Instruction {
             // Control
             NOP => 1,
             HALT => 1,
+            EI => 1,
+            DI => 1,
             HCF(_) => 1,
             // 8-Bit Arithmatic and Logic
             INC(_) => 1,
@@ -578,6 +588,8 @@ impl Display for Instruction {
             // Control
             NOP => write!(f, "NOP"),
             HALT => write!(f, "HALT"),
+            DI => write!(f, "DI"),
+            EI => write!(f, "EI"),
             HCF(variant) => write!(f, "HCF {:?} ಠ_ಠ", variant),
             // 8-Bit Arithmatic and Logic
             INC(register) => write!(f, "INC {}", register),

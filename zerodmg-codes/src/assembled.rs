@@ -411,6 +411,7 @@ impl FlowsTo for Instruction {
             // Control
             NOP => to::next(),
             HALT => to::next(),
+            DI | EI => to::next(),
             HCF(_) => to::unknown(),
             // 8-Bit Arithmatic and Logic
             INC(_) | DEC(_) | ADD(_) | ADC(_) | SUB(_) | SBC(_) | AND(_) | XOR(_) | OR(_)
