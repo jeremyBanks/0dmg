@@ -1,6 +1,4 @@
-use crate::assembled::prelude::*;
-use crate::disassembled::prelude::*;
-use crate::instruction::prelude::*;
+use crate::assembled::AssembledRom;
 
 const DMG_SOUND: &[u8; 0x10000] = include_bytes!("./dmg_sound.gb");
 

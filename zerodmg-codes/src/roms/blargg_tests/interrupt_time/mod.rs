@@ -1,6 +1,4 @@
-use crate::assembled::prelude::*;
-use crate::disassembled::prelude::*;
-use crate::instruction::prelude::*;
+use crate::assembled::AssembledRom;
 
 const INTERRUPT_TIME: &[u8; 0x8000] = include_bytes!("./interrupt_time.gb");
 
@@ -29,7 +27,7 @@ fn verify(assembled: &AssembledRom) {
 }
 
 #[test]
-#[ignore]
+#[ignore(requires_multiple_rom_bank_support)]
 fn test_verified() {
     interrupt_time();
 }

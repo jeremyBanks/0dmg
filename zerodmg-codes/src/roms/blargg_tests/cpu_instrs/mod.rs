@@ -1,12 +1,10 @@
-use crate::assembled::prelude::*;
-use crate::disassembled::prelude::*;
-use crate::instruction::prelude::*;
+use crate::assembled::AssembledRom;
 
-const CGB_SOUND: &[u8; 0x10000] = include_bytes!("./cpu_instrs.gb");
+const CPU_INSTRS: &[u8; 0x10000] = include_bytes!("./cpu_instrs.gb");
 
 /// Blargg's CPU Instructions Test ROM
 pub fn cpu_instrs() -> AssembledRom {
-    let rom = AssembledRom::from_bytes(&CGB_SOUND.to_vec());
+    let rom = AssembledRom::from_bytes(&CPU_INSTRS.to_vec());
     if cfg!(debug_assertions) {
         verify(&rom);
     }
@@ -15,7 +13,7 @@ pub fn cpu_instrs() -> AssembledRom {
 
 /// A sanity-check/test of the result, only checked in debug mode and tests.
 fn verify(assembled: &AssembledRom) {
-    let known_vec = CGB_SOUND.to_vec();
+    let known_vec = CPU_INSTRS.to_vec();
 
     println!("=== Disassembled CPU Instructions Test ROM ===");
     let mut assembled = assembled.clone();

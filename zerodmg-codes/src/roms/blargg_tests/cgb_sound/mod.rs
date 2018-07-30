@@ -1,6 +1,4 @@
-use crate::assembled::prelude::*;
-use crate::disassembled::prelude::*;
-use crate::instruction::prelude::*;
+use crate::assembled::AssembledRom;
 
 const CGB_SOUND: &[u8; 0x10000] = include_bytes!("./cgb_sound.gb");
 
@@ -27,7 +25,6 @@ fn verify(assembled: &AssembledRom) {
     let reassembled_bytes = disassembled.assemble().to_bytes();
     assert_eq!(known_vec, reassembled_bytes);
 }
-
 
 #[test]
 fn test_verified() {

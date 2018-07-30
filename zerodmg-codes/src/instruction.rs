@@ -41,50 +41,53 @@ pub enum Instruction {
     HCF(InvalidOpcode),
 
     // 8-Bit Arithmatic and Logic
-    /// Increment u8 register
+    /// Increment an 8-bit register
     INC(U8Register),
-    /// Decrement u8 register
+    /// Decrement an 8-bit register
     DEC(U8Register),
-    // A += x
+    /// `A += x`
     ADD(U8Register),
-    // A += x + Z_C
+    /// `A += x + Z_C`
     ADC(U8Register),
-    // A -= x
+    /// `A -= x`
     SUB(U8Register),
-    // A -= x + Z_C
+    /// `A -= x + Z_C`
     SBC(U8Register),
-    // A &= x
+    /// `A &= x`
     AND(U8Register),
-    // A ^= x
+    /// `A ^= x`
     XOR(U8Register),
-    // A |= x
+    /// `A |= x`
     OR(U8Register),
-    // (A - x)
-    // Updates flags, but doesn't update any other registers.
+    /// `(A - x);`
+    /// Updates flags, but doesn't update any other registers.
     CP(U8Register),
     /// Rotates A register left by one bit, wrapping through the carry flag bit.
     RLA,
-    // A += x
+    /// `A += x`
     ADD_IMMEDIATE(u8),
-    // A += x + Z_C
+    /// `A += x + Z_C`
     ADC_IMMEDIATE(u8),
-    // A -= x
+    /// `A -= x`
     SUB_IMMEDIATE(u8),
-    // A -= x + Z_C
+    /// `A -= x + Z_C`
     SBC_IMMEDIATE(u8),
-    // A &= x
+    /// `A &= x`
     AND_IMMEDIATE(u8),
-    // A ^= x
+    /// `A ^= x`
     XOR_IMMEDIATE(u8),
-    // A |= x
+    /// `A |= x`
     OR_IMMEDIATE(u8),
-    // (A - x)
-    // Updates flags, but doesn't update any other registers.
+    /// `(A - x);`
+    /// Updates flags, but doesn't update any other registers.
     CP_IMMEDIATE(u8),
 
     // 16-Bit Arithmatic and Logic
+    /// Increment a 16-bit register.
     INC_16(U16Register),
+    /// Decrement a 16-bit register.
     DEC_16(U16Register),
+    /// Add the value from a 16-bit register to the HL 16-bit register.
     ADD_TO_HL(U16Register),
 
     // 0xCB 8-Bit Bitwise Operations
@@ -102,23 +105,25 @@ pub enum Instruction {
     LD_8_FROM_SECONDARY(U8SecondaryRegister),
     /// Loads immediates bytes into an 8-bit register.
     LD_8_IMMEDIATE(U8Register, u8),
-    // /// Loads the value from 0xFF00 + an 8-bit immediate offset into A.
+    /// Loads the value from 0xFF00 + an 8-bit immediate offset into A.
     LD_8_TO_FF_IMMEDIATE(u8),
-    // /// Loads the value from A into 0xFF00 + an 8-bit immediate offset.
+    /// Loads the value from A into 0xFF00 + an 8-bit immediate offset.
     LD_8_FROM_FF_IMMEDIATE(u8),
     /// Loads the value from A into 0xFF00 + C.
     LD_8_TO_FF_C,
-    // /// Loads the value from 0xFF00 + C into A.
+    /// Loads the value from 0xFF00 + C into A.
     LD_8_FROM_FF_C,
-    // /// Loads the value from A into an immediate 16-bit address.
+    /// Loads the value from A into an immediate 16-bit address.
     LD_8_TO_MEMORY_IMMEDIATE(u16),
-    // /// Loads the value from an immediate 16-bit address into A.
+    /// Loads the value from an immediate 16-bit address into A.
     LD_8_FROM_MEMORY_IMMEDIATE(u16),
 
     // 16-Bit Loads
     /// Load immediate bytes into a 16-bit register.
     LD_16_IMMEDIATE(U16Register, u16),
+    /// Pops two bytes from the stack into a 16-bit register.
     POP(U16Register),
+    /// Pushes two bytes onto the stack from a 16-bit register.
     PUSH(U16Register),
 
     // Jumps and Calls
@@ -157,7 +162,7 @@ pub enum FlagCondition {
     if_C,
 }
 
-/// The 8-bit registers that are available in the CPU.
+/// Primary 8-bit registers/accessors available for most 8-bit instructions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub enum U8Register {
@@ -179,7 +184,7 @@ pub enum U8Register {
     AT_HL,
 }
 
-/// The 16-bit registers that are available in the CPU.
+/// The 16-bit registers that are available for most 16-bit instructions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub enum U16Register {
@@ -195,7 +200,7 @@ pub enum U16Register {
     SP,
 }
 
-/// The 16-bit registers that are available in the CPU.
+/// Secondary 8-bit registers/accessors available for some 8-bit instructions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub enum U8SecondaryRegister {
@@ -223,35 +228,6 @@ pub enum RSTTarget {
     to28,
     to30,
     to38,
-}
-
-impl RSTTarget {
-    pub fn address(self) -> u8 {
-        match self {
-            to00 => 0x00,
-            to08 => 0x08,
-            to10 => 0x10,
-            to18 => 0x18,
-            to20 => 0x20,
-            to28 => 0x28,
-            to30 => 0x30,
-            to38 => 0x38,
-        }
-    }
-
-    pub fn from_address(value: u8) -> Self {
-        match value {
-            0x00 => to00,
-            0x08 => to08,
-            0x10 => to10,
-            0x18 => to18,
-            0x20 => to20,
-            0x28 => to28,
-            0x30 => to30,
-            0x38 => to38,
-            _ => panic!("invalid RST target"),
-        }
-    }
 }
 
 /// Invalid instruction opcodes.
@@ -659,23 +635,34 @@ impl Display for Instruction {
     }
 }
 
-impl FlagCondition {
-    fn index(self) -> u8 {
+impl RSTTarget {
+    /// Returns the 8-bit address this `RSTTarget` represents.
+    pub fn address(self) -> u8 {
         match self {
-            if_NZ => 0,
-            if_Z => 1,
-            if_NC => 2,
-            if_C => 3,
+            to00 => 0x00,
+            to08 => 0x08,
+            to10 => 0x10,
+            to18 => 0x18,
+            to20 => 0x20,
+            to28 => 0x28,
+            to30 => 0x30,
+            to38 => 0x38,
         }
     }
 
-    pub fn from_index(value: u8) -> Self {
+    /// Returns the `RSTTarget` corresponding to a given address.
+    /// Panics if the address is not a valid `RSTTarget`.
+    pub fn from_address(value: u8) -> Self {
         match value {
-            0 => if_NZ,
-            1 => if_Z,
-            2 => if_NC,
-            3 => if_C,
-            _ => panic!("invalid FlagCondition index"),
+            0x00 => to00,
+            0x08 => to08,
+            0x10 => to10,
+            0x18 => to18,
+            0x20 => to20,
+            0x28 => to28,
+            0x30 => to30,
+            0x38 => to38,
+            _ => panic!("invalid RST target"),
         }
     }
 }
@@ -691,7 +678,32 @@ impl Display for FlagCondition {
     }
 }
 
+impl FlagCondition {
+    /// Returns the binary encoding used for this FlagCondition in opcodes.
+    fn index(self) -> u8 {
+        match self {
+            if_NZ => 0,
+            if_Z => 1,
+            if_NC => 2,
+            if_C => 3,
+        }
+    }
+
+    /// Returns the FlagCondition for a given two-bit opcode segment.
+    /// Panics if the value is larger than two bits (>= 4).
+    pub fn from_index(value: u8) -> Self {
+        match value {
+            0 => if_NZ,
+            1 => if_Z,
+            2 => if_NC,
+            3 => if_C,
+            _ => panic!("invalid FlagCondition index"),
+        }
+    }
+}
+
 impl InvalidOpcode {
+    /// Returns the opcode value this InvalidOpcode represents.
     fn opcode(self) -> u8 {
         match self {
             xxD3 => 0xD3,
@@ -708,6 +720,8 @@ impl InvalidOpcode {
         }
     }
 
+    /// Returns the InvalidOpcode corresponding to a one-byte opcode value.
+    /// Panics if the value is actually a valid opcode.
     pub fn from_opcode(value: u8) -> Self {
         match value {
             0xD3 => xxD3,
@@ -727,7 +741,7 @@ impl InvalidOpcode {
 }
 
 impl U8Register {
-    /// The integer/bit pattern representing this register in the machine code.
+    /// Returns the binary encoding used for this U8Register in opcodes.
     pub fn index(self) -> u8 {
         match self {
             A => 0b111,
@@ -741,6 +755,8 @@ impl U8Register {
         }
     }
 
+    /// Returns the U8Register for a given three-bit opcode segment.
+    /// Panics if the value is larger than three bits (>= 8).
     pub fn from_index(value: u8) -> Self {
         match value {
             0b111 => A,
@@ -766,6 +782,7 @@ impl Display for U8Register {
 }
 
 impl BitIndex {
+    /// Returns the bit offset this BitIndex represents.
     pub fn index(self) -> u8 {
         match self {
             bit0 => 0,
@@ -779,6 +796,8 @@ impl BitIndex {
         }
     }
 
+    /// Returns the BitIndex corresponding to a valid offset within a byte.
+    /// Panics if the index is out-of-bounds for a bit in a byte (>= 8).
     pub fn from_index(value: u8) -> Self {
         match value {
             0 => bit0,
@@ -795,7 +814,7 @@ impl BitIndex {
 }
 
 impl U16Register {
-    /// The integer/bit pattern representing this register in the machine code.
+    /// Returns the binary encoding used for this U16Register in opcodes.
     pub fn index(self) -> u8 {
         match self {
             BC => 0b00,
@@ -805,6 +824,8 @@ impl U16Register {
         }
     }
 
+    /// Returns the U16Register for a given two-bit opcode segment.
+    /// Panics if the value is larger than two bits (>= 4).
     pub fn from_index(value: u8) -> Self {
         match value {
             0b00 => BC,
@@ -817,7 +838,7 @@ impl U16Register {
 }
 
 impl U8SecondaryRegister {
-    /// The integer/bit pattern representing this register in the machine code.
+    /// Returns the binary encoding used for this U16Register in opcodes.
     pub fn index(self) -> u8 {
         match self {
             AT_BC => 0b00,
@@ -827,6 +848,8 @@ impl U8SecondaryRegister {
         }
     }
 
+    /// Returns the U8SecondaryRegister for a given two-bit opcode segment.
+    /// Panics if the value is larger than two bits (>= 4).
     pub fn from_index(value: u8) -> Self {
         match value {
             0b00 => AT_BC,
@@ -849,11 +872,17 @@ impl Display for U8SecondaryRegister {
     }
 }
 
+/// Generic sugar wrapping different types of LD instructions, overloaded by
+/// argument value.
+#[allow(non_snake_case)]
 pub fn LD<A: Ld<B>, B>(a: A, b: B) -> Instruction {
     Ld::LD(a, b)
 }
 
+/// Used to overload [self::LD] function.
 pub trait Ld<Source> {
+    /// Returns an [Instruction] loading the value from source into dest.
+    #[allow(non_snake_case)]
     fn LD(destination: Self, source: Source) -> Instruction;
 }
 

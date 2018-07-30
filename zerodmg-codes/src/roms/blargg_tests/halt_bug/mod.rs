@@ -1,6 +1,4 @@
-use crate::assembled::prelude::*;
-use crate::disassembled::prelude::*;
-use crate::instruction::prelude::*;
+use crate::assembled::AssembledRom;
 
 const HALT_BUG: &[u8; 0x8000] = include_bytes!("./halt_bug.gb");
 

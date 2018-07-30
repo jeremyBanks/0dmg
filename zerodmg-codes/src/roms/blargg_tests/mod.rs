@@ -1,3 +1,6 @@
+// These may be internally unused.
+#![allow(dead_code)]
+
 mod cgb_sound;
 mod cpu_instrs;
 mod dmg_sound;

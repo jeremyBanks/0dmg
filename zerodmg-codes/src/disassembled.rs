@@ -9,7 +9,6 @@ use crate::instruction::prelude::*;
 
 /// Re-exports important traits and types for glob importing.
 pub mod prelude {
-    pub use super::block;
     pub use super::DisassembledRom;
     pub use super::RomBlock;
     pub use super::RomBlockContent::*;
@@ -213,13 +212,6 @@ impl Display for RomBlock {
             }
         }
         Ok(())
-    }
-}
-
-pub fn block(address: u16, value: impl Into<crate::disassembled::RomBlockContent>) -> RomBlock {
-    RomBlock {
-        address: Some(address),
-        content: value.into(),
     }
 }
 

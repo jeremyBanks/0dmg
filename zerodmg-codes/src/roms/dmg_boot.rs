@@ -1,5 +1,4 @@
-use crate::assembled::prelude::*;
-use crate::disassembled::prelude::*;
+use crate::assembled::AssembledRom;
 
 /// The initial boot ROM for the original Game Boy.
 pub fn dmg_boot() -> AssembledRom {
