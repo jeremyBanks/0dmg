@@ -156,11 +156,16 @@ impl AssembledRom {
         self.bytes.iter().map(|&byte| byte.byte).collect()
     }
 
-    fn decode_known_instruction_if_in_rom_bank_0(&mut self, address: u16) {
-        // We only support ROM bank 0 at this time, so we don't want to try to
-        // trace flow out of the area, or out of bounds of the ROM.
-        if usize::from(address) < self.bytes.len() && address < 0x4000 {
-            self.get_known_instruction(address);
+    fn decode_known_instruction_if_in_fixed_rom(&mut self, address: u16) {
+        if usize::from(address) < self.bytes.len() {
+            if
+            // in ROM Bank 0 (always fixed/immutable)
+            address < 0x4000 ||
+                // in ROM Bank 1 and there are no further banks (so it must also be fixed)
+                self.bytes.len() < 0x8000
+            {
+                self.get_known_instruction(address);
+            }
         }
     }
 
@@ -214,18 +219,18 @@ impl AssembledRom {
 
                 let flows_to = instruction.flows_to();
                 if flows_to.next {
-                    self.decode_known_instruction_if_in_rom_bank_0(next_address);
+                    self.decode_known_instruction_if_in_fixed_rom(next_address);
                 }
                 if let Some(target) = flows_to.jump {
                     match target {
                         JumpReference::Absolute(address) => {
-                            self.decode_known_instruction_if_in_rom_bank_0(address);
+                            self.decode_known_instruction_if_in_fixed_rom(address);
                         }
                         JumpReference::Relative(offset) => {
                             let address = u16::try_from(
                                 (i32::from(next_address) + i32::from(offset) + 0xFFFF) % 0xFFFF,
                             ).unwrap();
-                            self.decode_known_instruction_if_in_rom_bank_0(address);
+                            self.decode_known_instruction_if_in_fixed_rom(address);
                         }
                     }
                 }
