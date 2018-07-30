@@ -145,8 +145,10 @@ pub enum Instruction {
     CALL_IF(FlagCondition, u16),
     /// Jumps to a hard-coded single-byte address.
     RST(RSTTarget),
-    /// Pops PC from the stack (return from call).
+    /// Return from call, pops PC from the stack.
     RET,
+    /// Conditional return from call, may pop PC from the stack.
+    RET_IF(FlagCondition),
     /// Pops PC from the stack and reenables interrupts (return from
     /// interrupt).
     RETI,
@@ -350,6 +352,7 @@ impl Instruction {
             }
             RST(target) => vec![0xC7 + target.address()],
             RET => vec![0xC9],
+            RET_IF(condition) => vec![0xC0 | (condition.index() << 3)],
             RETI => vec![0xD9],
         };
 
@@ -507,6 +510,10 @@ impl Instruction {
                     RST(target)
                 }
                 0xC9 => RET,
+                0xC0 | 0xC8 | 0xD0 | 0xD8 => {
+                    let condition = FlagCondition::from_index(0b11 & (opcode >> 3));
+                    RET_IF(condition)
+                }
                 0xD9 => RETI,
                 // TODO: implement everything
                 _ => unimplemented!("unsupported instruction code 0x{:02X}", opcode),
@@ -576,6 +583,7 @@ impl Instruction {
             CALL(_) => 3,
             RST(_) => 1,
             RET => 1,
+            RET_IF(_) => 1,
             RETI => 1,
         }
     }
@@ -642,6 +650,7 @@ impl Display for Instruction {
             CALL_IF(condition, address) => write!(f, "CALL {}, 0x{:04X}", condition, address),
             RST(target) => write!(f, "RST 0x{:02X}", target.address()),
             RET => write!(f, "RET"),
+            RET_IF(condition) => write!(f, "RET {}", condition),
             RETI => write!(f, "RETI"),
         }
     }

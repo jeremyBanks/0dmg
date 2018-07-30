@@ -27,7 +27,6 @@ fn verify(assembled: &AssembledRom) {
 }
 
 #[test]
-#[ignore(requires_multiple_rom_bank_support)]
 fn test_verified() {
     instr_timing();
 }

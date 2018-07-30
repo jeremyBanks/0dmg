@@ -156,6 +156,14 @@ impl AssembledRom {
         self.bytes.iter().map(|&byte| byte.byte).collect()
     }
 
+    fn decode_known_instruction_if_in_rom_bank_0(&mut self, address: u16) {
+        // We only support ROM bank 0 at this time, so we don't want to try to
+        // trace flow out of the area, or out of bounds of the ROM.
+        if usize::from(address) < self.bytes.len() && address < 0x4000 {
+            self.get_known_instruction(address);
+        }
+    }
+
     /// Returns the instruction starting at the specified address, which may
     /// need to be newly decoded.
     ///
@@ -206,21 +214,18 @@ impl AssembledRom {
 
                 let flows_to = instruction.flows_to();
                 if flows_to.next {
-                    // Only flow to next instruction if there is a next instruction.
-                    if usize::from(next_address) < self.bytes.len() {
-                        self.get_known_instruction(next_address);
-                    }
+                    self.decode_known_instruction_if_in_rom_bank_0(next_address);
                 }
                 if let Some(target) = flows_to.jump {
                     match target {
                         JumpReference::Absolute(address) => {
-                            self.get_known_instruction(address);
+                            self.decode_known_instruction_if_in_rom_bank_0(address);
                         }
                         JumpReference::Relative(offset) => {
                             let address = u16::try_from(
                                 (i32::from(next_address) + i32::from(offset) + 0xFFFF) % 0xFFFF,
                             ).unwrap();
-                            self.get_known_instruction(address);
+                            self.decode_known_instruction_if_in_rom_bank_0(address);
                         }
                     }
                 }
@@ -445,6 +450,7 @@ impl FlowsTo for Instruction {
             CALL_IF(_, address) => to::next_and_jump(Absolute(*address)),
             RST(target) => to::next_and_jump(Absolute(u16::from(target.address()))),
             RET => to::unknown(),
+            RET_IF(_) => to::next(),
             RETI => to::unknown(),
         }
     }
