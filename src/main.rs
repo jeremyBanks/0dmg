@@ -32,8 +32,7 @@ pub fn main() -> Result<(), Box<Any + Send>> {
                 Ok(server::GameBoyIOServer {
                     output_buffer: output_buffer.clone(),
                 })
-            })
-            .unwrap()
+            }).unwrap()
             .run()
             .unwrap();
     });

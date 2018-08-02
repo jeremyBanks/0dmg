@@ -146,8 +146,7 @@ impl AssembledRom {
                 .map(|byte| RomByte {
                     byte: *byte,
                     role: RomByteRole::Unknown,
-                })
-                .collect(),
+                }).collect(),
         }
     }
 

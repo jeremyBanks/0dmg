@@ -37,7 +37,7 @@ impl MemoryController for GameBoy {
         } else if addr <= 0x7FFF {
             // first page of game ROM
             self.mem.game_rom[addr as usize]
-        // println!("    ; game_rom[${:02x}] == ${:02x}", addr, self.mem.game_rom[addr
+        // println!("    ; game_rom[0x{:02X}] == 0x{:02X}", addr, self.mem.game_rom[addr
         // as usize]);
         } else if 0x8000 <= addr && addr <= 0x9FFF {
             let i: usize = (addr - 0x8000) as usize;
@@ -68,7 +68,7 @@ impl MemoryController for GameBoy {
                 0x00
             }
         } else {
-            panic!("I don't know how to get memory address ${:04x}.", addr);
+            panic!("I don't know how to get memory address 0x{:04X}.", addr);
         }
     }
 
@@ -104,7 +104,7 @@ impl MemoryController for GameBoy {
             self.mem.boot_rom_mapped = false;
         } else {
             panic!(
-                "I don't know how to set memory address ${:04x} (to ${:02x}).",
+                "I don't know how to set memory address 0x{:04X} (to 0x{:02X}).",
                 addr, value
             );
         }

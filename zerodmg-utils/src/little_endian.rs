@@ -1,8 +1,3 @@
-//! Functions for working with little-endian binary data.
-//! Argument lists and return tuples are least-significant-first.
-//!
-//! Don't forget that Rust's hex integer literals are big-endian.
-
 /// Combines two `u8` values into a `u16`
 ///
 /// # Examples

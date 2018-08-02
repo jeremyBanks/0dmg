@@ -34,10 +34,7 @@ impl Service for GameBoyIOServer {
                 ))
             }
             (&Get, "/output.png") => {
-                let display = {
-                    let mut output = self.output_buffer.lock().unwrap();
-                    output.combined_image()
-                };
+                let display = self.output_buffer.lock().unwrap().combined_image();
                 let mut encoded_image = Vec::new();
                 display
                     .write_to(&mut encoded_image, image::ImageOutputFormat::PNG)

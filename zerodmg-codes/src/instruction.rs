@@ -644,8 +644,8 @@ impl Display for Instruction {
             // Jumps and Calls
             JP(address) => write!(f, "JP 0x{:04X}", address),
             JP_IF(condition, address) => write!(f, "JP {}, 0x{:04X}", condition, address),
-            JR(offset) => write!(f, "JR 0x{:02X}", offset),
-            JR_IF(condition, address) => write!(f, "JR {}, 0x{:04X}", condition, address),
+            JR(offset) => write!(f, "JR {}", offset),
+            JR_IF(condition, address) => write!(f, "JR {}, {}", condition, address),
             CALL(address) => write!(f, "CALL 0x{:04X}", address),
             CALL_IF(condition, address) => write!(f, "CALL {}, 0x{:04X}", condition, address),
             RST(target) => write!(f, "RST 0x{:02X}", target.address()),

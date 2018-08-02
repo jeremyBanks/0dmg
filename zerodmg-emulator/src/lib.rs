@@ -1,10 +1,15 @@
+#![feature(rust_2018_preview)]
+#![feature(rust_2018_idioms)]
+#![feature(try_from)]
+// #![warn(missing_docs, missing_debug_implementations)]
+
 mod audio;
 mod cpu;
 mod memory;
 mod video;
 
 use self::audio::{AudioController, AudioData};
-use self::cpu::{CPUController, CPUData, OperationExecution};
+use self::cpu::{CPUController, CPUData, InstructionExecution};
 use self::memory::MemoryData;
 use self::video::{VideoController, VideoData};
 use std::clone::Clone;
@@ -23,7 +28,7 @@ pub struct GameBoy {
     aud: AudioData,
     vid: VideoData,
 
-    debug_latest_executions: Vec<OperationExecution>,
+    debug_latest_executions: Vec<InstructionExecution>,
     debug_latest_executions_next_i: usize,
 
     t: u64,
@@ -144,31 +149,9 @@ impl GameBoy {
         }
     }
 
-    fn print_execution(&self, opex: &OperationExecution) {
-        if let Some(s) = &opex.execution.asm {
-            print!("{:32}", s);
-        } else {
-            print!("{:32}", "");
-        }
-        print!(" ; ${:04x}", opex.operation_address);
-        print!(" ; {:10}", opex.t);
-        let code = opex
-            .operation_code
-            .clone()
-            .into_iter()
-            .map(|c| format!("{:02x}", c))
-            .collect::<Vec<String>>()
-            .join("");
-        print!(" ; ${:8}", code);
-        if let Some(s) = &opex.execution.trace {
-            print!(" ; {}", s);
-        }
-        println!();
-    }
-
     pub fn print_recent_executions(&mut self, limit: usize) {
-        println!("; assembly:                        addr:        t/μs:   codes:      flags:");
-        println!("; ---------                        -----        -----   ------      ------");
+        println!("; assembly:                        addr:         t|μs:   codes:");
+        println!("; ---------                        ------        -----   --------");
 
         let len = self.debug_latest_executions.len();
         for i in 0..len.min(limit) {
@@ -180,6 +163,25 @@ impl GameBoy {
         self.debug_latest_executions.clear();
         self.debug_latest_executions_next_i = 0;
 
+        println!();
+    }
+
+    fn print_execution(&self, opex: &InstructionExecution) {
+        print!("{:32}", format!("{}", opex.instruction));
+        print!(" ; {:6}", opex.source);
+        print!(" ; {:10}", opex.t_0);
+        let code = opex
+            .instruction
+            .to_bytes()
+            .into_iter()
+            .map(|c| format!("{:02X}", c))
+            .collect::<Vec<String>>()
+            .join("");
+        print!(" ; 0x{:8}", code);
+        if let Some(ref tracer) = opex.tracer {
+            let trace = tracer();
+            print!(" ; {}", trace);
+        }
         println!();
     }
 
@@ -201,7 +203,10 @@ impl GameBoy {
 
         loop {
             let opex = self.tick();
-            let cycles = opex.execution.cycles;
+
+            let t_0 = opex.t_0;
+            let t_1 = opex.t_1;
+
             if self.debug_latest_executions.len() < EXECUTIONS_BUFFER_SIZE {
                 self.debug_latest_executions.push(opex);
             } else {
@@ -213,7 +218,7 @@ impl GameBoy {
 
             let mut should_log = false;
 
-            for _ in 0..cycles {
+            for _t in t_0..t_1 {
                 self.video_cycle();
                 self.audio_cycle();
 
