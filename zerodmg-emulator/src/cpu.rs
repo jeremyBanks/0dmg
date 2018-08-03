@@ -184,12 +184,21 @@ impl CPUController for GameBoy {
         let source;
         let instruction;
 
+        if self.cpu.pc == 0x0007 {
+            // temporarily prevent blanking of video memory
+            instruction = Instruction::DEC_16(U16Register::HL);
+            source = InstructionSource::ProgramCounter(self.cpu.pc);
+            self.cpu.pc = 0x0008;
+        } else
+
         // if true {
         //     instruction = NOP;
-        //     source = InstructionSource::ProgramCounter(0x0000);
+        //     source = InstructionSource::ProgramCounter(0xF0BA);
         // } else
+
         if let Some(interrupt) = has_interrupt {
-            // TODO: also disable interrupts until RETI/EI
+            // disable interrupts
+            self.cpu.ime = false;
             source = InstructionSource::Interrupt(interrupt);
             instruction = Instruction::CALL(interrupt.handler_address());
         } else {
@@ -363,10 +372,10 @@ impl CPUController for GameBoy {
             OR_IMMEDIATE(_value) => unimplemented!("{}", instruction),
             CP_IMMEDIATE(value) => {
                 let a = self.cpu.a;
-                let z_flag = self.z_flag();
-                let c_flag = self.c_flag();
                 let delta = a.wrapping_sub(value);
                 self.set_flags(delta == 0, true, u8_get_bit(delta, 4), a < value);
+                let z_flag = self.z_flag();
+                let c_flag = self.c_flag();
                 cycles = 2;
                 trace!("A = 0x{:02X}, F_Z = {}, F_C = {}", a, z_flag, c_flag);
             }

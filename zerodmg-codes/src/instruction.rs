@@ -598,7 +598,7 @@ impl Display for Instruction {
             HALT => write!(f, "HALT"),
             DI => write!(f, "DI"),
             EI => write!(f, "EI"),
-            HCF(variant) => write!(f, "HCF {:?} ಠ_ಠ", variant),
+            HCF(variant) => write!(f, "HCF {:?}", variant),
             // 8-Bit Arithmatic and Logic
             INC(register) => write!(f, "INC {}", register),
             DEC(register) => write!(f, "DEC {}", register),
