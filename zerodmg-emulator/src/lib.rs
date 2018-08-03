@@ -137,7 +137,7 @@ impl GameBoy {
     pub fn new(output_buffer: Arc<Mutex<Output>>) -> Self {
         use zerodmg_codes::roms::*;
 
-        let game_rom = blargg_tests::instr_timing().to_bytes();
+        let game_rom = jeb_demo().assemble().to_bytes();
 
         Self {
             cpu: CPUData::new(),

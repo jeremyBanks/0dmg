@@ -16,8 +16,20 @@ pub struct MemoryData {
 impl MemoryData {
     pub fn new(game_rom: Vec<u8>) -> Self {
         Self {
-            wram: [0x00; 0x2000],
-            stack_ram: [0x00; 0x80],
+            wram: {
+                let mut a = [0u8; 0x2000];
+                for x in a.iter_mut() {
+                    *x = rand::random();
+                }
+                a
+            },
+            stack_ram: {
+                let mut a = [0u8; 0x80];
+                for x in a.iter_mut() {
+                    *x = rand::random();
+                }
+                a
+            },
             game_rom,
             boot_rom: zerodmg_codes::roms::dmg_boot().to_bytes(),
             boot_rom_mapped: true,

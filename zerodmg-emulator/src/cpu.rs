@@ -6,6 +6,7 @@ use zerodmg_codes::instruction::{
 
 use super::memory::MemoryController;
 use super::GameBoy;
+use rand;
 
 #[derive(Debug, Clone, Copy)]
 pub struct CPUData {
@@ -83,14 +84,14 @@ impl CPUData {
     pub fn new() -> Self {
         Self {
             t: 0x0000000000000000,
-            a: 0x00,
-            f: 0x00,
-            b: 0x00,
-            c: 0x00,
-            d: 0x00,
-            e: 0x00,
-            h: 0x00,
-            l: 0x00,
+            a: rand::random(),
+            f: rand::random(),
+            b: rand::random(),
+            c: rand::random(),
+            d: rand::random(),
+            e: rand::random(),
+            h: rand::random(),
+            l: rand::random(),
             sp: 0x0000,
             pc: 0x0000,
             ime: true,
@@ -183,6 +184,10 @@ impl CPUController for GameBoy {
         let source;
         let instruction;
 
+        // if true {
+        //     instruction = NOP;
+        //     source = InstructionSource::ProgramCounter(0x0000);
+        // } else
         if let Some(interrupt) = has_interrupt {
             // TODO: also disable interrupts until RETI/EI
             source = InstructionSource::Interrupt(interrupt);
