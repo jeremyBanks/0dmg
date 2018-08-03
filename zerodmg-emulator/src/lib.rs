@@ -135,7 +135,9 @@ impl Output {
 
 impl GameBoy {
     pub fn new(output_buffer: Arc<Mutex<Output>>) -> Self {
-        let game_rom = zerodmg_codes::roms::jeb_demo().assemble().to_bytes();
+        use zerodmg_codes::roms::*;
+
+        let game_rom = blargg_tests::instr_timing().to_bytes();
 
         Self {
             cpu: CPUData::new(),
@@ -187,7 +189,7 @@ impl GameBoy {
 
     pub fn run(&mut self) -> ! {
         let log_size = EXECUTIONS_BUFFER_SIZE.min(32);
-        let log_interval = 1024 * 1024;
+        let log_interval = (1024 * 1024) / 2;
 
         let mut last_color: &'static str = "";
         let red = "\x1b[91m";

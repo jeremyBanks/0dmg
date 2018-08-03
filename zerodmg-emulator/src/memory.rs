@@ -2,6 +2,7 @@ use super::GameBoy;
 
 use super::audio::AudioController;
 use super::video::VideoController;
+use super::cpu::CPUController;
 
 /// Game Boy general memory state
 pub struct MemoryData {
@@ -67,6 +68,10 @@ impl MemoryController for GameBoy {
             } else {
                 0x00
             }
+        } else if addr == 0xFF0F {
+            self.ift()
+        } else if addr == 0xFFFF {
+            self.ie()
         } else {
             panic!("I don't know how to get memory address 0x{:04X}.", addr);
         }
@@ -102,6 +107,10 @@ impl MemoryController for GameBoy {
                 );
             }
             self.mem.boot_rom_mapped = false;
+        } else if addr == 0xFF0F {
+            self.set_ift(value);
+        } else if addr == 0xFFFF {
+            self.set_ie(value);
         } else {
             panic!(
                 "I don't know how to set memory address 0x{:04X} (to 0x{:02X}).",

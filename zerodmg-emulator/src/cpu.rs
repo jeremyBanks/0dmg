@@ -7,26 +7,37 @@ use zerodmg_codes::instruction::{
 use super::memory::MemoryController;
 use super::GameBoy;
 
+#[derive(Debug, Clone, Copy)]
 pub struct CPUData {
-    // clock ticks
+    /// Clock ticks
     t: u64,
-    // A accumulator register
+    /// A/Accumulator register
     a: u8,
-    // F flags register
+    /// F/Flags register
     f: u8,
-    // BC register/B and C registers
+    /// BC register/B and C registers
     b: u8,
     c: u8,
-    // DE register/D and E registers
+    /// DE register/D and E registers
     d: u8,
     e: u8,
-    // HL register/H and L registers
+    /// HL register/H and L registers
     h: u8,
     l: u8,
-    // SP stack pointer register
+    /// SP/Stack Pointer register
     sp: u16,
-    // PC program counter register
+    /// PC/Program Counter register
     pc: u16,
+    /// Interrupt Master Enable register
+    ime: bool,
+    /// Interrupt Enable register 0xFFFF
+    ie: u8,
+    /// Interrupt Flag/trigger register 0xFF0F
+    ift: u8,
+    /// Disable interrupts after next instruction
+    di_pending: bool,
+    /// Enable interrupt after next instruction
+    ei_pending: bool,
 }
 
 pub struct InstructionExecution {
@@ -61,6 +72,11 @@ pub trait CPUController:
     fn iter_bytes_at_pc(&'gb mut self) -> PCMemoryIterator;
     fn instruction_from_pc(&mut self) -> Instruction;
     fn condition(&self, condition: FlagCondition) -> bool;
+    fn pop_interrupt(&mut self) -> Option<InterruptType>;
+    fn ie(&self) -> u8;
+    fn set_ie(&mut self, value: u8);
+    fn ift(&self) -> u8;
+    fn set_ift(&mut self, value: u8);
 }
 
 impl CPUData {
@@ -77,6 +93,11 @@ impl CPUData {
             l: 0x00,
             sp: 0x0000,
             pc: 0x0000,
+            ime: true,
+            ie: 0xFF,
+            ift: 0x00,
+            di_pending: false,
+            ei_pending: false,
         }
     }
 }
@@ -104,7 +125,7 @@ pub enum InterruptType {
     LcdStatus,
     TimerOverflow,
     SerialTransfer,
-    ButtonPress,
+    ButtonAction,
 }
 
 impl std::fmt::Display for InterruptType {
@@ -118,7 +139,7 @@ impl std::fmt::Display for InterruptType {
                 LcdStatus => "LCDSTA",
                 TimerOverflow => "TIMERO",
                 SerialTransfer => "SERIAL",
-                ButtonPress => "BUTTON",
+                ButtonAction => "BUTTON",
             }
         )
     }
@@ -132,7 +153,7 @@ impl InterruptType {
             LcdStatus => 0x48,
             TimerOverflow => 0x50,
             SerialTransfer => 0x58,
-            ButtonPress => 0x60,
+            ButtonAction => 0x60,
         }
     }
 }
@@ -157,8 +178,7 @@ impl CPUController for GameBoy {
     fn tick(&mut self) -> InstructionExecution {
         use zerodmg_codes::instruction::prelude::*;
 
-        // TODO: detect interrupts
-        let has_interrupt: Option<InterruptType> = None;
+        let has_interrupt = self.pop_interrupt();
 
         let source;
         let instruction;
@@ -579,6 +599,45 @@ impl CPUController for GameBoy {
             source,
             tracer,
         }
+    }
+
+    /// Returns the next InterruptType currently set in the interrupt register, and unsets it there.
+    fn pop_interrupt(&mut self) -> Option<InterruptType> {
+        let enabled_and_triggered = self.cpu.ie & self.cpu.ift;
+        if enabled_and_triggered & 0b00001 != 0 {
+            self.cpu.ift &= !0b00001;
+            Some(InterruptType::VBlank)
+        } else if enabled_and_triggered & 0b00010 != 0 {
+            self.cpu.ift &= !0b00010;
+            Some(InterruptType::LcdStatus)
+        } else if enabled_and_triggered & 0b00100 != 0 {
+            self.cpu.ift &= !0b00100;
+            Some(InterruptType::TimerOverflow)
+        } else if enabled_and_triggered & 0b01000 != 0 {
+            self.cpu.ift &= !0b01000;
+            Some(InterruptType::SerialTransfer)
+        } else if enabled_and_triggered & 0b10000 != 0 {
+            self.cpu.ift &= !0b10000;
+            Some(InterruptType::ButtonAction)
+        } else {
+            None
+        }
+    }
+
+    fn ie(&self) -> u8 {
+        return self.cpu.ie;
+    }
+
+    fn set_ie(&mut self, ie: u8) {
+        self.cpu.ie = ie;
+    }
+
+    fn ift(&self) -> u8 {
+        return self.cpu.ift;
+    }
+
+    fn set_ift(&mut self, ift: u8) {
+        self.cpu.ift = ift;
     }
 
     // Returns the instruction in memory at PC, and advances PC past it.
