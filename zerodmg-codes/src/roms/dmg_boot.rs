@@ -25,7 +25,7 @@ fn verify(assembled: &AssembledRom) {
 }
 
 #[test]
-fn test_verified() {
+fn test_round_trip() {
     dmg_boot();
 }
 

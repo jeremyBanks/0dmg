@@ -226,6 +226,7 @@ impl CPUController for GameBoy {
                 tracer = None;
             }
             HALT => unimplemented!("{}", instruction),
+            STOP(_) => unimplemented!("{}", instruction),
             EI => unimplemented!("{}", instruction),
             DI => unimplemented!("{}", instruction),
             HCF(_) => unimplemented!("{}", instruction),
