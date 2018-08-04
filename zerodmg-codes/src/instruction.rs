@@ -34,6 +34,8 @@ pub enum Instruction {
     /// No instruction.
     /// Used for padding or delay.
     NOP,
+
+    STOP(u8),
     /// Stops running the CPU until an interrupt occurs.
     HALT,
     /// Disables interrupts after the *next* instruction (not after this one).
@@ -275,6 +277,7 @@ impl Instruction {
         let bytes = match self {
             // Control
             NOP => vec![0x00],
+            STOP(ignored) => vec![0x10, ignored],
             HALT => vec![0x76],
             DI => vec![0xF3],
             EI => vec![0xFB],
@@ -388,6 +391,7 @@ impl Instruction {
             Some(match opcode {
                 // Control
                 0x00 => NOP,
+                0x10 => STOP(d8(bytes)),
                 0x76 => HALT,
                 0xF3 => DI,
                 0xFB => EI,
@@ -528,6 +532,7 @@ impl Instruction {
         match self {
             // Control
             NOP => 1,
+            STOP(_) => 2,
             HALT => 1,
             EI => 1,
             DI => 1,
@@ -595,6 +600,11 @@ impl Display for Instruction {
         match self {
             // Control
             NOP => write!(f, "NOP"),
+            STOP(ignored) => if *ignored != 0x00 {
+                write!(f, "STOP 0x{:02X}", ignored)
+            } else {
+                write!(f, "STOP")
+            }
             HALT => write!(f, "HALT"),
             DI => write!(f, "DI"),
             EI => write!(f, "EI"),
@@ -947,4 +957,69 @@ impl Ld<U8Register> for U8SecondaryRegister {
             ),
         }
     }
+}
+
+#[test]
+fn can_round_trip_any_leading_byte() {
+    let mut failed = false;
+    for byte in 0x00..=0xFFu8 {
+        // Pad it out to because that's how long some instructions are.
+        let bytes = vec![byte, byte, byte];
+
+         let mut instruction: Option<Instruction> = None;
+
+        if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            instruction = Instruction::from_byte_iter(&mut bytes.clone().into_iter());
+        })).is_err() {
+            println!("0x{:02X}: failed to decode instruction", byte);
+            failed = true;
+            continue;
+        }
+
+        let round_tripped = instruction.unwrap().to_bytes();
+        if round_tripped.len() == 0 {
+            println!("0x{:02X}: failed to round-trip, got zero bytes", byte);
+            failed = true;
+            continue;
+        }
+
+        let original_bytes = bytes.into_iter().take(round_tripped.len()).collect::<Vec<u8>>();
+        if original_bytes != round_tripped {
+            println!("0x{:02X}: failed to round-trip, got {:?} {:?} from {:?}", byte, round_tripped, instruction, original_bytes);
+            failed = true;
+            continue;
+        }
+    }
+    assert!(!failed);
+}
+
+#[test]
+fn can_round_trip_any_cb_instructions() {
+    let mut failed = false;
+    for byte in 0x00..=0xFFu8 {
+        let bytes = vec![0xCB, byte];
+
+         let mut instruction: Option<Instruction> = None;
+
+        if let Err(_) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            instruction = Instruction::from_byte_iter(&mut bytes.clone().into_iter());
+        })) {
+            println!("0xCB{:02X}: failed to decode instruction", byte);
+            failed = true;
+            continue;
+        }
+
+        let round_tripped = instruction.unwrap().to_bytes();
+        if round_tripped.len() == 0 {
+            println!("0xCB{:02X}: failed to round-trip, got zero bytes", byte);
+            failed = true;
+            continue;
+        }
+        if bytes != round_tripped {
+            println!("0xCB{:02X}: failed to round-trip, got {:?} {:?} from {:?}", byte, round_tripped, instruction, bytes);
+            failed = true;
+            continue;
+        }
+    }
+    assert!(!failed);
 }

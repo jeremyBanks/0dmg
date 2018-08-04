@@ -27,6 +27,6 @@ fn verify(assembled: &AssembledRom) {
 }
 
 #[test]
-fn test_verified() {
+fn test_round_trip() {
     instr_timing();
 }

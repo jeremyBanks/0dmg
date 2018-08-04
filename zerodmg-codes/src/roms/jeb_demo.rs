@@ -174,6 +174,6 @@ fn verify(rom: &DisassembledRom) {
 }
 
 #[test]
-fn test_verified() {
+fn test_round_trip() {
     jeb_demo();
 }
