@@ -408,7 +408,7 @@ impl CPUController for GameBoy {
                 );
             }
             ADD_TO_HL(_) => unimplemented!("{}", instruction),
-            // 0xCB 8-Bit Bitwise Operations
+            // 8-Bit Bitwise Operations
             BIT(bit, register) => {
                 let value = self.get_register(register);
                 let result = !u8_get_bit(value, bit.index());

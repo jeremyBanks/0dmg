@@ -68,8 +68,6 @@ pub enum Instruction {
     /// `(A - x);`
     /// Updates flags, but doesn't update any other registers.
     CP(U8Register),
-    /// Rotates A register left by one bit, wrapping through the carry flag bit.
-    RLA,
     /// `A += x`
     ADD_IMMEDIATE(u8),
     /// `A += x + Z_C`
@@ -96,9 +94,23 @@ pub enum Instruction {
     /// Add the value from a 16-bit register to the HL 16-bit register.
     ADD_TO_HL(U16Register),
 
-    // 0xCB 8-Bit Bitwise Operations
+    // 8-Bit Bitwise Operations
     /// Rotates a register left by one bit, wrapping through the carry flag bit.
     RL(U8Register),
+    /// Rotates A register left by one bit, wrapping through the carry flag bit.
+    RLA,
+    /// Rotates a register left by one bit, wrapping from high bit to low bit.
+    RLC(U8Register),
+    /// Rotates A register left by one bit, wrapping from high bit to low bit.
+    RLCA,
+    /// Rotates a register right by one bit, wrapping through the carry flag bit.
+    RR(U8Register),
+    /// Rotates A register right by one bit, wrapping through the carry flag bit.
+    RRA,
+    /// Rotates a register right by one bit, wrapping from low bit to high bit.
+    RRC(U8Register),
+    /// Rotates A register right by one bit, wrapping from low bit to high bit.
+    RRCA,
     /// Checks whether a given bit in a given register is set.
     BIT(BitIndex, U8Register),
 
@@ -133,15 +145,17 @@ pub enum Instruction {
     PUSH(U16Register),
 
     // Jumps and Calls
-    /// Unconditional absolute jump, updates PC.
+    /// Absolute jump, updates PC.
     JP(u16),
+    /// Jump to address in HL, updates PC.
+    JP_HL,
     /// Conditional absolute jump, may update PC.
     JP_IF(FlagCondition, u16),
     /// Uncondition relative jump, updates PC.
     JR(i8),
     /// Conditional relative jump, may update PC.
     JR_IF(FlagCondition, i8),
-    /// Unconditional call. Pushes PC on the stack, then updates it.
+    /// Call. Pushes PC on the stack, then updates it.
     CALL(u16),
     /// Conditional call. Pushes PC on the stack, then updates it.
     CALL_IF(FlagCondition, u16),
@@ -306,7 +320,7 @@ impl Instruction {
             INC_16(register) => vec![0x03 + (register.index() << 4)],
             DEC_16(register) => vec![0x0B + (register.index() << 4)],
             ADD_TO_HL(register) => vec![0x09 + (register.index() << 4)],
-            // 0xCB 8-Bit Bitwise Operations
+            // 8-Bit Bitwise Operations
             RL(register) => vec![0xCB, 0x10 | register.index()],
             BIT(bit, register) => vec![0xCB, 0x40 | (bit.index() << 3) | register.index()],
             // 8-Bit Loads
@@ -430,7 +444,7 @@ impl Instruction {
                 }
                 0xC5 | 0xD5 | 0xE5 | 0xF5 => PUSH(U16Register::from_index(0b11 & (opcode >> 4))),
                 0xC1 | 0xD1 | 0xE1 | 0xF1 => POP(U16Register::from_index(0b11 & (opcode >> 4))),
-                // 0xCB 8-Bit Bitwise Operations
+                // 8-Bit Bitwise Operations
                 0xCB => {
                     let opcode_2 = d8(bytes);
                     match opcode_2 {
@@ -561,7 +575,7 @@ impl Instruction {
             INC_16(_) => 1,
             DEC_16(_) => 1,
             ADD_TO_HL(_) => 1,
-            // 0xCB 8-Bit Bitwise Operations
+            // 8-Bit Bitwise Operations
             BIT(_, _) => 2,
             RL(_) => 2,
             // 8-Bit Loads
@@ -633,7 +647,7 @@ impl Display for Instruction {
             INC_16(register) => write!(f, "INC {:?}", register),
             DEC_16(register) => write!(f, "DEC {:?}", register),
             ADD_TO_HL(register) => write!(f, "ADD HL, {:?}", register),
-            // 0xCB 8-Bit Bitwise Operations
+            // 8-Bit Bitwise Operations
             BIT(index, register) => write!(f, "BIT {:?}, {}", index.index(), register),
             RL(register) => write!(f, "RL {}", register),
             // 8-Bit Loads

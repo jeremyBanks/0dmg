@@ -431,7 +431,7 @@ impl FlowsTo for Instruction {
             }
             // 16-Bit Arithmatic and Logic
             INC_16(_) | DEC_16(_) | ADD_TO_HL(_) => to::next(),
-            // 0xCB 8-Bit Bitwise Operations
+            // 8-Bit Bitwise Operations
             BIT(_, _) | RL(_) => to::next(),
             // 8-Bit Loads
             LD_8_INTERNAL(_, _)
