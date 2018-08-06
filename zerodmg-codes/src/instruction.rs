@@ -1024,7 +1024,6 @@ fn can_round_trip_any_cb_instructions() {
         }
 
         let round_tripped = instruction.unwrap().to_bytes();
-
         if bytes != round_tripped {
             println!("0xCB{:02X}: failed to round-trip, got {:?} {:?} from {:?}", byte, round_tripped, instruction, bytes);
             failed = true;
