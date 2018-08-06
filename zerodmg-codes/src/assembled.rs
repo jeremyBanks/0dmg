@@ -426,13 +426,13 @@ impl FlowsTo for Instruction {
             // 8-Bit Arithmatic and Logic
             INC(_) | DEC(_) | ADD(_) | ADC(_) | SUB(_) | SBC(_) | AND(_) | XOR(_) | OR(_)
             | CP(_) | ADD_IMMEDIATE(_) | ADC_IMMEDIATE(_) | SUB_IMMEDIATE(_) | SBC_IMMEDIATE(_)
-            | AND_IMMEDIATE(_) | XOR_IMMEDIATE(_) | OR_IMMEDIATE(_) | CP_IMMEDIATE(_) | RLA => {
+            | AND_IMMEDIATE(_) | XOR_IMMEDIATE(_) | OR_IMMEDIATE(_) | CP_IMMEDIATE(_) | CPL | CCF | SCF | DAA | ADD_SP(_) => {
                 to::next()
             }
             // 16-Bit Arithmatic and Logic
             INC_16(_) | DEC_16(_) | ADD_TO_HL(_) => to::next(),
             // 8-Bit Bitwise Operations
-            BIT(_, _) | RL(_) => to::next(),
+            RL(_) | RLA | RLC(_) | RLCA | RR(_) | RRA | RRC(_) | RRCA | BIT(_, _) => to::next(),
             // 8-Bit Loads
             LD_8_INTERNAL(_, _)
             | LD_8_TO_SECONDARY(_)
@@ -443,11 +443,12 @@ impl FlowsTo for Instruction {
             | LD_8_TO_FF_C
             | LD_8_FROM_FF_C
             | LD_8_TO_MEMORY_IMMEDIATE(_)
-            | LD_8_FROM_MEMORY_IMMEDIATE(_) => to::next(),
+            | LD_8_FROM_MEMORY_IMMEDIATE(_) | LD_HL_FROM_SP | LD_HL_FROM_SP_PLUS(_) | LD_SP_TO_IMMEDIATE_ADDRESS(_) => to::next(),
             // 16-Bit Loads
             LD_16_IMMEDIATE(_, _) | POP(_) | PUSH(_) => to::next(),
             // Jumps and Calls
             JP(address) => to::jump(Absolute(*address)),
+            JP_HL => to::unknown(),
             JP_IF(_, address) => to::next_and_jump(Absolute(*address)),
             JR(offset) => to::jump(Relative(*offset)),
             JR_IF(_, offset) => to::next_and_jump(Relative(*offset)),

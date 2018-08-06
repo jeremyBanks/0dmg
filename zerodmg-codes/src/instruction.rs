@@ -34,7 +34,7 @@ pub enum Instruction {
     /// No instruction.
     /// Used for padding or delay.
     NOP,
-
+    /// ???
     STOP(u8),
     /// Stops running the CPU until an interrupt occurs.
     HALT,
@@ -86,6 +86,15 @@ pub enum Instruction {
     /// Updates flags, but doesn't update any other registers.
     CP_IMMEDIATE(u8),
 
+    /// `A = ~A`
+    /// Bitwise negation/complement of A.
+    CPL,
+    /// Complement/bitwise negation of carry flag.
+    CCF,
+    /// Sets cary flag.
+    SCF,
+    /// ???
+    DAA,
     // 16-Bit Arithmatic and Logic
     /// Increment a 16-bit register.
     INC_16(U16Register),
@@ -93,6 +102,8 @@ pub enum Instruction {
     DEC_16(U16Register),
     /// Add the value from a 16-bit register to the HL 16-bit register.
     ADD_TO_HL(U16Register),
+    /// Adds a signed 8-bit value to the value in the SP register.
+    ADD_SP(i8),
 
     // 8-Bit Bitwise Operations
     /// Rotates a register left by one bit, wrapping through the carry flag bit.
@@ -139,10 +150,16 @@ pub enum Instruction {
     // 16-Bit Loads
     /// Load immediate bytes into a 16-bit register.
     LD_16_IMMEDIATE(U16Register, u16),
-    /// Pops two bytes from the stack into a 16-bit register.
-    POP(U16Register),
+    /// Loads the value from the SP register into the HL register.
+    LD_HL_FROM_SP,
+    /// Loads the value from the SP register, plus a signed immediate byte, into the HL register.
+    LD_HL_FROM_SP_PLUS(i8),
+    /// Loads the value from the SP register into an immediate memory address.
+    LD_SP_TO_IMMEDIATE_ADDRESS(u16),
     /// Pushes two bytes onto the stack from a 16-bit register.
     PUSH(U16Register),
+    /// Pops two bytes from the stack into a 16-bit register.
+    POP(U16Register),
 
     // Jumps and Calls
     /// Absolute jump, updates PC.
@@ -307,7 +324,6 @@ impl Instruction {
             XOR(register) => vec![0xA8 | register.index()],
             OR(register) => vec![0xB0 | register.index()],
             CP(register) => vec![0xB8 | register.index()],
-            RLA => vec![0x17],
             ADD_IMMEDIATE(value) => vec![0xC6, value],
             ADC_IMMEDIATE(value) => vec![0xCE, value],
             SUB_IMMEDIATE(value) => vec![0xD6, value],
@@ -316,12 +332,23 @@ impl Instruction {
             XOR_IMMEDIATE(value) => vec![0xEE, value],
             OR_IMMEDIATE(value) => vec![0xF6, value],
             CP_IMMEDIATE(value) => vec![0xFE, value],
+            CPL => vec![0x2F],
+            DAA => vec![0x27],
+            SCF => vec![0x37],
+            CCF => vec![0x3F],
             // 16-Bit Arithmatic and Logic
             INC_16(register) => vec![0x03 + (register.index() << 4)],
             DEC_16(register) => vec![0x0B + (register.index() << 4)],
             ADD_TO_HL(register) => vec![0x09 + (register.index() << 4)],
             // 8-Bit Bitwise Operations
             RL(register) => vec![0xCB, 0x10 | register.index()],
+            RLA => vec![0x17],
+            RLC(register) => vec![0xCB, 0x00 | register.index()],
+            RLCA => vec![0x07],
+            RR(register) => vec![0xCB, 0x18 | register.index()],
+            RRA => vec![0x1F],
+            RRC(register) => vec![0xCB, 0x08 | register.index()],
+            RRCA => vec![0x0F],
             BIT(bit, register) => vec![0xCB, 0x40 | (bit.index() << 3) | register.index()],
             // 8-Bit Loads
             LD_8_INTERNAL(dest, source) => vec![0x40 | (dest.index() << 3) + source.index()],
@@ -348,11 +375,19 @@ impl Instruction {
             }
             PUSH(register) => vec![0xC5 | (register.index() << 4)],
             POP(register) => vec![0xC1 | (register.index() << 4)],
+            ADD_SP(offset) => vec![0xE8, offset as u8],
+            LD_HL_FROM_SP => vec![0xF9],
+            LD_HL_FROM_SP_PLUS(offset) => vec![0xF8, offset as u8],
+            LD_SP_TO_IMMEDIATE_ADDRESS(address) => {
+                let (low, high) = u16_to_u8s(address);
+                vec![0x08, low, high]
+            }
             // Jumps and Calls
             JP(address) => {
                 let (low, high) = u16_to_u8s(address);
                 vec![0xC3, low, high]
             }
+            JP_HL => vec![0xE9],
             JP_IF(condition, address) => {
                 let (low, high) = u16_to_u8s(address);
                 vec![0xC2 | (condition.index() << 3), low, high]
@@ -427,7 +462,6 @@ impl Instruction {
                 0xA8..=0xAF => XOR(U8Register::from_index(0b111 & opcode)),
                 0xB0..=0xB7 => OR(U8Register::from_index(0b111 & opcode)),
                 0xB8..=0xBF => CP(U8Register::from_index(0b111 & opcode)),
-                0x17 => RLA,
                 0xC6 => ADD_IMMEDIATE(d8(bytes)),
                 0xCE => ADC_IMMEDIATE(d8(bytes)),
                 0xD6 => SUB_IMMEDIATE(d8(bytes)),
@@ -436,22 +470,28 @@ impl Instruction {
                 0xEE => XOR_IMMEDIATE(d8(bytes)),
                 0xF6 => OR_IMMEDIATE(d8(bytes)),
                 0xFE => CP_IMMEDIATE(d8(bytes)),
+                0x2F => CPL,
+                0x27 => DAA,
+                0x37 => SCF,
+                0x3F => CCF,
                 // 16-Bit Arithmatic and Logic
                 0x03 | 0x13 | 0x23 | 0x33 => INC_16(U16Register::from_index(0b11 & (opcode >> 4))),
                 0x0B | 0x1B | 0x2B | 0x3B => DEC_16(U16Register::from_index(0b11 & (opcode >> 4))),
                 0x09 | 0x19 | 0x29 | 0x39 => {
                     ADD_TO_HL(U16Register::from_index(0b11 & (opcode >> 4)))
                 }
-                0xC5 | 0xD5 | 0xE5 | 0xF5 => PUSH(U16Register::from_index(0b11 & (opcode >> 4))),
-                0xC1 | 0xD1 | 0xE1 | 0xF1 => POP(U16Register::from_index(0b11 & (opcode >> 4))),
                 // 8-Bit Bitwise Operations
+                0x17 => RLA,
+                0x07 => RLCA,
+                0x1F => RRA,
+                0x0F => RRCA,
                 0xCB => {
                     let opcode_2 = d8(bytes);
                     match opcode_2 {
-                        // 0x00..=0x07 => RLC(U8Register::from_index(0b111 & opcode_2)),
-                        // 0x08..=0x0F => RRC(U8Register::from_index(0b111 & opcode_2)),
+                        0x00..=0x07 => RLC(U8Register::from_index(0b111 & opcode_2)),
+                        0x08..=0x0F => RRC(U8Register::from_index(0b111 & opcode_2)),
                         0x10..=0x17 => RL(U8Register::from_index(0b111 & opcode_2)),
-                        // 0x18..=0x1F => RR(U8Register::from_index(0b111 & opcode_2)),
+                        0x18..=0x1F => RR(U8Register::from_index(0b111 & opcode_2)),
                         // 0x20..=0x27 => SLA(U8Register::from_index(0b111 & opcode_2)),
                         // 0x28..=0x2F => SRA(U8Register::from_index(0b111 & opcode_2)),
                         // 0x30..=0x37 => SWAP(U8Register::from_index(0b111 & opcode_2)),
@@ -501,14 +541,20 @@ impl Instruction {
                 0xF2 => LD_8_FROM_FF_C,
                 0xEA => LD_8_TO_MEMORY_IMMEDIATE(d16(bytes)),
                 0xFA => LD_8_FROM_MEMORY_IMMEDIATE(d16(bytes)),
-
+                0x08 => LD_SP_TO_IMMEDIATE_ADDRESS(d16(bytes)),
                 // 16-Bit Loads
                 0x01 | 0x11 | 0x21 | 0x31 => {
                     let register = U16Register::from_index(0b11 & (opcode >> 4));
-                    LD(register, d16(bytes))
+                    LD_16_IMMEDIATE(register, d16(bytes))
                 }
+                0xC5 | 0xD5 | 0xE5 | 0xF5 => PUSH(U16Register::from_index(0b11 & (opcode >> 4))),
+                0xC1 | 0xD1 | 0xE1 | 0xF1 => POP(U16Register::from_index(0b11 & (opcode >> 4))),
+                0xE8 => ADD_SP(r8(bytes)),
+                0xF9 => LD_HL_FROM_SP,
+                0xF8 => LD_HL_FROM_SP_PLUS(r8(bytes)),
                 // Jumps and Calls
                 0xC3 => JP(d16(bytes)),
+                0xE9 => JP_HL,
                 0xC2 | 0xCA | 0xD2 | 0xDA => {
                     let condition = FlagCondition::from_index(0b11 & (opcode >> 3));
                     JP_IF(condition, d16(bytes))
@@ -533,8 +579,7 @@ impl Instruction {
                     RET_IF(condition)
                 }
                 0xD9 => RETI,
-                // TODO: implement everything
-                _ => unimplemented!("unsupported instruction code 0x{:02X}", opcode),
+                _ => unreachable!(),
             })
         } else {
             None
@@ -562,7 +607,6 @@ impl Instruction {
             XOR(_) => 1,
             OR(_) => 1,
             CP(_) => 1,
-            RLA => 1,
             ADD_IMMEDIATE(_) => 2,
             ADC_IMMEDIATE(_) => 2,
             SUB_IMMEDIATE(_) => 2,
@@ -571,13 +615,25 @@ impl Instruction {
             XOR_IMMEDIATE(_) => 2,
             OR_IMMEDIATE(_) => 2,
             CP_IMMEDIATE(_) => 2,
+            CPL => 1,
+            CCF => 1,
+            SCF => 1,
+            DAA => 1,
             // 16-Bit Arithmatic and Logic
             INC_16(_) => 1,
             DEC_16(_) => 1,
             ADD_TO_HL(_) => 1,
+            ADD_SP(_) => 2,
             // 8-Bit Bitwise Operations
-            BIT(_, _) => 2,
             RL(_) => 2,
+            RLA => 1,
+            RLC(_) => 2,
+            RLCA => 1,
+            RR(_) => 2,
+            RRA => 1,
+            RRC(_) => 2,
+            RRCA => 1,
+            BIT(_, _) => 2,
             // 8-Bit Loads
             LD_8_INTERNAL(_, _) => 1,
             LD_8_IMMEDIATE(_, _) => 2,
@@ -591,11 +647,15 @@ impl Instruction {
             LD_8_FROM_MEMORY_IMMEDIATE(_) => 3,
             // 16-Bit Loads
             LD_16_IMMEDIATE(_, _) => 3,
+            LD_HL_FROM_SP => 1,
+            LD_HL_FROM_SP_PLUS(_) => 2,
+            LD_SP_TO_IMMEDIATE_ADDRESS(_) => 3,
             PUSH(_) => 1,
             POP(_) => 1,
             // Jumps and Calls
             JP_IF(_, _) => 3,
             JP(_) => 3,
+            JP_HL => 1,
             JR_IF(_, _) => 2,
             JR(_) => 2,
             CALL_IF(_, _) => 3,
@@ -634,7 +694,6 @@ impl Display for Instruction {
             XOR(register) => write!(f, "XOR A, {}", register),
             OR(register) => write!(f, "OR A, {}", register),
             CP(register) => write!(f, "CP A, {}", register),
-            RLA => write!(f, "RLA"),
             ADD_IMMEDIATE(value) => write!(f, "ADD A, 0x{:02X}", value),
             ADC_IMMEDIATE(value) => write!(f, "ADC A, 0x{:02X}", value),
             SUB_IMMEDIATE(value) => write!(f, "SUB A, 0x{:02X}", value),
@@ -643,13 +702,25 @@ impl Display for Instruction {
             XOR_IMMEDIATE(value) => write!(f, "XOR A, 0x{:02X}", value),
             OR_IMMEDIATE(value) => write!(f, "OR A, 0x{:02X}", value),
             CP_IMMEDIATE(value) => write!(f, "CP A, 0x{:02X}", value),
+            CPL => write!(f, "CPL"),
+            CCF => write!(f, "CCF"),
+            SCF => write!(f, "SCF"),
+            DAA => write!(f, "DAA"),
             // 16-Bit Arithmatic and Logic
             INC_16(register) => write!(f, "INC {:?}", register),
             DEC_16(register) => write!(f, "DEC {:?}", register),
             ADD_TO_HL(register) => write!(f, "ADD HL, {:?}", register),
+            ADD_SP(value) => write!(f, "ADD SP, {}", value),
             // 8-Bit Bitwise Operations
-            BIT(index, register) => write!(f, "BIT {:?}, {}", index.index(), register),
             RL(register) => write!(f, "RL {}", register),
+            RLA => write!(f, "RLA"),
+            RLC(register) => write!(f, "RLC {}", register),
+            RLCA => write!(f, "RLCA"),
+            RR(register) => write!(f, "RR {}", register),
+            RRA => write!(f, "RRA"),
+            RRC(register) => write!(f, "RRC {}", register),
+            RRCA => write!(f, "RRCA"),
+            BIT(index, register) => write!(f, "BIT {:?}, {}", index.index(), register),
             // 8-Bit Loads
             LD_8_INTERNAL(dest, source) => write!(f, "LD {}, {}", dest, source),
             LD_8_TO_SECONDARY(dest) => write!(f, "LD {}, A", dest),
@@ -663,10 +734,14 @@ impl Display for Instruction {
             LD_8_FROM_MEMORY_IMMEDIATE(address) => write!(f, "LD A, (0x{:04X})", address),
             // 16-Bit Loads
             LD_16_IMMEDIATE(register, value) => write!(f, "LD {:?}, 0x{:04X}", register, value),
-            POP(register) => write!(f, "POP {:?}", register),
+            LD_HL_FROM_SP => write!(f, "LD HL, SP"),
+            LD_HL_FROM_SP_PLUS(value) => write!(f, "LD HL, SP + {}", value),
+            LD_SP_TO_IMMEDIATE_ADDRESS(address) => write!(f, "LD (0x{:02X}), SP", address),
             PUSH(register) => write!(f, "PUSH {:?}", register),
+            POP(register) => write!(f, "POP {:?}", register),
             // Jumps and Calls
             JP(address) => write!(f, "JP 0x{:04X}", address),
+            JP_HL => write!(f, "JP HL"),
             JP_IF(condition, address) => write!(f, "JP {}, 0x{:04X}", condition, address),
             JR(offset) => write!(f, "JR {}", offset),
             JR_IF(condition, address) => write!(f, "JR {}, {}", condition, address),
