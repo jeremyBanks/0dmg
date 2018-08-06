@@ -348,22 +348,6 @@ impl CPUController for GameBoy {
                 cycles = 1 + extra_read_cycles;
                 trace!("A = 0x{:02X}, {} = 0x{:02X}", a, source, value);
             }
-            RLA => {
-                let f_c_0 = self.c_flag();
-                let a_0 = self.cpu.a;
-                let a_1 = (a_0 << 1) + if f_c_0 { 1 } else { 0 };
-                let f_c_1 = a_0 & 0b1000_0000 > 0;
-                self.cpu.a = a_1;
-                self.set_flags(a_1 == 0, f_c_1, false, false);
-                cycles = 2;
-                trace!(
-                    "Fc₀ = {}, A₀ = 0x{:02X}, Fc₁ = {}, A₁ = 0x{:02X}",
-                    f_c_0,
-                    a_0,
-                    f_c_1,
-                    a_1
-                );
-            }
             ADD_IMMEDIATE(_value) => unimplemented!("{}", instruction),
             ADC_IMMEDIATE(_value) => unimplemented!("{}", instruction),
             SUB_IMMEDIATE(_value) => unimplemented!("{}", instruction),
@@ -380,6 +364,10 @@ impl CPUController for GameBoy {
                 cycles = 2;
                 trace!("A = 0x{:02X}, F_Z = {}, F_C = {}", a, z_flag, c_flag);
             }
+            CPL => unimplemented!("{}", instruction),
+            CCF => unimplemented!("{}", instruction),
+            SCF => unimplemented!("{}", instruction),
+            DAA => unimplemented!("{}", instruction),
             // 16-Bit Arithmatic and Logic
             INC_16(target) => {
                 let old_value = self.get_register(target);
@@ -408,16 +396,8 @@ impl CPUController for GameBoy {
                 );
             }
             ADD_TO_HL(_) => unimplemented!("{}", instruction),
+            ADD_SP(_) => unimplemented!("{}", instruction),
             // 8-Bit Bitwise Operations
-            BIT(bit, register) => {
-                let value = self.get_register(register);
-                let result = !u8_get_bit(value, bit.index());
-                self.set_z_flag(result);
-                self.set_n_flag(false);
-                self.set_h_flag(true);
-                cycles = 2;
-                trace!("Z₁ = {}", result);
-            }
             RL(register) => {
                 let f_c_0 = self.c_flag();
                 let value_0 = self.get_register(register);
@@ -435,6 +415,37 @@ impl CPUController for GameBoy {
                     register,
                     value_1
                 );
+            }
+            RLA => {
+                let f_c_0 = self.c_flag();
+                let a_0 = self.cpu.a;
+                let a_1 = (a_0 << 1) + if f_c_0 { 1 } else { 0 };
+                let f_c_1 = a_0 & 0b1000_0000 > 0;
+                self.cpu.a = a_1;
+                self.set_flags(a_1 == 0, f_c_1, false, false);
+                cycles = 2;
+                trace!(
+                    "Fc₀ = {}, A₀ = 0x{:02X}, Fc₁ = {}, A₁ = 0x{:02X}",
+                    f_c_0,
+                    a_0,
+                    f_c_1,
+                    a_1
+                );
+            }
+            RLC(_) => unimplemented!("{}", instruction),
+            RLCA => unimplemented!("{}", instruction),
+            RR(_) => unimplemented!("{}", instruction),
+            RRA => unimplemented!("{}", instruction),
+            RRC(_) => unimplemented!("{}", instruction),
+            RRCA => unimplemented!("{}", instruction),
+            BIT(bit, register) => {
+                let value = self.get_register(register);
+                let result = !u8_get_bit(value, bit.index());
+                self.set_z_flag(result);
+                self.set_n_flag(false);
+                self.set_h_flag(true);
+                cycles = 2;
+                trace!("Z₁ = {}", result);
             }
             // 8-Bit Loads
             LD_8_INTERNAL(dest, source) => {
@@ -514,6 +525,10 @@ impl CPUController for GameBoy {
                 cycles = 3;
                 trace!("{:?}₀ = 0x{:04X}", dest, old_value);
             }
+            LD_16_IMMEDIATE(_, _) => unimplemented!("{}", instruction),
+            LD_HL_FROM_SP => unimplemented!("{}", instruction),
+            LD_HL_FROM_SP_PLUS(_) => unimplemented!("{}", instruction),
+            LD_SP_TO_IMMEDIATE_ADDRESS(_) => unimplemented!("{}", instruction),
             PUSH(register) => {
                 let value = self.get_register(register);
                 self.stack_push(value);
@@ -549,6 +564,7 @@ impl CPUController for GameBoy {
                 cycles = 4;
                 tracer = None;
             },
+            JP_HL => unimplemented!("{}", instruction),
             JR_IF(condition, offset) => {
                 if self.condition(condition) {
                     self.relative_jump(offset);
