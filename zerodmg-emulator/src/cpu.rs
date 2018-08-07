@@ -190,12 +190,10 @@ impl CPUController for GameBoy {
             source = InstructionSource::ProgramCounter(self.cpu.pc);
             self.cpu.pc = 0x0008;
         } else
-
         // if true {
         //     instruction = NOP;
         //     source = InstructionSource::ProgramCounter(0xF0BA);
         // } else
-
         if let Some(interrupt) = has_interrupt {
             // disable interrupts
             self.cpu.ime = false;
@@ -207,8 +205,11 @@ impl CPUController for GameBoy {
         };
 
         // println!("   t = {:<10}  f_z = {}", self.cpu.t, self.z_flag());
-        // println!("  HL = {:04X}  A = {:02X}  B = {:02X}  C = {:02X}  D = {:02X}, E = {:02X}", self.get_register(HL), self.get_register(A), self.get_register(B), self.get_register(C), self.get_register(D), self.get_register(E));
-        // println!("{:6}:   {:<16}  ; {:<16}", source, format!("{}", instruction), format!("{:?}", instruction));
+        // println!("  HL = {:04X}  A = {:02X}  B = {:02X}  C = {:02X}  D = {:02X}, E =
+        // {:02X}", self.get_register(HL), self.get_register(A), self.get_register(B),
+        // self.get_register(C), self.get_register(D), self.get_register(E));
+        // println!("{:6}:   {:<16}  ; {:<16}", source, format!("{}", instruction),
+        // format!("{:?}", instruction));
 
         let t_0 = self.cpu.t;
         let cycles;
@@ -226,10 +227,10 @@ impl CPUController for GameBoy {
                 tracer = None;
             }
             HALT => unimplemented!("{}", instruction),
-            STOP(_) => unimplemented!("{}", instruction),
+            STOP(_unused) => unimplemented!("{}", instruction),
             EI => unimplemented!("{}", instruction),
             DI => unimplemented!("{}", instruction),
-            HCF(_) => unimplemented!("{}", instruction),
+            HCF(_variant) => unimplemented!("{}", instruction),
             // 8-Bit Arithmatic and Logic
             INC(target) => {
                 let (old_value, extra_read_cycles) = self.read_register(target);
@@ -432,12 +433,16 @@ impl CPUController for GameBoy {
                     a_1
                 );
             }
-            RLC(_) => unimplemented!("{}", instruction),
+            RLC(_register) => unimplemented!("{}", instruction),
             RLCA => unimplemented!("{}", instruction),
-            RR(_) => unimplemented!("{}", instruction),
+            RR(_register) => unimplemented!("{}", instruction),
             RRA => unimplemented!("{}", instruction),
-            RRC(_) => unimplemented!("{}", instruction),
+            RRC(_register) => unimplemented!("{}", instruction),
             RRCA => unimplemented!("{}", instruction),
+            SRL(_register) => unimplemented!("{}", instruction),
+            SRA(_register) => unimplemented!("{}", instruction),
+            SLA(_register) => unimplemented!("{}", instruction),
+            SWAP(_register) => unimplemented!("{}", instruction),
             BIT(bit, register) => {
                 let value = self.get_register(register);
                 let result = !u8_get_bit(value, bit.index());
@@ -447,6 +452,8 @@ impl CPUController for GameBoy {
                 cycles = 2;
                 trace!("Z₁ = {}", result);
             }
+            SET(_bit, _register) => unimplemented!("{}", instruction),
+            RES(_bit, _register) => unimplemented!("{}", instruction),
             // 8-Bit Loads
             LD_8_INTERNAL(dest, source) => {
                 let dest_value_0 = self.get_register(dest);
@@ -494,7 +501,7 @@ impl CPUController for GameBoy {
                 self.cpu.a = a_1;
                 cycles = 3;
                 trace!("A₀ = 0x{:02X}, A₁ = 0x{:02X}", a_0, a_1);
-            },
+            }
             LD_8_TO_FF_C => {
                 let a = self.cpu.a;
                 let c = self.cpu.c;
@@ -515,9 +522,14 @@ impl CPUController for GameBoy {
                 let old_value = self.mem(address);
                 self.set_mem(address, a);
                 cycles = 4;
-                trace!("A = {:02X}, (0x{:04X})₀ = 0x{:02X}", address, a, old_value);
-            },
-            LD_8_FROM_MEMORY_IMMEDIATE(address) => unimplemented!("{}", instruction),
+                trace!(
+                    "A = {:02X}, (0x{:04X})₀ = 0x{:02X}",
+                    address,
+                    a,
+                    old_value
+                );
+            }
+            LD_8_FROM_MEMORY_IMMEDIATE(_address) => unimplemented!("{}", instruction),
             // 16-Bit Loads
             LD_16_IMMEDIATE(dest, value) => {
                 let old_value = self.get_register(dest);
@@ -525,10 +537,9 @@ impl CPUController for GameBoy {
                 cycles = 3;
                 trace!("{:?}₀ = 0x{:04X}", dest, old_value);
             }
-            LD_16_IMMEDIATE(_, _) => unimplemented!("{}", instruction),
             LD_HL_FROM_SP => unimplemented!("{}", instruction),
-            LD_HL_FROM_SP_PLUS(_) => unimplemented!("{}", instruction),
-            LD_SP_TO_IMMEDIATE_ADDRESS(_) => unimplemented!("{}", instruction),
+            LD_HL_FROM_SP_PLUS(_value) => unimplemented!("{}", instruction),
+            LD_SP_TO_IMMEDIATE_ADDRESS(_address) => unimplemented!("{}", instruction),
             PUSH(register) => {
                 let value = self.get_register(register);
                 self.stack_push(value);
@@ -558,12 +569,12 @@ impl CPUController for GameBoy {
                     trace!("skipped - condition false");
                     cycles = 3;
                 }
-            },
+            }
             JP(address) => {
                 self.cpu.pc = address;
                 cycles = 4;
                 tracer = None;
-            },
+            }
             JP_HL => unimplemented!("{}", instruction),
             JR_IF(condition, offset) => {
                 if self.condition(condition) {
@@ -616,7 +627,7 @@ impl CPUController for GameBoy {
                 cycles = 2;
                 trace!("SP₁ = {:04X}", sp_1);
             }
-            RET_IF(_) => unimplemented!("{}", instruction),
+            RET_IF(_condition) => unimplemented!("{}", instruction),
             RETI => unimplemented!("{}", instruction),
         }
 
@@ -632,7 +643,8 @@ impl CPUController for GameBoy {
         }
     }
 
-    /// Returns the next InterruptType currently set in the interrupt register, and unsets it there.
+    /// Returns the next InterruptType currently set in the interrupt register,
+    /// and unsets it there.
     fn pop_interrupt(&mut self) -> Option<InterruptType> {
         let enabled_and_triggered = self.cpu.ie & self.cpu.ift;
         if enabled_and_triggered & 0b00001 != 0 {
@@ -799,10 +811,13 @@ pub trait GetSetRegisters<Register, RegisterValue> {
 impl GetSetRegisters<U8Register, u8> for GameBoy {
     fn read_register(&mut self, register: U8Register) -> (u8, u64) {
         use zerodmg_codes::instruction::prelude::*;
-        (self.get_register(register), match register {
-            AT_HL => 1,
-            _ => 0
-        })
+        (
+            self.get_register(register),
+            match register {
+                AT_HL => 1,
+                _ => 0,
+            },
+        )
     }
 
     fn get_register(&self, register: U8Register) -> u8 {
@@ -883,21 +898,24 @@ impl GetSetRegisters<U16Register, u16> for GameBoy {
 impl GetSetRegisters<U8SecondaryRegister, u8> for GameBoy {
     fn read_register(&mut self, register: U8SecondaryRegister) -> (u8, u64) {
         use zerodmg_codes::instruction::prelude::*;
-        (match register {
-            AT_HL_Plus => {
-                let hl_0 = self.get_register(HL);
-                let hl_1 = hl_0.wrapping_add(0x0001);
-                self.set_register(HL, hl_1);
-                self.mem(hl_0)
-            }
-            AT_HL_Minus => {
-                let hl_0 = self.get_register(HL);
-                let hl_1 = hl_0.wrapping_sub(0x0001);
-                self.set_register(HL, hl_1);
-                self.mem(hl_0)
-            }
-            _ => self.get_register(register)
-        }, 0)
+        (
+            match register {
+                AT_HL_Plus => {
+                    let hl_0 = self.get_register(HL);
+                    let hl_1 = hl_0.wrapping_add(0x0001);
+                    self.set_register(HL, hl_1);
+                    self.mem(hl_0)
+                }
+                AT_HL_Minus => {
+                    let hl_0 = self.get_register(HL);
+                    let hl_1 = hl_0.wrapping_sub(0x0001);
+                    self.set_register(HL, hl_1);
+                    self.mem(hl_0)
+                }
+                _ => self.get_register(register),
+            },
+            0,
+        )
     }
 
     fn get_register(&self, register: U8SecondaryRegister) -> u8 {

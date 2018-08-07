@@ -189,7 +189,7 @@ impl GameBoy {
 
     pub fn run(&mut self) -> ! {
         let log_size = EXECUTIONS_BUFFER_SIZE.min(32);
-        let log_interval = 1; // (1024 * 1024) / 2;
+        let log_interval = (1024 * 1024) / 2;
 
         let mut last_color: &'static str = "";
         let red = "\x1b[91m";

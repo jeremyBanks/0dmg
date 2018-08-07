@@ -114,16 +114,33 @@ pub enum Instruction {
     RLC(U8Register),
     /// Rotates A register left by one bit, wrapping from high bit to low bit.
     RLCA,
-    /// Rotates a register right by one bit, wrapping through the carry flag bit.
+    /// Rotates a register right by one bit, wrapping through the carry flag
+    /// bit.
     RR(U8Register),
-    /// Rotates A register right by one bit, wrapping through the carry flag bit.
+    /// Rotates A register right by one bit, wrapping through the carry flag
+    /// bit.
     RRA,
     /// Rotates a register right by one bit, wrapping from low bit to high bit.
     RRC(U8Register),
     /// Rotates A register right by one bit, wrapping from low bit to high bit.
     RRCA,
+    /// Shifts a register left by one bit, shifting out to carry bit and
+    /// shifting in zeroes to low bit.
+    SLA(U8Register),
+    /// Shifts a register right by one bit, shifting out to carry bit and
+    /// leaving high bit unmodified.
+    SRA(U8Register),
+    /// Shifts a register left by one bit, shifting out to carry bit and
+    /// shifting in zeroes to high bit.
+    SRL(U8Register),
+    /// Swaps the high and low four bits (nibles) in a register.
+    SWAP(U8Register),
     /// Checks whether a given bit in a given register is set.
     BIT(BitIndex, U8Register),
+    /// Sets the bit at a given index in a register.
+    SET(BitIndex, U8Register),
+    /// Resets/un-sets the bit at a given index in a register.
+    RES(BitIndex, U8Register),
 
     // 8-Bit Loads
     /// Loads the value from one 8-bit register into another.
@@ -152,7 +169,8 @@ pub enum Instruction {
     LD_16_IMMEDIATE(U16Register, u16),
     /// Loads the value from the SP register into the HL register.
     LD_HL_FROM_SP,
-    /// Loads the value from the SP register, plus a signed immediate byte, into the HL register.
+    /// Loads the value from the SP register, plus a signed immediate byte,
+    /// into the HL register.
     LD_HL_FROM_SP_PLUS(i8),
     /// Loads the value from the SP register into an immediate memory address.
     LD_SP_TO_IMMEDIATE_ADDRESS(u16),
@@ -349,7 +367,13 @@ impl Instruction {
             RRA => vec![0x1F],
             RRC(register) => vec![0xCB, 0x08 | register.index()],
             RRCA => vec![0x0F],
+            SLA(register) => vec![0xCB, 0x20 | register.index()],
+            SRA(register) => vec![0xCB, 0x28 | register.index()],
+            SRL(register) => vec![0xCB, 0x38 | register.index()],
+            SWAP(register) => vec![0xCB, 0x30 | register.index()],
             BIT(bit, register) => vec![0xCB, 0x40 | (bit.index() << 3) | register.index()],
+            SET(bit, register) => vec![0xCB, 0xC0 | (bit.index() << 3) | register.index()],
+            RES(bit, register) => vec![0xCB, 0x80 | (bit.index() << 3) | register.index()],
             // 8-Bit Loads
             LD_8_INTERNAL(dest, source) => vec![0x40 | (dest.index() << 3) + source.index()],
             LD_8_IMMEDIATE(register, value) => vec![0x06 | (register.index() << 3), value],
@@ -492,31 +516,26 @@ impl Instruction {
                         0x08..=0x0F => RRC(U8Register::from_index(0b111 & opcode_2)),
                         0x10..=0x17 => RL(U8Register::from_index(0b111 & opcode_2)),
                         0x18..=0x1F => RR(U8Register::from_index(0b111 & opcode_2)),
-                        // 0x20..=0x27 => SLA(U8Register::from_index(0b111 & opcode_2)),
-                        // 0x28..=0x2F => SRA(U8Register::from_index(0b111 & opcode_2)),
-                        // 0x30..=0x37 => SWAP(U8Register::from_index(0b111 & opcode_2)),
-                        // 0x38..=0x3F => SRL(U8Register::from_index(0b111 & opcode_2)),
+                        0x20..=0x27 => SLA(U8Register::from_index(0b111 & opcode_2)),
+                        0x28..=0x2F => SRA(U8Register::from_index(0b111 & opcode_2)),
+                        0x30..=0x37 => SWAP(U8Register::from_index(0b111 & opcode_2)),
+                        0x38..=0x3F => SRL(U8Register::from_index(0b111 & opcode_2)),
                         0x40..=0x7F => {
                             let bit = BitIndex::from_index(0b111 & (opcode_2 >> 3));
                             let register = U8Register::from_index(0b111 & opcode_2);
                             BIT(bit, register)
                         }
-                        // 0x80..=0xBF => {
-                        //     let index = BitIndex::from_index(0b111 & (opcode_2 >> 3));
-                        //     let register = U8Register::from_index(0b111 & opcode_2);
-                        //     RES(index, register)
-                        // }
-                        // 0xC0..=0xFF => {
-                        //     let index = BitIndex::from_index(0b111 & (opcode_2 >> 3));
-                        //     let register = U8Register::from_index(0b111 & opcode_2);
-                        //     SET(index, register)
-                        // }
-                        // TODO: implement everything
-                        _ => unimplemented!(
-                            "unsupported instruction code 0x{:02X}{:02X}",
-                            opcode,
-                            opcode_2
-                        ),
+                        0x80..=0xBF => {
+                            let index = BitIndex::from_index(0b111 & (opcode_2 >> 3));
+                            let register = U8Register::from_index(0b111 & opcode_2);
+                            RES(index, register)
+                        }
+                        0xC0..=0xFF => {
+                            let index = BitIndex::from_index(0b111 & (opcode_2 >> 3));
+                            let register = U8Register::from_index(0b111 & opcode_2);
+                            SET(index, register)
+                        }
+                        _ => unreachable!(),
                     }
                 }
                 // 8-Bit Loads
@@ -597,43 +616,29 @@ impl Instruction {
             DI => 1,
             HCF(_) => 1,
             // 8-Bit Arithmatic and Logic
-            INC(_) => 1,
-            DEC(_) => 1,
-            ADD(_) => 1,
-            ADC(_) => 1,
-            SUB(_) => 1,
-            SBC(_) => 1,
-            AND(_) => 1,
-            XOR(_) => 1,
-            OR(_) => 1,
-            CP(_) => 1,
-            ADD_IMMEDIATE(_) => 2,
-            ADC_IMMEDIATE(_) => 2,
-            SUB_IMMEDIATE(_) => 2,
-            SBC_IMMEDIATE(_) => 2,
-            AND_IMMEDIATE(_) => 2,
-            XOR_IMMEDIATE(_) => 2,
-            OR_IMMEDIATE(_) => 2,
-            CP_IMMEDIATE(_) => 2,
-            CPL => 1,
-            CCF => 1,
-            SCF => 1,
-            DAA => 1,
+            INC(_) | DEC(_) | ADD(_) | ADC(_) | SUB(_) | SBC(_) | AND(_) | XOR(_) | OR(_)
+            | CP(_) => 1,
+            ADD_IMMEDIATE(_) | ADC_IMMEDIATE(_) | SUB_IMMEDIATE(_) | SBC_IMMEDIATE(_)
+            | AND_IMMEDIATE(_) | XOR_IMMEDIATE(_) | OR_IMMEDIATE(_) | CP_IMMEDIATE(_) => 2,
+            CPL | CCF | SCF | DAA => 1,
             // 16-Bit Arithmatic and Logic
             INC_16(_) => 1,
             DEC_16(_) => 1,
             ADD_TO_HL(_) => 1,
             ADD_SP(_) => 2,
             // 8-Bit Bitwise Operations
-            RL(_) => 2,
-            RLA => 1,
-            RLC(_) => 2,
-            RLCA => 1,
-            RR(_) => 2,
-            RRA => 1,
-            RRC(_) => 2,
-            RRCA => 1,
-            BIT(_, _) => 2,
+            RLA | RLCA | RRA | RRCA => 1,
+            RL(_)
+            | RLC(_)
+            | RR(_)
+            | RRC(_)
+            | SLA(_)
+            | SRA(_)
+            | SRL(_)
+            | SWAP(_)
+            | BIT(_, _)
+            | SET(_, _)
+            | RES(_, _) => 2,
             // 8-Bit Loads
             LD_8_INTERNAL(_, _) => 1,
             LD_8_IMMEDIATE(_, _) => 2,
@@ -650,8 +655,7 @@ impl Instruction {
             LD_HL_FROM_SP => 1,
             LD_HL_FROM_SP_PLUS(_) => 2,
             LD_SP_TO_IMMEDIATE_ADDRESS(_) => 3,
-            PUSH(_) => 1,
-            POP(_) => 1,
+            PUSH(_) | POP(_) => 1,
             // Jumps and Calls
             JP_IF(_, _) => 3,
             JP(_) => 3,
@@ -678,7 +682,7 @@ impl Display for Instruction {
                 write!(f, "STOP 0x{:02X}", ignored)
             } else {
                 write!(f, "STOP")
-            }
+            },
             HALT => write!(f, "HALT"),
             DI => write!(f, "DI"),
             EI => write!(f, "EI"),
@@ -720,7 +724,13 @@ impl Display for Instruction {
             RRA => write!(f, "RRA"),
             RRC(register) => write!(f, "RRC {}", register),
             RRCA => write!(f, "RRCA"),
+            SLA(register) => write!(f, "SLA {}", register),
+            SRA(register) => write!(f, "SRA {}", register),
+            SRL(register) => write!(f, "SRL {}", register),
+            SWAP(register) => write!(f, "SWAP {}", register),
             BIT(index, register) => write!(f, "BIT {:?}, {}", index.index(), register),
+            SET(index, register) => write!(f, "SET {:?}, {}", index.index(), register),
+            RES(index, register) => write!(f, "RES {:?}, {}", index.index(), register),
             // 8-Bit Loads
             LD_8_INTERNAL(dest, source) => write!(f, "LD {}, {}", dest, source),
             LD_8_TO_SECONDARY(dest) => write!(f, "LD {}, A", dest),
@@ -1055,11 +1065,12 @@ fn can_round_trip_any_leading_byte() {
         // Pad it out to because that's how long some instructions are.
         let bytes = vec![byte, byte, byte];
 
-         let mut instruction: Option<Instruction> = None;
+        let mut instruction: Option<Instruction> = None;
 
         if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             instruction = Instruction::from_byte_iter(&mut bytes.clone().into_iter());
-        })).is_err() {
+        })).is_err()
+        {
             println!("0x{:02X}: failed to decode instruction", byte);
             failed = true;
             continue;
@@ -1072,9 +1083,15 @@ fn can_round_trip_any_leading_byte() {
             continue;
         }
 
-        let original_bytes = bytes.into_iter().take(round_tripped.len()).collect::<Vec<u8>>();
+        let original_bytes = bytes
+            .into_iter()
+            .take(round_tripped.len())
+            .collect::<Vec<u8>>();
         if original_bytes != round_tripped {
-            println!("0x{:02X}: failed to round-trip, got {:?} {:?} from {:?}", byte, round_tripped, instruction, original_bytes);
+            println!(
+                "0x{:02X}: failed to round-trip, got {:?} {:?} from {:?}",
+                byte, round_tripped, instruction, original_bytes
+            );
             failed = true;
             continue;
         }
@@ -1088,7 +1105,7 @@ fn can_round_trip_any_cb_instructions() {
     for byte in 0x00..=0xFFu8 {
         let bytes = vec![0xCB, byte];
 
-         let mut instruction: Option<Instruction> = None;
+        let mut instruction: Option<Instruction> = None;
 
         if let Err(_) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             instruction = Instruction::from_byte_iter(&mut bytes.clone().into_iter());
@@ -1100,7 +1117,10 @@ fn can_round_trip_any_cb_instructions() {
 
         let round_tripped = instruction.unwrap().to_bytes();
         if bytes != round_tripped {
-            println!("0xCB{:02X}: failed to round-trip, got {:?} {:?} from {:?}", byte, round_tripped, instruction, bytes);
+            println!(
+                "0xCB{:02X}: failed to round-trip, got {:?} {:?} from {:?}",
+                byte, round_tripped, instruction, bytes
+            );
             failed = true;
             continue;
         }

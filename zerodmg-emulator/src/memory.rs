@@ -1,8 +1,8 @@
 use super::GameBoy;
 
 use super::audio::AudioController;
-use super::video::VideoController;
 use super::cpu::CPUController;
+use super::video::VideoController;
 
 /// Game Boy general memory state
 pub struct MemoryData {
