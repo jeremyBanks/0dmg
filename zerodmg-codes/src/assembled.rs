@@ -175,7 +175,8 @@ impl AssembledRom {
     /// control flow and decode the roles of following instruction bytes that
     /// can now be decoded.
     pub fn get_known_instruction(&mut self, address: u16) -> Instruction {
-        let byte = self.bytes[usize::from(address)];
+        let uaddress = usize::from(address);
+        let byte = self.bytes[uaddress];
 
         match byte.role {
             RomByteRole::InstructionStart {
@@ -184,7 +185,7 @@ impl AssembledRom {
             } => {
                 if !known_jump_destination {
                     // Mark as known jump destination.
-                    self.bytes[usize::from(address)].role = RomByteRole::InstructionStart {
+                    self.bytes[uaddress].role = RomByteRole::InstructionStart {
                         instruction,
                         known_jump_destination: true,
                     };
@@ -192,23 +193,27 @@ impl AssembledRom {
                 instruction
             }
 
-            RomByteRole::InstructionRest => panic!(
-                "requested instruction address mis-aligned with previously-decoded instructions"
-            ),
+            RomByteRole::InstructionRest => {
+                let recent_bytes = &self.bytes[uaddress - 4..uaddress];
+                let following_bytes = &self.bytes[uaddress + 1..=uaddress + 4];
+                panic!(
+                    "requested instruction address 0x{:04X}, mis-aligned with previously-decoded instructions.\nPrevious bytes: {:#?}\nThis byte 0x{:04X}: {:#?}\nNext bytes: {:#?}",
+                    address, recent_bytes, address, byte, following_bytes);
+            },
 
             RomByteRole::Unknown => {
                 let instruction = {
                     let mut byte_iter = self
                         .bytes
                         .iter()
-                        .skip(usize::from(address))
+                        .skip(uaddress)
                         .map(|ref b| b.byte);
                     Instruction::from_byte_iter(&mut byte_iter).unwrap()
                 };
 
                 let next_address = address + instruction.byte_len();
 
-                self.bytes[usize::from(address)].role = RomByteRole::InstructionStart {
+                self.bytes[uaddress].role = RomByteRole::InstructionStart {
                     instruction,
                     known_jump_destination: false,
                 };
@@ -227,7 +232,7 @@ impl AssembledRom {
                         }
                         JumpReference::Relative(offset) => {
                             let address = u16::try_from(
-                                (i32::from(next_address) + i32::from(offset) + 0xFFFF) % 0xFFFF,
+                                (i32::from(next_address) + i32::from(offset) + 0x10000) % 0x10000,
                             ).unwrap();
                             self.decode_known_instruction_if_in_fixed_rom(address);
                         }
