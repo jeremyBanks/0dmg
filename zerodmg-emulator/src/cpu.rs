@@ -69,7 +69,7 @@ pub trait CPUController:
     fn set_n_flag(&mut self, value: bool);
     fn z_flag(&self) -> bool;
     fn set_z_flag(&mut self, value: bool);
-    fn set_flags(&mut self, z: bool, n: bool, h: bool, c: bool);
+    fn set_znhc_flags(&mut self, z: bool, n: bool, h: bool, c: bool);
     fn iter_bytes_at_pc(&'gb mut self) -> PCMemoryIterator;
     fn instruction_from_pc(&mut self) -> Instruction;
     fn condition(&self, condition: FlagCondition) -> bool;
@@ -184,12 +184,12 @@ impl CPUController for GameBoy {
         let source;
         let instruction;
 
-        if self.cpu.pc == 0x0007 {
-            // temporarily prevent blanking of video memory
-            instruction = Instruction::DEC_16(U16Register::HL);
-            source = InstructionSource::ProgramCounter(self.cpu.pc);
-            self.cpu.pc = 0x0008;
-        } else
+        // if self.cpu.pc == 0x0007 {
+        //     // temporarily prevent blanking of video memory
+        //     instruction = Instruction::DEC_16(U16Register::HL);
+        //     source = InstructionSource::ProgramCounter(self.cpu.pc);
+        //     self.cpu.pc = 0x0008;
+        // } else
         // if true {
         //     instruction = NOP;
         //     source = InstructionSource::ProgramCounter(0xF0BA);
@@ -269,7 +269,7 @@ impl CPUController for GameBoy {
                 let (value, extra_read_cycles) = self.read_register(source);
                 let a_1 = a_0.wrapping_add(value);
                 self.cpu.a = a_1;
-                self.set_flags(a_1 == 0, false, u8_get_bit(a_1, 4), a_1 < a_0);
+                self.set_znhc_flags(a_1 == 0, false, u8_get_bit(a_1, 4), a_1 < a_0);
                 cycles = 1 + extra_read_cycles;
                 trace!(
                     "A₀ = 0x{:02X}, {} = 0x{:02X}, A₁ = 0x{:02X}",
@@ -285,7 +285,7 @@ impl CPUController for GameBoy {
                 let a_0 = self.cpu.a;
                 let a_1 = a_0.wrapping_sub(value);
                 self.cpu.a = a_1;
-                self.set_flags(a_1 == 0, false, u8_get_bit(a_1, 4), a_1 > a_0);
+                self.set_znhc_flags(a_1 == 0, false, u8_get_bit(a_1, 4), a_1 > a_0);
                 cycles = 1 + extra_read_cycles;
                 trace!(
                     "A₀ = 0x{:02X}, {} = 0x{:02X}, A₁ = 0x{:02X}",
@@ -301,7 +301,7 @@ impl CPUController for GameBoy {
                 let a_0 = self.cpu.a;
                 let a_1 = a_0 & value;
                 self.cpu.a = a_1;
-                self.set_flags(a_1 == 0, true, true, false);
+                self.set_znhc_flags(a_1 == 0, true, true, false);
                 cycles = 1 + extra_read_cycles;
                 trace!(
                     "A₀ = 0x{:02X}, {} = 0x{:02X}, A₁ = 0x{:02X}",
@@ -316,7 +316,7 @@ impl CPUController for GameBoy {
                 let (value, extra_read_cycles) = self.read_register(source);
                 let a_1 = a_0 ^ value;
                 self.cpu.a = a_1;
-                self.set_flags(a_1 == 0, false, false, false);
+                self.set_znhc_flags(a_1 == 0, false, false, false);
                 cycles = 1 + extra_read_cycles;
                 trace!(
                     "A₀ = 0x{:02X}, {} = 0x{:02X}, A₁ = 0x{:02X}",
@@ -331,7 +331,7 @@ impl CPUController for GameBoy {
                 let a_0 = self.cpu.a;
                 let a_1 = a_0 | value;
                 self.cpu.a = a_1;
-                self.set_flags(a_1 == 0, false, false, false);
+                self.set_znhc_flags(a_1 == 0, false, false, false);
                 cycles = 1 + extra_read_cycles;
                 trace!(
                     "A₀ = 0x{:02X}, {} = 0x{:02X}, A₁ = 0x{:02X}",
@@ -345,7 +345,7 @@ impl CPUController for GameBoy {
                 let (value, extra_read_cycles) = self.read_register(source);
                 let a = self.cpu.a;
                 let delta = a.wrapping_sub(value);
-                self.set_flags(delta == 0, false, u8_get_bit(delta, 4), delta > a);
+                self.set_znhc_flags(delta == 0, false, u8_get_bit(delta, 4), delta > a);
                 cycles = 1 + extra_read_cycles;
                 trace!("A = 0x{:02X}, {} = 0x{:02X}", a, source, value);
             }
@@ -359,7 +359,7 @@ impl CPUController for GameBoy {
             CP_IMMEDIATE(value) => {
                 let a = self.cpu.a;
                 let delta = a.wrapping_sub(value);
-                self.set_flags(delta == 0, true, u8_get_bit(delta, 4), a < value);
+                self.set_znhc_flags(delta == 0, true, u8_get_bit(delta, 4), a < value);
                 let z_flag = self.z_flag();
                 let c_flag = self.c_flag();
                 cycles = 2;
@@ -405,7 +405,7 @@ impl CPUController for GameBoy {
                 let value_1 = (value_0 << 1) + if f_c_0 { 1 } else { 0 };
                 let f_c_1 = value_0 & 0b1000_0000 > 0;
                 self.set_register(register, value_1);
-                self.set_flags(value_1 == 0, f_c_1, false, false);
+                self.set_znhc_flags(value_1 == 0, false, false, f_c_1);
                 cycles = 2;
                 trace!(
                     "Fc₀ = {}, {}₀ = 0x{:02X}, Fc₁ = {}, {}₁ = 0x{:02X}",
@@ -423,7 +423,8 @@ impl CPUController for GameBoy {
                 let a_1 = (a_0 << 1) + if f_c_0 { 1 } else { 0 };
                 let f_c_1 = a_0 & 0b1000_0000 > 0;
                 self.cpu.a = a_1;
-                self.set_flags(a_1 == 0, f_c_1, false, false);
+                // We're setting the wrong flags!
+                self.set_znhc_flags(a_1 == 0, false, false, f_c_1);
                 cycles = 2;
                 trace!(
                     "Fc₀ = {}, A₀ = 0x{:02X}, Fc₁ = {}, A₁ = 0x{:02X}",
@@ -774,7 +775,7 @@ impl CPUController for GameBoy {
         }
     }
 
-    fn set_flags(&mut self, z: bool, n: bool, h: bool, c: bool) {
+    fn set_znhc_flags(&mut self, z: bool, n: bool, h: bool, c: bool) {
         self.cpu.f = 0x00
             | if z { 0x80 } else { 0x00 }
             | if n { 0x40 } else { 0x00 }

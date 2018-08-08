@@ -48,10 +48,9 @@ impl MemoryController for GameBoy {
             // boot ROM, until unmapped to expose initial bytes of game ROM
             self.mem.boot_rom[addr as usize]
         } else if addr <= 0x7FFF {
+            // println!("    ; game_rom[0x{:02X}] == 0x{:02X}", addr, self.mem.game_rom[addr as usize]);
             // first page of game ROM
             self.mem.game_rom[addr as usize]
-        // println!("    ; game_rom[0x{:02X}] == 0x{:02X}", addr, self.mem.game_rom[addr
-        // as usize]);
         } else if 0x8000 <= addr && addr <= 0x9FFF {
             let i: usize = (addr - 0x8000) as usize;
             self.vram(i)
