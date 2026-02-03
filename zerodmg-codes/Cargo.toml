@@ -10,4 +10,4 @@ readme = "../README.md"
 
 [dependencies]
 zerodmg-utils = { version = "0.1.9", path = "../zerodmg-utils" }
-derive_more = "0.11.0"
+derive_more = "0.99"
