@@ -8,6 +8,7 @@ use hyper::service::service_fn;
 use hyper_util::rt::TokioIo;
 use tokio::net::TcpListener;
 
+use zerodmg_codes::roms::jeb_demo;
 use zerodmg_emulator as emulator;
 
 mod server;
@@ -20,7 +21,8 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Spawn emulator on blocking thread
     tokio::task::spawn_blocking(move || {
         thread::sleep(Duration::from_millis(250));
-        let mut gameboy = emulator::GameBoy::new(also_output_buffer.clone());
+        let game_rom = jeb_demo().assemble().to_bytes();
+        let mut gameboy = emulator::GameBoy::new(game_rom, also_output_buffer.clone());
         gameboy.run();
     });
 
