@@ -87,6 +87,15 @@ impl MemoryController for GameBoy {
                     0x00
                 }
             }
+            // Serial Data (SB)
+            0xFF01 => self.sb_register,
+            // Serial Control (SC) - always reads 0
+            0xFF02 => 0x00,
+            // Timer registers - stubbed, not implemented
+            0xFF04 => 0x00, // DIV - Divider register
+            0xFF05 => 0x00, // TIMA - Timer counter
+            0xFF06 => 0x00, // TMA - Timer modulo
+            0xFF07 => 0x00, // TAC - Timer control
             // Interrupt Flag
             0xFF0F => self.ift(),
             // Interrupt Enable
@@ -136,6 +145,20 @@ impl MemoryController for GameBoy {
                 }
                 self.mem.boot_rom_mapped = false;
             }
+            // Serial Data (SB)
+            0xFF01 => self.sb_register = value,
+            // Serial Control (SC) - writing 0x81 triggers transfer
+            0xFF02 => {
+                if value == 0x81 {
+                    // Transfer initiated - capture SB to output buffer
+                    self.serial_output.push(self.sb_register);
+                }
+            }
+            // Timer registers - stubbed, writes ignored
+            0xFF04 => {} // DIV - writing any value resets to 0
+            0xFF05 => {} // TIMA - Timer counter
+            0xFF06 => {} // TMA - Timer modulo
+            0xFF07 => {} // TAC - Timer control
             // Interrupt Flag
             0xFF0F => self.set_ift(value),
             // Interrupt Enable

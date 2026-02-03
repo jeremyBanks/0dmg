@@ -3,6 +3,7 @@
 mod audio;
 mod cpu;
 mod memory;
+pub mod test_runner;
 mod video;
 
 use image::GenericImageView;
@@ -30,6 +31,10 @@ pub struct GameBoy {
     t: u64,
 
     pub output_buffer: Arc<Mutex<Output>>,
+
+    // Serial I/O for Blargg test output
+    serial_output: Vec<u8>,
+    sb_register: u8,
 }
 
 pub struct Output {
@@ -132,11 +137,7 @@ impl Output {
 }
 
 impl GameBoy {
-    pub fn new(output_buffer: Arc<Mutex<Output>>) -> Self {
-        use zerodmg_codes::roms::*;
-
-        let game_rom = jeb_demo().assemble().to_bytes();
-
+    pub fn new(game_rom: Vec<u8>, output_buffer: Arc<Mutex<Output>>) -> Self {
         Self {
             cpu: CPUData::new(),
             mem: MemoryData::new(game_rom),
@@ -146,7 +147,19 @@ impl GameBoy {
             debug_latest_executions: vec![],
             debug_latest_executions_next_i: 0,
             output_buffer,
+            serial_output: Vec::new(),
+            sb_register: 0,
         }
+    }
+
+    /// Returns the accumulated serial output from Blargg tests.
+    pub fn serial_output(&self) -> &[u8] {
+        &self.serial_output
+    }
+
+    /// Returns the current program counter value.
+    pub fn pc(&self) -> u16 {
+        self.cpu.pc()
     }
 
     pub fn print_recent_executions(&mut self, limit: usize) {

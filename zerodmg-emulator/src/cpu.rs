@@ -107,6 +107,11 @@ impl CPUData {
             ei_pending: false,
         }
     }
+
+    /// Returns the current program counter value.
+    pub fn pc(&self) -> u16 {
+        self.pc
+    }
 }
 
 /// Iterates over bytes at PC, while incrementing it, in a borrowed [GameBoy].
@@ -232,11 +237,11 @@ impl CPUController for GameBoy {
                 cycles = 1;
                 tracer = None;
             }
-            HALT => unimplemented!("{}", instruction),
-            STOP(_unused) => unimplemented!("{}", instruction),
-            EI => unimplemented!("{}", instruction),
-            DI => unimplemented!("{}", instruction),
-            HCF(_variant) => unimplemented!("{}", instruction),
+            HALT => unimplemented!("CPU instruction: HALT (wait for interrupt)"),
+            STOP(_unused) => unimplemented!("CPU instruction: STOP"),
+            EI => unimplemented!("CPU instruction: EI (enable interrupts)"),
+            DI => unimplemented!("CPU instruction: DI (disable interrupts)"),
+            HCF(_variant) => unimplemented!("CPU instruction: HCF (halt and catch fire)"),
             // 8-Bit Arithmatic and Logic
             INC(target) => {
                 let (old_value, extra_read_cycles) = self.read_register(target);
@@ -276,7 +281,7 @@ impl CPUController for GameBoy {
                     a_0, source, value, a_1
                 );
             }
-            ADC(_source) => unimplemented!("{}", instruction),
+            ADC(_source) => unimplemented!("CPU instruction: ADC (add with carry)"),
             SUB(source) => {
                 let (value, extra_read_cycles) = self.read_register(source);
                 let a_0 = self.cpu.a;
@@ -289,7 +294,7 @@ impl CPUController for GameBoy {
                     a_0, source, value, a_1
                 );
             }
-            SBC(_source) => unimplemented!("{}", instruction),
+            SBC(_source) => unimplemented!("CPU instruction: SBC (subtract with carry)"),
             AND(source) => {
                 let (value, extra_read_cycles) = self.read_register(source);
                 let a_0 = self.cpu.a;
@@ -334,13 +339,13 @@ impl CPUController for GameBoy {
                 cycles = 1 + extra_read_cycles;
                 trace!("A = 0x{:02X}, {} = 0x{:02X}", a, source, value);
             }
-            ADD_IMMEDIATE(_value) => unimplemented!("{}", instruction),
-            ADC_IMMEDIATE(_value) => unimplemented!("{}", instruction),
-            SUB_IMMEDIATE(_value) => unimplemented!("{}", instruction),
-            SBC_IMMEDIATE(_value) => unimplemented!("{}", instruction),
-            AND_IMMEDIATE(_value) => unimplemented!("{}", instruction),
-            XOR_IMMEDIATE(_value) => unimplemented!("{}", instruction),
-            OR_IMMEDIATE(_value) => unimplemented!("{}", instruction),
+            ADD_IMMEDIATE(_value) => unimplemented!("CPU instruction: ADD A, imm8"),
+            ADC_IMMEDIATE(_value) => unimplemented!("CPU instruction: ADC A, imm8"),
+            SUB_IMMEDIATE(_value) => unimplemented!("CPU instruction: SUB imm8"),
+            SBC_IMMEDIATE(_value) => unimplemented!("CPU instruction: SBC A, imm8"),
+            AND_IMMEDIATE(_value) => unimplemented!("CPU instruction: AND imm8"),
+            XOR_IMMEDIATE(_value) => unimplemented!("CPU instruction: XOR imm8"),
+            OR_IMMEDIATE(_value) => unimplemented!("CPU instruction: OR imm8"),
             CP_IMMEDIATE(value) => {
                 let a = self.cpu.a;
                 let delta = a.wrapping_sub(value);
@@ -350,10 +355,10 @@ impl CPUController for GameBoy {
                 cycles = 2;
                 trace!("A = 0x{:02X}, F_Z = {}, F_C = {}", a, z_flag, c_flag);
             }
-            CPL => unimplemented!("{}", instruction),
-            CCF => unimplemented!("{}", instruction),
-            SCF => unimplemented!("{}", instruction),
-            DAA => unimplemented!("{}", instruction),
+            CPL => unimplemented!("CPU instruction: CPL (complement A)"),
+            CCF => unimplemented!("CPU instruction: CCF (complement carry flag)"),
+            SCF => unimplemented!("CPU instruction: SCF (set carry flag)"),
+            DAA => unimplemented!("CPU instruction: DAA (decimal adjust A)"),
             // 16-Bit Arithmatic and Logic
             INC_16(target) => {
                 let old_value = self.get_register(target);
@@ -375,8 +380,8 @@ impl CPUController for GameBoy {
                     target, old_value, target, new_value
                 );
             }
-            ADD_TO_HL(_) => unimplemented!("{}", instruction),
-            ADD_SP(_) => unimplemented!("{}", instruction),
+            ADD_TO_HL(_) => unimplemented!("CPU instruction: ADD HL, r16"),
+            ADD_SP(_) => unimplemented!("CPU instruction: ADD SP, imm8"),
             // 8-Bit Bitwise Operations
             RL(register) => {
                 let f_c_0 = self.c_flag();
@@ -405,16 +410,16 @@ impl CPUController for GameBoy {
                     f_c_0, a_0, f_c_1, a_1
                 );
             }
-            RLC(_register) => unimplemented!("{}", instruction),
-            RLCA => unimplemented!("{}", instruction),
-            RR(_register) => unimplemented!("{}", instruction),
-            RRA => unimplemented!("{}", instruction),
-            RRC(_register) => unimplemented!("{}", instruction),
-            RRCA => unimplemented!("{}", instruction),
-            SRL(_register) => unimplemented!("{}", instruction),
-            SRA(_register) => unimplemented!("{}", instruction),
-            SLA(_register) => unimplemented!("{}", instruction),
-            SWAP(_register) => unimplemented!("{}", instruction),
+            RLC(_register) => unimplemented!("CPU instruction: RLC (rotate left circular)"),
+            RLCA => unimplemented!("CPU instruction: RLCA (rotate A left circular)"),
+            RR(_register) => unimplemented!("CPU instruction: RR (rotate right through carry)"),
+            RRA => unimplemented!("CPU instruction: RRA (rotate A right through carry)"),
+            RRC(_register) => unimplemented!("CPU instruction: RRC (rotate right circular)"),
+            RRCA => unimplemented!("CPU instruction: RRCA (rotate A right circular)"),
+            SRL(_register) => unimplemented!("CPU instruction: SRL (shift right logical)"),
+            SRA(_register) => unimplemented!("CPU instruction: SRA (shift right arithmetic)"),
+            SLA(_register) => unimplemented!("CPU instruction: SLA (shift left arithmetic)"),
+            SWAP(_register) => unimplemented!("CPU instruction: SWAP (swap nibbles)"),
             BIT(bit, register) => {
                 let value = self.get_register(register);
                 let result = !u8_get_bit(value, bit.index());
@@ -424,8 +429,8 @@ impl CPUController for GameBoy {
                 cycles = 2;
                 trace!("Z₁ = {}", result);
             }
-            SET(_bit, _register) => unimplemented!("{}", instruction),
-            RES(_bit, _register) => unimplemented!("{}", instruction),
+            SET(_bit, _register) => unimplemented!("CPU instruction: SET (set bit)"),
+            RES(_bit, _register) => unimplemented!("CPU instruction: RES (reset bit)"),
             // 8-Bit Loads
             LD_8_INTERNAL(dest, source) => {
                 let dest_value_0 = self.get_register(dest);
@@ -483,7 +488,7 @@ impl CPUController for GameBoy {
                     c, a, old_value
                 );
             }
-            LD_8_FROM_FF_C => unimplemented!("{}", instruction),
+            LD_8_FROM_FF_C => unimplemented!("CPU instruction: LD A, (0xFF00+C)"),
             LD_8_TO_MEMORY_IMMEDIATE(address) => {
                 let a = self.cpu.a;
                 let old_value = self.mem(address);
@@ -491,7 +496,7 @@ impl CPUController for GameBoy {
                 cycles = 4;
                 trace!("A = {:02X}, (0x{:04X})₀ = 0x{:02X}", address, a, old_value);
             }
-            LD_8_FROM_MEMORY_IMMEDIATE(_address) => unimplemented!("{}", instruction),
+            LD_8_FROM_MEMORY_IMMEDIATE(_address) => unimplemented!("CPU instruction: LD A, (imm16)"),
             // 16-Bit Loads
             LD_16_IMMEDIATE(dest, value) => {
                 let old_value = self.get_register(dest);
@@ -499,9 +504,9 @@ impl CPUController for GameBoy {
                 cycles = 3;
                 trace!("{:?}₀ = 0x{:04X}", dest, old_value);
             }
-            LD_HL_FROM_SP => unimplemented!("{}", instruction),
-            LD_HL_FROM_SP_PLUS(_value) => unimplemented!("{}", instruction),
-            LD_SP_TO_IMMEDIATE_ADDRESS(_address) => unimplemented!("{}", instruction),
+            LD_HL_FROM_SP => unimplemented!("CPU instruction: LD HL, SP"),
+            LD_HL_FROM_SP_PLUS(_value) => unimplemented!("CPU instruction: LD HL, SP+imm8"),
+            LD_SP_TO_IMMEDIATE_ADDRESS(_address) => unimplemented!("CPU instruction: LD (imm16), SP"),
             PUSH(register) => {
                 let value = self.get_register(register);
                 self.stack_push(value);
@@ -532,7 +537,7 @@ impl CPUController for GameBoy {
                 cycles = 4;
                 tracer = None;
             }
-            JP_HL => unimplemented!("{}", instruction),
+            JP_HL => unimplemented!("CPU instruction: JP HL"),
             JR_IF(condition, offset) => {
                 if self.condition(condition) {
                     self.relative_jump(offset);
@@ -584,8 +589,8 @@ impl CPUController for GameBoy {
                 cycles = 2;
                 trace!("SP₁ = {:04X}", sp_1);
             }
-            RET_IF(_condition) => unimplemented!("{}", instruction),
-            RETI => unimplemented!("{}", instruction),
+            RET_IF(_condition) => unimplemented!("CPU instruction: RET cc (conditional return)"),
+            RETI => unimplemented!("CPU instruction: RETI (return and enable interrupts)"),
         }
 
         let t_1 = t_0 + cycles;
