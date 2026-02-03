@@ -3,6 +3,7 @@
 mod audio;
 mod cpu;
 mod memory;
+pub mod test_runner;
 mod video;
 
 use image::GenericImageView;

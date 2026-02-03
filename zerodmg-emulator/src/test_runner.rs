@@ -2,6 +2,7 @@
 
 use std::sync::{Arc, Mutex};
 
+use crate::cpu::CPUController;
 use crate::{GameBoy, Output};
 
 /// Result of running a Blargg test ROM.
