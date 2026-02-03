@@ -107,6 +107,11 @@ impl CPUData {
             ei_pending: false,
         }
     }
+
+    /// Returns the current program counter value.
+    pub fn pc(&self) -> u16 {
+        self.pc
+    }
 }
 
 /// Iterates over bytes at PC, while incrementing it, in a borrowed [GameBoy].

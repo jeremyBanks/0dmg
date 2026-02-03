@@ -157,6 +157,11 @@ impl GameBoy {
         &self.serial_output
     }
 
+    /// Returns the current program counter value.
+    pub fn pc(&self) -> u16 {
+        self.cpu.pc()
+    }
+
     pub fn print_recent_executions(&mut self, limit: usize) {
         println!("; assembly:                        addr:         t|μs:   codes:");
         println!("; ---------                        ------        -----   --------");

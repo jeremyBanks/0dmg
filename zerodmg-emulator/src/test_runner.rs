@@ -13,6 +13,8 @@ pub struct TestResult {
     pub cycles: u64,
     /// Final status of the test.
     pub status: TestStatus,
+    /// Final PC value (for debugging).
+    pub final_pc: u16,
 }
 
 /// Status of a test execution.
@@ -70,6 +72,7 @@ impl BlarggTestRunner {
         match result {
             Ok(gameboy) => {
                 let output = String::from_utf8_lossy(gameboy.serial_output()).to_string();
+                let final_pc = gameboy.pc();
                 let status = if cycles >= max_cycles {
                     TestStatus::Timeout
                 } else {
@@ -79,6 +82,7 @@ impl BlarggTestRunner {
                     output,
                     cycles,
                     status,
+                    final_pc,
                 }
             }
             Err(panic_info) => {
@@ -93,6 +97,7 @@ impl BlarggTestRunner {
                     output: String::new(),
                     cycles,
                     status: TestStatus::Unimplemented(panic_msg),
+                    final_pc: 0,
                 }
             }
         }

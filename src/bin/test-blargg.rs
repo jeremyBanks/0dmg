@@ -85,6 +85,7 @@ fn run_single_test(name: &str) {
 
     println!("--- Result ---");
     println!("Cycles: {}", result.cycles);
+    println!("Final PC: 0x{:04X}", result.final_pc);
     print!("Status: ");
     match &result.status {
         TestStatus::Running => println!("RUNNING (unexpected)"),
@@ -126,10 +127,10 @@ fn run_all_tests() {
             TestStatus::Running => print!("RUNNING"),
             TestStatus::Passed => print!("✓ PASSED"),
             TestStatus::Failed => print!("✗ FAILED"),
-            TestStatus::Timeout => print!("⏱ TIMEOUT"),
+            TestStatus::Timeout => print!("⏱ TIMEOUT @ 0x{:04X}", result.final_pc),
             TestStatus::Unimplemented(msg) => {
-                let short_msg = if msg.len() > 50 {
-                    format!("{}...", &msg[..50])
+                let short_msg = if msg.len() > 40 {
+                    format!("{}...", &msg[..40])
                 } else {
                     msg.clone()
                 };
