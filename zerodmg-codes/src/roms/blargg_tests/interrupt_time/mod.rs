@@ -4,7 +4,7 @@ const INTERRUPT_TIME: &[u8; 0x8000] = include_bytes!("./interrupt_time.gb");
 
 /// Blargg's Interrupt Timing Test ROM
 pub fn interrupt_time() -> AssembledRom {
-    let rom = AssembledRom::from_bytes(&INTERRUPT_TIME.to_vec());
+    let rom = AssembledRom::from_bytes(INTERRUPT_TIME.as_ref());
     if cfg!(debug_assertions) {
         verify(&rom);
     }
@@ -13,7 +13,7 @@ pub fn interrupt_time() -> AssembledRom {
 
 /// A sanity-check/test of the result, only checked in debug mode and tests.
 fn verify(assembled: &AssembledRom) {
-    let known_vec = INTERRUPT_TIME.to_vec();
+    let known_vec = INTERRUPT_TIME.as_ref();
 
     println!("=== Disassembled Interrupt Timing Test ROM ===");
     let mut assembled = assembled.clone();

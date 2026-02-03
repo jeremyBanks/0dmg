@@ -16,8 +16,6 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, SystemTime};
 
-use zerodmg_codes;
-
 const EXECUTIONS_BUFFER_SIZE: usize = 1024;
 use image::{DynamicImage, GenericImage, ImageBuffer};
 
@@ -225,7 +223,9 @@ impl GameBoy {
                 self.video_cycle();
                 self.audio_cycle();
 
-                if (self.t + log_interval - log_interval.min(log_size as u64)) % log_interval == 0 {
+                if (self.t + log_interval - log_interval.min(log_size as u64))
+                    .is_multiple_of(log_interval)
+                {
                     should_log = true;
                 }
 

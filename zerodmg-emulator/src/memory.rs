@@ -51,16 +51,16 @@ impl MemoryController for GameBoy {
             // println!("    ; game_rom[0x{:02X}] == 0x{:02X}", addr, self.mem.game_rom[addr
             // as usize]); first page of game ROM
             self.mem.game_rom[addr as usize]
-        } else if 0x8000 <= addr && addr <= 0x9FFF {
+        } else if (0x8000..=0x9FFF).contains(&addr) {
             let i: usize = (addr - 0x8000) as usize;
             self.vram(i)
-        } else if 0xC000 <= addr && addr <= 0xDFFF {
+        } else if (0xC000..=0xDFFF).contains(&addr) {
             let i: usize = (addr - 0xC000) as usize;
             self.mem.wram[i]
-        } else if 0xFF80 <= addr && addr <= 0xFFFE {
+        } else if (0xFF80..=0xFFFE).contains(&addr) {
             let i: usize = (addr - 0xFF80) as usize;
             self.mem.stack_ram[i]
-        } else if 0xFF10 <= addr && addr <= 0xFF26 {
+        } else if (0xFF10..=0xFF26).contains(&addr) {
             let i = (addr - 0xFF10) as usize;
             self.audio_register(i)
         } else if addr == 0xFF40 {
@@ -85,16 +85,16 @@ impl MemoryController for GameBoy {
     }
 
     fn set_mem(&mut self, addr: u16, value: u8) {
-        if 0x8000 <= addr && addr <= 0x9FFF {
+        if (0x8000..=0x9FFF).contains(&addr) {
             let i: usize = (addr - 0x8000) as usize;
             self.set_vram(i, value);
-        } else if 0xC000 <= addr && addr <= 0xDFFF {
+        } else if (0xC000..=0xDFFF).contains(&addr) {
             let i: usize = (addr - 0xC000) as usize;
             self.mem.wram[i] = value;
-        } else if 0xFF80 <= addr && addr <= 0xFFFE {
+        } else if (0xFF80..=0xFFFE).contains(&addr) {
             let i: usize = (addr - 0xFF80) as usize;
             self.mem.stack_ram[i] = value;
-        } else if 0xFF10 <= addr && addr <= 0xFF26 {
+        } else if (0xFF10..=0xFF26).contains(&addr) {
             let i = (addr - 0xFF10) as usize;
             self.set_audio_register(i, value);
         } else if addr == 0xFF40 {

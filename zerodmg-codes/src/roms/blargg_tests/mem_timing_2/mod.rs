@@ -4,7 +4,7 @@ const MEM_TIMING_2: &[u8; 0x10000] = include_bytes!("./mem_timing_2.gb");
 
 /// Blargg's Memory Timing Test ROM 2
 pub fn mem_timing_2() -> AssembledRom {
-    let rom = AssembledRom::from_bytes(&MEM_TIMING_2.to_vec());
+    let rom = AssembledRom::from_bytes(MEM_TIMING_2.as_ref());
     if cfg!(debug_assertions) {
         verify(&rom);
     }
@@ -13,7 +13,7 @@ pub fn mem_timing_2() -> AssembledRom {
 
 /// A sanity-check/test of the result, only checked in debug mode and tests.
 fn verify(assembled: &AssembledRom) {
-    let known_vec = MEM_TIMING_2.to_vec();
+    let known_vec = MEM_TIMING_2.as_ref();
 
     println!("=== Disassembled Memory Tming Test ROM ===");
     let mut assembled = assembled.clone();

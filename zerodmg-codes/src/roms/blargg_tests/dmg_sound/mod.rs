@@ -4,7 +4,7 @@ const DMG_SOUND: &[u8; 0x10000] = include_bytes!("./dmg_sound.gb");
 
 /// Blargg's DMG Sound Test ROM
 pub fn dmg_sound() -> AssembledRom {
-    let rom = AssembledRom::from_bytes(&DMG_SOUND.to_vec());
+    let rom = AssembledRom::from_bytes(DMG_SOUND.as_ref());
     if cfg!(debug_assertions) {
         verify(&rom);
     }
@@ -13,7 +13,7 @@ pub fn dmg_sound() -> AssembledRom {
 
 /// A sanity-check/test of the result, only checked in debug mode and tests.
 fn verify(assembled: &AssembledRom) {
-    let known_vec = DMG_SOUND.to_vec();
+    let known_vec = DMG_SOUND.as_ref();
 
     println!("=== Disassembled DMG Sound Test ROM ===");
     let mut assembled = assembled.clone();

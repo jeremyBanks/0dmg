@@ -4,7 +4,7 @@ const OAM_BUG: &[u8; 0x10000] = include_bytes!("./oam_bug.gb");
 
 /// Blargg's OAM Bug Test ROM
 pub fn oam_bug() -> AssembledRom {
-    let rom = AssembledRom::from_bytes(&OAM_BUG.to_vec());
+    let rom = AssembledRom::from_bytes(OAM_BUG.as_ref());
     if cfg!(debug_assertions) {
         verify(&rom);
     }
@@ -13,7 +13,7 @@ pub fn oam_bug() -> AssembledRom {
 
 /// A sanity-check/test of the result, only checked in debug mode and tests.
 fn verify(assembled: &AssembledRom) {
-    let known_vec = OAM_BUG.to_vec();
+    let known_vec = OAM_BUG.as_ref();
 
     println!("=== Disassembled Halt Bug Test ROM ===");
     let mut assembled = assembled.clone();

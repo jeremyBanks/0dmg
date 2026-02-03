@@ -360,7 +360,7 @@ impl Instruction {
             // 8-Bit Bitwise Operations
             RL(register) => vec![0xCB, 0x10 | register.index()],
             RLA => vec![0x17],
-            RLC(register) => vec![0xCB, 0x00 | register.index()],
+            RLC(register) => vec![0xCB, register.index()],
             RLCA => vec![0x07],
             RR(register) => vec![0xCB, 0x18 | register.index()],
             RRA => vec![0x1F],
@@ -374,7 +374,7 @@ impl Instruction {
             SET(bit, register) => vec![0xCB, 0xC0 | (bit.index() << 3) | register.index()],
             RES(bit, register) => vec![0xCB, 0x80 | (bit.index() << 3) | register.index()],
             // 8-Bit Loads
-            LD_8_INTERNAL(dest, source) => vec![0x40 | (dest.index() << 3) + source.index()],
+            LD_8_INTERNAL(dest, source) => vec![0x40 | ((dest.index() << 3) + source.index())],
             LD_8_IMMEDIATE(register, value) => vec![0x06 | (register.index() << 3), value],
             LD_8_TO_SECONDARY(register) => vec![0x02 | (register.index() << 4)],
             LD_8_FROM_SECONDARY(register) => vec![0x0A | (register.index() << 4)],

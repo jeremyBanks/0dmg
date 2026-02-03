@@ -38,9 +38,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             if let Err(err) = http1::Builder::new()
                 .serve_connection(
                     io,
-                    service_fn(move |req| {
-                        server::handle_request(req, output_buffer.clone())
-                    }),
+                    service_fn(move |req| server::handle_request(req, output_buffer.clone())),
                 )
                 .await
             {

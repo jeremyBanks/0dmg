@@ -6,7 +6,6 @@ use zerodmg_codes::instruction::{
 
 use super::GameBoy;
 use super::memory::MemoryController;
-use rand;
 
 #[derive(Debug, Clone, Copy)]
 pub struct CPUData {
@@ -626,7 +625,7 @@ impl CPUController for GameBoy {
     }
 
     fn ie(&self) -> u8 {
-        return self.cpu.ie;
+        self.cpu.ie
     }
 
     fn set_ie(&mut self, ie: u8) {
@@ -634,7 +633,7 @@ impl CPUController for GameBoy {
     }
 
     fn ift(&self) -> u8 {
-        return self.cpu.ift;
+        self.cpu.ift
     }
 
     fn set_ift(&mut self, ift: u8) {
@@ -660,7 +659,7 @@ impl CPUController for GameBoy {
         let sp1 = sp0 - 2;
         let (value_low, value_high) = u16_to_u8s(value);
         self.set_mem(sp1 + 1, value_low);
-        self.set_mem(sp1 + 0, value_high);
+        self.set_mem(sp1, value_high);
         self.cpu.sp = sp1;
     }
 
@@ -668,7 +667,7 @@ impl CPUController for GameBoy {
         let sp0 = self.cpu.sp;
         let sp1 = sp0 + 2;
         let value_low = self.mem(sp0 + 1);
-        let value_high = self.mem(sp0 + 0);
+        let value_high = self.mem(sp0);
         let value = u8s_to_u16(value_low, value_high);
         self.cpu.sp = sp1;
         value
@@ -733,8 +732,7 @@ impl CPUController for GameBoy {
     }
 
     fn set_znhc_flags(&mut self, z: bool, n: bool, h: bool, c: bool) {
-        self.cpu.f = 0x00
-            | if z { 0x80 } else { 0x00 }
+        self.cpu.f = if z { 0x80 } else { 0x00 }
             | if n { 0x40 } else { 0x00 }
             | if h { 0x20 } else { 0x00 }
             | if c { 0x10 } else { 0x00 };

@@ -2,7 +2,7 @@ use crate::assembled::AssembledRom;
 
 /// The initial boot ROM for the original Game Boy.
 pub fn dmg_boot() -> AssembledRom {
-    let rom = AssembledRom::from_bytes(&DMG_BOOT.to_vec());
+    let rom = AssembledRom::from_bytes(DMG_BOOT.as_ref());
     if cfg!(debug_assertions) {
         verify(&rom);
     }
@@ -11,7 +11,7 @@ pub fn dmg_boot() -> AssembledRom {
 
 /// A sanity-check/test of the result, only checked in debug mode and tests.
 fn verify(assembled: &AssembledRom) {
-    let known_vec = DMG_BOOT.to_vec();
+    let known_vec = DMG_BOOT.as_ref();
 
     println!("=== Disassembled DMG Boot ROM ===");
     let mut assembled = assembled.clone();
