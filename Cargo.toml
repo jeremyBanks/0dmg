@@ -3,7 +3,7 @@ members = [".", "zerodmg-codes", "zerodmg-emulator", "zerodmg-utils"]
 resolver = "2"
 
 [workspace.package]
-version = "0.1.10"
+version = "0.2.26"
 edition = "2024"
 license = "MIT"
 authors = ["Jeremy Banks <_@jeremy.ca>"]
@@ -22,9 +22,9 @@ description = "pieces of a naive incomplete broken game boy emulator"
 readme = "README.md"
 
 [dependencies]
-zerodmg-emulator = { version = "0.1.10", path = "zerodmg-emulator" }
-zerodmg-utils = { version = "0.1.10", path = "zerodmg-utils" }
-zerodmg-codes = { version = "0.1.10", path = "zerodmg-codes" }
+zerodmg-emulator = { version = "0.2.26", path = "zerodmg-emulator" }
+zerodmg-utils = { version = "0.2.26", path = "zerodmg-utils" }
+zerodmg-codes = { version = "0.2.26", path = "zerodmg-codes" }
 futures = "0.1.*"
 hyper = "0.11.*"
 tokio = "0.1.7"

@@ -999,7 +999,7 @@ dependencies = [
 
 [[package]]
 name = "zerodmg"
-version = "0.1.10"
+version = "0.2.26"
 dependencies = [
  "futures",
  "hyper",
@@ -1013,7 +1013,7 @@ dependencies = [
 
 [[package]]
 name = "zerodmg-codes"
-version = "0.1.10"
+version = "0.2.26"
 dependencies = [
  "derive_more",
  "zerodmg-utils",
@@ -1021,7 +1021,7 @@ dependencies = [
 
 [[package]]
 name = "zerodmg-emulator"
-version = "0.1.10"
+version = "0.2.26"
 dependencies = [
  "image",
  "rand 0.8.5",
@@ -1031,7 +1031,7 @@ dependencies = [
 
 [[package]]
 name = "zerodmg-utils"
-version = "0.1.10"
+version = "0.2.26"
 dependencies = [
  "image",
 ]

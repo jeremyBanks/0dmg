@@ -10,5 +10,5 @@ description = "pieces of a naive incomplete broken game boy emulator"
 readme = "../README.md"
 
 [dependencies]
-zerodmg-utils = { version = "0.1.10", path = "../zerodmg-utils" }
+zerodmg-utils = { version = "0.2.26", path = "../zerodmg-utils" }
 derive_more = "0.99"
