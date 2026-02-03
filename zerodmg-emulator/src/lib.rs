@@ -30,6 +30,10 @@ pub struct GameBoy {
     t: u64,
 
     pub output_buffer: Arc<Mutex<Output>>,
+
+    // Serial I/O for Blargg test output
+    serial_output: Vec<u8>,
+    sb_register: u8,
 }
 
 pub struct Output {
@@ -146,6 +150,8 @@ impl GameBoy {
             debug_latest_executions: vec![],
             debug_latest_executions_next_i: 0,
             output_buffer,
+            serial_output: Vec::new(),
+            sb_register: 0,
         }
     }
 
