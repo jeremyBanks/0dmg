@@ -199,7 +199,8 @@ impl AssembledRom {
                 let following_bytes = &self.bytes[uaddress + 1..=uaddress + 4];
                 panic!(
                     "requested instruction address 0x{:04X}, mis-aligned with previously-decoded instructions.\nPrevious bytes: {:#?}\nThis byte 0x{:04X}: {:#?}\nNext bytes: {:#?}",
-                    address, recent_bytes, address, byte, following_bytes);
+                    address, recent_bytes, address, byte, following_bytes
+                );
             }
 
             RomByteRole::Unknown => {

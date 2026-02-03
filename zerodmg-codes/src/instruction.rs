@@ -1,4 +1,4 @@
-use zerodmg_utils::little_endian::{u16_to_u8s, u8s_to_u16};
+use zerodmg_utils::little_endian::{u8s_to_u16, u16_to_u8s};
 
 use std::fmt;
 use std::fmt::Display;
@@ -13,15 +13,15 @@ pub mod prelude {
     pub use super::Instruction::*;
     pub use super::InvalidOpcode;
     pub use super::InvalidOpcode::*;
+    pub use super::LD;
     pub use super::RSTTarget;
     pub use super::RSTTarget::*;
-    pub use super::U16Register;
-    pub use super::U16Register::*;
     pub use super::U8Register;
     pub use super::U8Register::*;
     pub use super::U8SecondaryRegister;
     pub use super::U8SecondaryRegister::*;
-    pub use super::LD;
+    pub use super::U16Register;
+    pub use super::U16Register::*;
 }
 
 use self::prelude::*;

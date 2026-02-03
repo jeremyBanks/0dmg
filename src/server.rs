@@ -6,7 +6,6 @@ use hyper::{Get, StatusCode};
 
 use futures::future::Future;
 
-
 /// Simple HTTP server displaying emulator output
 pub struct GameBoyIOServer {
     pub output_buffer: Arc<Mutex<zerodmg_emulator::Output>>,

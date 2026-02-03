@@ -1,11 +1,11 @@
-use zerodmg_utils::little_endian::{u16_to_u8s, u8_get_bit, u8s_to_u16};
+use zerodmg_utils::little_endian::{u8_get_bit, u8s_to_u16, u16_to_u8s};
 
 use zerodmg_codes::instruction::{
-    FlagCondition, Instruction, U16Register, U8Register, U8SecondaryRegister,
+    FlagCondition, Instruction, U8Register, U8SecondaryRegister, U16Register,
 };
 
-use super::memory::MemoryController;
 use super::GameBoy;
+use super::memory::MemoryController;
 use rand;
 
 #[derive(Debug, Clone, Copy)]
@@ -242,10 +242,7 @@ impl CPUController for GameBoy {
                 cycles = 1 + extra_read_cycles + extra_write_cycles;
                 trace!(
                     "{}₀ = 0x{:02X}, {}₁ = 0x{:02X}",
-                    target,
-                    old_value,
-                    target,
-                    new_value
+                    target, old_value, target, new_value
                 );
             }
             DEC(target) => {
@@ -258,10 +255,7 @@ impl CPUController for GameBoy {
                 cycles = 1 + extra_read_cycles + extra_write_cycles;
                 trace!(
                     "{}₀ = 0x{:02X}, {}₁ = 0x{:02X}",
-                    target,
-                    old_value,
-                    target,
-                    new_value
+                    target, old_value, target, new_value
                 );
             }
             ADD(source) => {
@@ -273,10 +267,7 @@ impl CPUController for GameBoy {
                 cycles = 1 + extra_read_cycles;
                 trace!(
                     "A₀ = 0x{:02X}, {} = 0x{:02X}, A₁ = 0x{:02X}",
-                    a_0,
-                    source,
-                    value,
-                    a_1
+                    a_0, source, value, a_1
                 );
             }
             ADC(_source) => unimplemented!("{}", instruction),
@@ -289,10 +280,7 @@ impl CPUController for GameBoy {
                 cycles = 1 + extra_read_cycles;
                 trace!(
                     "A₀ = 0x{:02X}, {} = 0x{:02X}, A₁ = 0x{:02X}",
-                    a_0,
-                    source,
-                    value,
-                    a_1
+                    a_0, source, value, a_1
                 );
             }
             SBC(_source) => unimplemented!("{}", instruction),
@@ -305,10 +293,7 @@ impl CPUController for GameBoy {
                 cycles = 1 + extra_read_cycles;
                 trace!(
                     "A₀ = 0x{:02X}, {} = 0x{:02X}, A₁ = 0x{:02X}",
-                    a_0,
-                    source,
-                    value,
-                    a_1
+                    a_0, source, value, a_1
                 );
             }
             XOR(source) => {
@@ -320,10 +305,7 @@ impl CPUController for GameBoy {
                 cycles = 1 + extra_read_cycles;
                 trace!(
                     "A₀ = 0x{:02X}, {} = 0x{:02X}, A₁ = 0x{:02X}",
-                    a_0,
-                    source,
-                    value,
-                    a_1
+                    a_0, source, value, a_1
                 );
             }
             OR(source) => {
@@ -335,10 +317,7 @@ impl CPUController for GameBoy {
                 cycles = 1 + extra_read_cycles;
                 trace!(
                     "A₀ = 0x{:02X}, {} = 0x{:02X}, A₁ = 0x{:02X}",
-                    a_0,
-                    source,
-                    value,
-                    a_1
+                    a_0, source, value, a_1
                 );
             }
             CP(source) => {
@@ -377,10 +356,7 @@ impl CPUController for GameBoy {
                 cycles = 2;
                 trace!(
                     "{:?}₀ = 0x{:02X}, {:?}₁ = 0x{:02X}",
-                    target,
-                    old_value,
-                    target,
-                    new_value
+                    target, old_value, target, new_value
                 );
             }
             DEC_16(target) => {
@@ -390,10 +366,7 @@ impl CPUController for GameBoy {
                 cycles = 2;
                 trace!(
                     "{:?}₀ = 0x{:02X}, {:?}₁ = 0x{:02X}",
-                    target,
-                    old_value,
-                    target,
-                    new_value
+                    target, old_value, target, new_value
                 );
             }
             ADD_TO_HL(_) => unimplemented!("{}", instruction),
@@ -409,12 +382,7 @@ impl CPUController for GameBoy {
                 cycles = 2;
                 trace!(
                     "Fc₀ = {}, {}₀ = 0x{:02X}, Fc₁ = {}, {}₁ = 0x{:02X}",
-                    f_c_0,
-                    register,
-                    value_0,
-                    f_c_1,
-                    register,
-                    value_1
+                    f_c_0, register, value_0, f_c_1, register, value_1
                 );
             }
             RLA => {
@@ -428,10 +396,7 @@ impl CPUController for GameBoy {
                 cycles = 2;
                 trace!(
                     "Fc₀ = {}, A₀ = 0x{:02X}, Fc₁ = {}, A₁ = 0x{:02X}",
-                    f_c_0,
-                    a_0,
-                    f_c_1,
-                    a_1
+                    f_c_0, a_0, f_c_1, a_1
                 );
             }
             RLC(_register) => unimplemented!("{}", instruction),
@@ -463,10 +428,7 @@ impl CPUController for GameBoy {
                 cycles = 1 + extra_read_cycles + extra_write_cycles;
                 trace!(
                     "{} = {}, {}₀ = {}",
-                    source,
-                    source_value,
-                    dest,
-                    dest_value_0
+                    source, source_value, dest, dest_value_0
                 );
             }
             LD_8_IMMEDIATE(dest, value) => {
@@ -512,9 +474,7 @@ impl CPUController for GameBoy {
                 cycles = 2;
                 trace!(
                     "C = 0x{:02X}, A = 0x{:02X}, (0xFFFF + C)₀ = 0x{:02X}",
-                    c,
-                    a,
-                    old_value
+                    c, a, old_value
                 );
             }
             LD_8_FROM_FF_C => unimplemented!("{}", instruction),
