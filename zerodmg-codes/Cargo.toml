@@ -1,13 +1,14 @@
 [package]
-edition = "2024"
 name = "zerodmg-codes"
-version = "0.1.9"
-license = "MIT"
-authors = ["Jeremy Banks <_@jeremy.ca>"]
-repository = "https://github.com/jeremyBanks/0dmg"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+publish.workspace = true
 description = "pieces of a naive incomplete broken game boy emulator"
 readme = "../README.md"
 
 [dependencies]
-zerodmg-utils = { version = "0.1.9", path = "../zerodmg-utils" }
+zerodmg-utils = { version = "0.1.10", path = "../zerodmg-utils" }
 derive_more = "0.99"
