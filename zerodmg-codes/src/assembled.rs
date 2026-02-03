@@ -146,7 +146,8 @@ impl AssembledRom {
                 .map(|byte| RomByte {
                     byte: *byte,
                     role: RomByteRole::Unknown,
-                }).collect(),
+                })
+                .collect(),
         }
     }
 
@@ -199,15 +200,11 @@ impl AssembledRom {
                 panic!(
                     "requested instruction address 0x{:04X}, mis-aligned with previously-decoded instructions.\nPrevious bytes: {:#?}\nThis byte 0x{:04X}: {:#?}\nNext bytes: {:#?}",
                     address, recent_bytes, address, byte, following_bytes);
-            },
+            }
 
             RomByteRole::Unknown => {
                 let instruction = {
-                    let mut byte_iter = self
-                        .bytes
-                        .iter()
-                        .skip(uaddress)
-                        .map(|ref b| b.byte);
+                    let mut byte_iter = self.bytes.iter().skip(uaddress).map(|ref b| b.byte);
                     Instruction::from_byte_iter(&mut byte_iter).unwrap()
                 };
 
@@ -233,7 +230,8 @@ impl AssembledRom {
                         JumpReference::Relative(offset) => {
                             let address = u16::try_from(
                                 (i32::from(next_address) + i32::from(offset) + 0x10000) % 0x10000,
-                            ).unwrap();
+                            )
+                            .unwrap();
                             self.decode_known_instruction_if_in_fixed_rom(address);
                         }
                     }

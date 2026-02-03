@@ -137,7 +137,8 @@ impl From<Vec<RomBlockContent>> for DisassembledRom {
                 .map(|content| RomBlock {
                     content,
                     address: None,
-                }).collect(),
+                })
+                .collect(),
         }
     }
 }

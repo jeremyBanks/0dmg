@@ -523,12 +523,7 @@ impl CPUController for GameBoy {
                 let old_value = self.mem(address);
                 self.set_mem(address, a);
                 cycles = 4;
-                trace!(
-                    "A = {:02X}, (0x{:04X})₀ = 0x{:02X}",
-                    address,
-                    a,
-                    old_value
-                );
+                trace!("A = {:02X}, (0x{:04X})₀ = 0x{:02X}", address, a, old_value);
             }
             LD_8_FROM_MEMORY_IMMEDIATE(_address) => unimplemented!("{}", instruction),
             // 16-Bit Loads
@@ -553,12 +548,7 @@ impl CPUController for GameBoy {
                 let sp_1 = self.cpu.sp;
                 self.set_register(register, value);
                 cycles = 3;
-                trace!(
-                    "{:?}₁ = 0x{:02X}, SP₁ = 0x{:04X}",
-                    register,
-                    value,
-                    sp_1
-                );
+                trace!("{:?}₁ = 0x{:02X}, SP₁ = 0x{:04X}", register, value, sp_1);
             }
             // Jumps and Calls
             JP_IF(condition, address) => {

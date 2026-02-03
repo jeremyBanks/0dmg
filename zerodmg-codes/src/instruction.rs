@@ -678,11 +678,13 @@ impl Display for Instruction {
         match self {
             // Control
             NOP => write!(f, "NOP"),
-            STOP(ignored) => if *ignored != 0x00 {
-                write!(f, "STOP 0x{:02X}", ignored)
-            } else {
-                write!(f, "STOP")
-            },
+            STOP(ignored) => {
+                if *ignored != 0x00 {
+                    write!(f, "STOP 0x{:02X}", ignored)
+                } else {
+                    write!(f, "STOP")
+                }
+            }
             HALT => write!(f, "HALT"),
             DI => write!(f, "DI"),
             EI => write!(f, "EI"),
@@ -1069,7 +1071,8 @@ fn can_round_trip_any_leading_byte() {
 
         if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             instruction = Instruction::from_byte_iter(&mut bytes.clone().into_iter());
-        })).is_err()
+        }))
+        .is_err()
         {
             println!("0x{:02X}: failed to decode instruction", byte);
             failed = true;
