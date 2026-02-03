@@ -535,6 +535,7 @@ impl Instruction {
                             let register = U8Register::from_index(0b111 & opcode_2);
                             SET(index, register)
                         }
+                        #[allow(unreachable_patterns)]
                         _ => unreachable!(),
                     }
                 }
@@ -598,6 +599,7 @@ impl Instruction {
                     RET_IF(condition)
                 }
                 0xD9 => RETI,
+                #[allow(unreachable_patterns)]
                 _ => unreachable!(),
             })
         } else {

@@ -36,8 +36,10 @@ pub struct CPUData {
     /// Interrupt Flag/trigger register 0xFF0F
     ift: u8,
     /// Disable interrupts after next instruction
+    #[allow(dead_code)]
     di_pending: bool,
     /// Enable interrupt after next instruction
+    #[allow(dead_code)]
     ei_pending: bool,
 }
 
@@ -59,12 +61,17 @@ pub trait CPUController:
     fn relative_jump(&mut self, n: i8);
     fn stack_push(&mut self, value: u16);
     fn stack_pop(&mut self) -> u16;
+    #[allow(dead_code)]
     fn af(&self) -> u16;
+    #[allow(dead_code)]
     fn set_af(&mut self, value: u16);
     fn c_flag(&self) -> bool;
+    #[allow(dead_code)]
     fn set_c_flag(&mut self, value: bool);
+    #[allow(dead_code)]
     fn h_flag(&self) -> bool;
     fn set_h_flag(&mut self, value: bool);
+    #[allow(dead_code)]
     fn n_flag(&self) -> bool;
     fn set_n_flag(&mut self, value: bool);
     fn z_flag(&self) -> bool;
