@@ -125,7 +125,9 @@ impl Output {
         let mut y = 0;
         for image in images.clone() {
             let (_width, height) = image.dimensions();
-            let _ = combined.copy_from(image, 0, y);
+            combined
+                .copy_from(image, 0, y)
+                .expect("failed to copy image into combined display");
             y += height;
         }
         DynamicImage::ImageRgba8(combined)

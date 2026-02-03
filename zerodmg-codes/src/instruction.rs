@@ -243,7 +243,6 @@ pub enum U8Register {
 
 /// The 16-bit registers that are available for most 16-bit instructions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[allow(non_camel_case_types)]
 pub enum U16Register {
     /// Combines the accumulator register and the internal flag register.
     ///
