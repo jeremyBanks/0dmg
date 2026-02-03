@@ -17,8 +17,8 @@ fn verify(assembled: &AssembledRom) {
     let mut assembled = assembled.clone();
     assembled.get_known_instruction(0x0000);
     let disassembled = assembled.disassemble();
-    println!("{:?}\n", disassembled);
-    println!("{}\n", disassembled);
+    println!("{disassembled:?}");
+    println!("{disassembled}");
 
     let reassembled_bytes = disassembled.assemble().to_bytes();
     assert_eq!(known_vec, reassembled_bytes);

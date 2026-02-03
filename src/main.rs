@@ -42,7 +42,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 )
                 .await
             {
-                eprintln!("Error serving connection: {:?}", err);
+                eprintln!("Error serving connection: {err:?}");
             }
         });
     }

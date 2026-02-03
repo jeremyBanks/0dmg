@@ -44,85 +44,105 @@ pub trait MemoryController {
 
 impl MemoryController for GameBoy {
     fn mem(&self, addr: u16) -> u8 {
-        if self.mem.boot_rom_mapped && addr <= 0x00FF {
-            // boot ROM, until unmapped to expose initial bytes of game ROM
-            self.mem.boot_rom[addr as usize]
-        } else if addr <= 0x7FFF {
-            // println!("    ; game_rom[0x{:02X}] == 0x{:02X}", addr, self.mem.game_rom[addr
-            // as usize]); first page of game ROM
-            self.mem.game_rom[addr as usize]
-        } else if (0x8000..=0x9FFF).contains(&addr) {
-            let i: usize = (addr - 0x8000) as usize;
-            self.vram(i)
-        } else if (0xC000..=0xDFFF).contains(&addr) {
-            let i: usize = (addr - 0xC000) as usize;
-            self.mem.wram[i]
-        } else if (0xFF80..=0xFFFE).contains(&addr) {
-            let i: usize = (addr - 0xFF80) as usize;
-            self.mem.stack_ram[i]
-        } else if (0xFF10..=0xFF26).contains(&addr) {
-            let i = (addr - 0xFF10) as usize;
-            self.audio_register(i)
-        } else if addr == 0xFF40 {
-            self.lcdc()
-        } else if addr == 0xFF42 {
-            self.scy()
-        } else if addr == 0xFF43 {
-            self.scx()
-        } else if addr == 0xFF44 {
-            self.ly()
-        } else if addr == 0xFF47 {
-            self.bgp()
-        } else if addr == 0xFF50 {
-            if self.mem.boot_rom_mapped { 0x01 } else { 0x00 }
-        } else if addr == 0xFF0F {
-            self.ift()
-        } else if addr == 0xFFFF {
-            self.ie()
-        } else {
-            panic!("I don't know how to get memory address 0x{:04X}.", addr);
+        match addr {
+            // Boot ROM, until unmapped to expose initial bytes of game ROM
+            0x0000..=0x00FF if self.mem.boot_rom_mapped => self.mem.boot_rom[addr as usize],
+            // Game ROM
+            0x0000..=0x7FFF => self.mem.game_rom[addr as usize],
+            // Video RAM
+            0x8000..=0x9FFF => {
+                let i = (addr - 0x8000) as usize;
+                self.vram(i)
+            }
+            // Working RAM
+            0xC000..=0xDFFF => {
+                let i = (addr - 0xC000) as usize;
+                self.mem.wram[i]
+            }
+            // Stack RAM
+            0xFF80..=0xFFFE => {
+                let i = (addr - 0xFF80) as usize;
+                self.mem.stack_ram[i]
+            }
+            // Audio registers
+            0xFF10..=0xFF26 => {
+                let i = (addr - 0xFF10) as usize;
+                self.audio_register(i)
+            }
+            // LCD Control
+            0xFF40 => self.lcdc(),
+            // Scroll Y
+            0xFF42 => self.scy(),
+            // Scroll X
+            0xFF43 => self.scx(),
+            // LCD Y-Coordinate
+            0xFF44 => self.ly(),
+            // Background Palette
+            0xFF47 => self.bgp(),
+            // Boot ROM disable register
+            0xFF50 => {
+                if self.mem.boot_rom_mapped {
+                    0x01
+                } else {
+                    0x00
+                }
+            }
+            // Interrupt Flag
+            0xFF0F => self.ift(),
+            // Interrupt Enable
+            0xFFFF => self.ie(),
+            _ => panic!("I don't know how to get memory address {addr:#06X}"),
         }
     }
 
     fn set_mem(&mut self, addr: u16, value: u8) {
-        if (0x8000..=0x9FFF).contains(&addr) {
-            let i: usize = (addr - 0x8000) as usize;
-            self.set_vram(i, value);
-        } else if (0xC000..=0xDFFF).contains(&addr) {
-            let i: usize = (addr - 0xC000) as usize;
-            self.mem.wram[i] = value;
-        } else if (0xFF80..=0xFFFE).contains(&addr) {
-            let i: usize = (addr - 0xFF80) as usize;
-            self.mem.stack_ram[i] = value;
-        } else if (0xFF10..=0xFF26).contains(&addr) {
-            let i = (addr - 0xFF10) as usize;
-            self.set_audio_register(i, value);
-        } else if addr == 0xFF40 {
-            self.set_lcdc(value);
-        } else if addr == 0xFF42 {
-            self.set_scy(value);
-        } else if addr == 0xFF43 {
-            self.set_scx(value);
-        } else if addr == 0xFF44 {
-            self.set_ly(value);
-        } else if addr == 0xFF47 {
-            self.set_bgp(value);
-        } else if addr == 0xFF50 {
-            if value != 0x01 {
-                panic!(
-                    "got unexpected value (not 0x01) written to 0xFF50 boot rom disable register"
-                );
+        match addr {
+            // Video RAM
+            0x8000..=0x9FFF => {
+                let i = (addr - 0x8000) as usize;
+                self.set_vram(i, value);
             }
-            self.mem.boot_rom_mapped = false;
-        } else if addr == 0xFF0F {
-            self.set_ift(value);
-        } else if addr == 0xFFFF {
-            self.set_ie(value);
-        } else {
-            panic!(
-                "I don't know how to set memory address 0x{:04X} (to 0x{:02X}).",
-                addr, value
-            );
+            // Working RAM
+            0xC000..=0xDFFF => {
+                let i = (addr - 0xC000) as usize;
+                self.mem.wram[i] = value;
+            }
+            // Stack RAM
+            0xFF80..=0xFFFE => {
+                let i = (addr - 0xFF80) as usize;
+                self.mem.stack_ram[i] = value;
+            }
+            // Audio registers
+            0xFF10..=0xFF26 => {
+                let i = (addr - 0xFF10) as usize;
+                self.set_audio_register(i, value);
+            }
+            // LCD Control
+            0xFF40 => self.set_lcdc(value),
+            // Scroll Y
+            0xFF42 => self.set_scy(value),
+            // Scroll X
+            0xFF43 => self.set_scx(value),
+            // LCD Y-Coordinate
+            0xFF44 => self.set_ly(value),
+            // Background Palette
+            0xFF47 => self.set_bgp(value),
+            // Boot ROM disable register
+            0xFF50 => {
+                if value != 0x01 {
+                    panic!(
+                        "got unexpected value (not 0x01) written to 0xFF50 boot ROM disable register"
+                    );
+                }
+                self.mem.boot_rom_mapped = false;
+            }
+            // Interrupt Flag
+            0xFF0F => self.set_ift(value),
+            // Interrupt Enable
+            0xFFFF => self.set_ie(value),
+            _ => panic!(
+                "I don't know how to set memory address {addr:#06X} (to {value:#04X})"
+            ),
         }
     }
 }

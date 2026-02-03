@@ -174,13 +174,13 @@ impl GameBoy {
             .instruction
             .to_bytes()
             .into_iter()
-            .map(|c| format!("{:02X}", c))
+            .map(|c| format!("{c:02X}"))
             .collect::<Vec<String>>()
             .join("");
         print!(" ; 0x{:8}", code);
         if let Some(ref tracer) = opex.tracer {
             let trace = tracer();
-            print!(" ; {}", trace);
+            print!(" ; {trace}");
         }
         println!();
     }

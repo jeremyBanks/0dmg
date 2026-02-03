@@ -19,8 +19,8 @@ fn verify(assembled: &AssembledRom) {
     let mut assembled = assembled.clone();
     assembled.trace_standard_game_instructions();
     let disassembled = assembled.disassemble();
-    println!("{:?}\n", disassembled);
-    println!("{}\n", disassembled);
+    println!("{disassembled:?}");
+    println!("{disassembled}");
 
     let reassembled_bytes = disassembled.assemble().to_bytes();
     assert_eq!(known_vec, reassembled_bytes);
