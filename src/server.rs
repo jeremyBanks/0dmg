@@ -6,7 +6,6 @@ use hyper::{Get, StatusCode};
 
 use futures::future::Future;
 
-use zerodmg_emulator;
 
 /// Simple HTTP server displaying emulator output
 pub struct GameBoyIOServer {
