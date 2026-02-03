@@ -232,8 +232,8 @@ macro_rules! code_blocks {
         )*
     ) => {
         {
-            #[allow(non_snake_case)]
-            #[allow(redundant_semicolons)]
+            #[expect(non_snake_case)]
+            #[expect(redundant_semicolons)]
             fn f() -> Vec<RomBlock> {
                 $(
                     $(let $id =)* $($address)*;

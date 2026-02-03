@@ -28,7 +28,7 @@ use self::prelude::*;
 
 /// A single CPU instruction, including any immediate arguments.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[allow(non_camel_case_types)]
+#[expect(non_camel_case_types)]
 pub enum Instruction {
     // Control
     /// No instruction.
@@ -207,7 +207,7 @@ pub enum Instruction {
 
 /// Flag conditions that can be used by branching instructions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[allow(non_camel_case_types)]
+#[expect(non_camel_case_types)]
 pub enum FlagCondition {
     /// Zero flag bit is not set; last instruction had non-zero result.
     if_NZ,
@@ -221,7 +221,7 @@ pub enum FlagCondition {
 
 /// Primary 8-bit registers/accessors available for most 8-bit instructions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[allow(non_camel_case_types)]
+#[expect(non_camel_case_types)]
 pub enum U8Register {
     /// Primary accumulator register
     A,
@@ -259,7 +259,7 @@ pub enum U16Register {
 
 /// Secondary 8-bit registers/accessors available for some 8-bit instructions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[allow(non_camel_case_types)]
+#[expect(non_camel_case_types)]
 pub enum U8SecondaryRegister {
     /// Value in memory address represented indicated by [BC] register.
     AT_BC,
@@ -275,7 +275,7 @@ pub enum U8SecondaryRegister {
 
 /// Addresses that can be called by single-byte RST instructions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[allow(non_camel_case_types, missing_docs)]
+#[expect(non_camel_case_types, missing_docs)]
 pub enum RSTTarget {
     to00,
     to08,
@@ -290,7 +290,7 @@ pub enum RSTTarget {
 /// Invalid instruction opcodes.
 /// These should never be executed.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[allow(non_camel_case_types, missing_docs)]
+#[expect(non_camel_case_types, missing_docs)]
 pub enum InvalidOpcode {
     xxD3,
     xxDB,
@@ -308,7 +308,7 @@ pub enum InvalidOpcode {
 /// Indexes of bits within a byte.
 /// Used for bitwise operations.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[allow(non_camel_case_types, missing_docs)]
+#[expect(non_camel_case_types, missing_docs)]
 pub enum BitIndex {
     bit0,
     bit1,
@@ -1004,7 +1004,7 @@ impl Display for U8SecondaryRegister {
 
 /// Generic sugar wrapping different types of LD instructions, overloaded by
 /// argument value.
-#[allow(non_snake_case)]
+#[expect(non_snake_case)]
 pub fn LD<A: Ld<B>, B>(a: A, b: B) -> Instruction {
     Ld::LD(a, b)
 }
@@ -1012,7 +1012,7 @@ pub fn LD<A: Ld<B>, B>(a: A, b: B) -> Instruction {
 /// Used to overload [self::LD] function.
 pub trait Ld<Source> {
     /// Returns an [Instruction] loading the value from source into dest.
-    #[allow(non_snake_case)]
+    #[expect(non_snake_case)]
     fn LD(destination: Self, source: Source) -> Instruction;
 }
 
