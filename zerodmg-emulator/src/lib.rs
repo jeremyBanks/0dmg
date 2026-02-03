@@ -155,6 +155,11 @@ impl GameBoy {
         }
     }
 
+    /// Returns the accumulated serial output from Blargg tests.
+    pub fn serial_output(&self) -> &[u8] {
+        &self.serial_output
+    }
+
     pub fn print_recent_executions(&mut self, limit: usize) {
         println!("; assembly:                        addr:         t|μs:   codes:");
         println!("; ---------                        ------        -----   --------");
