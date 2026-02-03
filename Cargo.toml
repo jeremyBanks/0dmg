@@ -1,5 +1,3 @@
-cargo-features = ["edition", "publish-lockfile"]
-
 [package]
 edition = "2018"
 name = "zerodmg"
@@ -9,7 +7,6 @@ authors = ["Jeremy Banks <_@jeremy.ca>"]
 repository = "https://github.com/jeremyBanks/0dmg"
 description = "pieces of a naive incomplete broken game boy emulator"
 readme = "README.md"
-publish-lockfile = true
 
 [dependencies]
 zerodmg-emulator = { version = "0.1.9", path = "zerodmg-emulator" }
