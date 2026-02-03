@@ -1,4 +1,4 @@
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 pub mod blargg_tests;
 mod dmg_boot;
 mod jeb_demo;

@@ -216,7 +216,7 @@ impl Display for RomBlock {
 }
 
 #[macro_export]
-#[allow(missing_docs)]
+#[expect(missing_docs)]
 macro_rules! code_blocks {
     (
         $(
