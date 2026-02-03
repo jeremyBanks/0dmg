@@ -1,52 +1,43 @@
+use std::convert::Infallible;
 use std::sync::{Arc, Mutex};
 
-use hyper::header::{CacheControl, CacheDirective, ContentLength, ContentType};
-use hyper::server::{Request, Response, Service};
-use hyper::{Get, StatusCode};
+use bytes::Bytes;
+use http_body_util::Full;
+use hyper::{Method, Request, Response, StatusCode};
 
-use futures::future::Future;
+/// Handle HTTP requests for the emulator display
+pub async fn handle_request(
+    req: Request<hyper::body::Incoming>,
+    output_buffer: Arc<Mutex<zerodmg_emulator::Output>>,
+) -> Result<Response<Full<Bytes>>, Infallible> {
+    // println!("; {} {}", req.method(), req.uri().path());
 
-/// Simple HTTP server displaying emulator output
-pub struct GameBoyIOServer {
-    pub output_buffer: Arc<Mutex<zerodmg_emulator::Output>>,
-}
-
-impl Service for GameBoyIOServer {
-    type Request = Request;
-    type Response = Response;
-    type Error = hyper::Error;
-
-    type Future = Box<dyn Future<Item = Self::Response, Error = Self::Error>>;
-
-    fn call(&self, req: Request) -> Self::Future {
-        // println!("; {} {}", req.method(), req.path());
-
-        match (req.method(), req.path()) {
-            (&Get, "/") => {
-                let html = include_bytes!("io.html").to_vec();
-                Box::new(futures::future::ok(
-                    Response::new()
-                        .with_header(ContentLength(html.len() as u64))
-                        .with_header(ContentType::html())
-                        .with_body(html),
-                ))
-            }
-            (&Get, "/output.png") => {
-                let display = self.output_buffer.lock().unwrap().combined_image();
-                let mut encoded_image = Vec::new();
-                display
-                    .write_to(&mut encoded_image, image::ImageOutputFormat::Png)
-                    .expect("failed to write image to memory buffer -- really?!");
-                Box::new(futures::future::ok(
-                    Response::new()
-                        .with_header(ContentLength(encoded_image.len() as u64))
-                        .with_header(CacheControl(vec![CacheDirective::NoStore]))
-                        .with_body(encoded_image),
-                ))
-            }
-            _ => Box::new(futures::future::ok(
-                Response::new().with_status(StatusCode::NotFound),
-            )),
+    match (req.method(), req.uri().path()) {
+        (&Method::GET, "/") => {
+            let html = include_bytes!("io.html");
+            Ok(Response::builder()
+                .header("content-type", "text/html")
+                .header("content-length", html.len())
+                .body(Full::new(Bytes::from_static(html)))
+                .unwrap())
         }
+        (&Method::GET, "/output.png") => {
+            let display = output_buffer.lock().unwrap().combined_image();
+            let mut encoded_image = Vec::new();
+            display
+                .write_to(&mut encoded_image, image::ImageOutputFormat::Png)
+                .expect("failed to write image to memory buffer -- really?!");
+
+            Ok(Response::builder()
+                .header("content-type", "image/png")
+                .header("content-length", encoded_image.len())
+                .header("cache-control", "no-store")
+                .body(Full::new(Bytes::from(encoded_image)))
+                .unwrap())
+        }
+        _ => Ok(Response::builder()
+            .status(StatusCode::NOT_FOUND)
+            .body(Full::default())
+            .unwrap()),
     }
 }
