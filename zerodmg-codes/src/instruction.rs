@@ -451,15 +451,15 @@ impl Instruction {
         if let Some(opcode) = bytes.next() {
             fn d8(bytes: &mut dyn Iterator<Item = u8>) -> u8 {
                 bytes.next().expect("unexpected end of ROM byte iterator")
-            };
+            }
             fn d16(bytes: &mut dyn Iterator<Item = u8>) -> u16 {
                 let low = d8(bytes);
                 let high = d8(bytes);
                 u8s_to_u16(low, high)
-            };
+            }
             fn r8(bytes: &mut dyn Iterator<Item = u8>) -> i8 {
                 d8(bytes) as i8
-            };
+            }
 
             Some(match opcode {
                 // Control
