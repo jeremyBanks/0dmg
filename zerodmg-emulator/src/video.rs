@@ -1,6 +1,6 @@
 use super::GameBoy;
 
-use image::GenericImage;
+use image::{GenericImage, GenericImageView};
 
 // seems to be the right value to meet the apparent framerate
 const CYCLES_PER_LINE: u64 = 113;
@@ -277,7 +277,7 @@ impl VideoController for GameBoy {
 
             for x in 0..=0xFF {
                 let mut color = bg_0.get_pixel(x, y);
-                color.data[3] = ((color.data[3] as u32 * dya as u32) / (border_width as u32)) as u8;
+                color[3] = ((color[3] as u32 * dya as u32) / (border_width as u32)) as u8;
                 bg_0.put_pixel(x, y, color);
             }
         }
@@ -288,7 +288,7 @@ impl VideoController for GameBoy {
 
             for y in 0..=0xFF {
                 let mut color = bg_0.get_pixel(x, y);
-                color.data[3] = ((color.data[3] as u32 * dxa as u32) / (border_width as u32)) as u8;
+                color[3] = ((color[3] as u32 * dxa as u32) / (border_width as u32)) as u8;
                 bg_0.put_pixel(x, y, color);
             }
         }

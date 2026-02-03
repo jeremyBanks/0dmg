@@ -5,6 +5,8 @@ mod cpu;
 mod memory;
 mod video;
 
+use image::GenericImageView;
+
 use self::audio::{AudioController, AudioData};
 use self::cpu::{CPUController, CPUData, InstructionExecution};
 use self::memory::MemoryData;

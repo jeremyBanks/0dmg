@@ -35,7 +35,7 @@ impl Service for GameBoyIOServer {
                 let display = self.output_buffer.lock().unwrap().combined_image();
                 let mut encoded_image = Vec::new();
                 display
-                    .write_to(&mut encoded_image, image::ImageOutputFormat::PNG)
+                    .write_to(&mut encoded_image, image::ImageOutputFormat::Png)
                     .expect("failed to write image to memory buffer -- really?!");
                 Box::new(futures::future::ok(
                     Response::new()

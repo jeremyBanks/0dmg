@@ -12,5 +12,5 @@ readme = "../README.md"
 [dependencies]
 zerodmg-utils = { version = "0.1.10", path = "../zerodmg-utils" }
 zerodmg-codes = { version = "0.1.10", path = "../zerodmg-codes" }
-image = "0.19.0"
+image = "0.23"
 rand = "0.8"
