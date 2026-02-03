@@ -46,7 +46,7 @@ pub struct InstructionExecution {
     pub t_1: u64,
     pub instruction: Instruction,
     /// Formats some additional debug information about the execution.
-    pub tracer: Option<Box<Fn() -> String>>,
+    pub tracer: Option<Box<dyn Fn() -> String>>,
     pub source: InstructionSource,
 }
 
@@ -70,7 +70,7 @@ pub trait CPUController:
     fn z_flag(&self) -> bool;
     fn set_z_flag(&mut self, value: bool);
     fn set_znhc_flags(&mut self, z: bool, n: bool, h: bool, c: bool);
-    fn iter_bytes_at_pc(&'gb mut self) -> PCMemoryIterator;
+    fn iter_bytes_at_pc<'gb>(&'gb mut self) -> PCMemoryIterator<'gb>;
     fn instruction_from_pc(&mut self) -> Instruction;
     fn condition(&self, condition: FlagCondition) -> bool;
     fn pop_interrupt(&mut self) -> Option<InterruptType>;
@@ -108,7 +108,7 @@ pub struct PCMemoryIterator<'gb> {
     gb: &'gb mut GameBoy,
 }
 
-impl Iterator for PCMemoryIterator<'gb> {
+impl<'gb> Iterator for PCMemoryIterator<'gb> {
     type Item = u8;
 
     fn next(&mut self) -> Option<u8> {
@@ -213,7 +213,7 @@ impl CPUController for GameBoy {
 
         let t_0 = self.cpu.t;
         let cycles;
-        let tracer: Option<Box<Fn() -> String>>;
+        let tracer: Option<Box<dyn Fn() -> String>>;
         macro_rules! trace {
             ($($x:expr),*) => {
                 tracer = Some(Box::new(move || { format!($($x),*) }))

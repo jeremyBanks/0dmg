@@ -18,7 +18,7 @@ impl Service for GameBoyIOServer {
     type Response = Response;
     type Error = hyper::Error;
 
-    type Future = Box<Future<Item = Self::Response, Error = Self::Error>>;
+    type Future = Box<dyn Future<Item = Self::Response, Error = Self::Error>>;
 
     fn call(&self, req: Request) -> Self::Future {
         // println!("; {} {}", req.method(), req.path());

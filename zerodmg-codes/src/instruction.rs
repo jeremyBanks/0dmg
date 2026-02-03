@@ -447,17 +447,17 @@ impl Instruction {
     /// Decodes machine code bytes from the iterator to an Instruction.
     ///
     /// Returns [None] if the iterator is exhausted.
-    pub fn from_byte_iter(bytes: &mut Iterator<Item = u8>) -> Option<Self> {
+    pub fn from_byte_iter(bytes: &mut dyn Iterator<Item = u8>) -> Option<Self> {
         if let Some(opcode) = bytes.next() {
-            fn d8(bytes: &mut Iterator<Item = u8>) -> u8 {
+            fn d8(bytes: &mut dyn Iterator<Item = u8>) -> u8 {
                 bytes.next().expect("unexpected end of ROM byte iterator")
             };
-            fn d16(bytes: &mut Iterator<Item = u8>) -> u16 {
+            fn d16(bytes: &mut dyn Iterator<Item = u8>) -> u16 {
                 let low = d8(bytes);
                 let high = d8(bytes);
                 u8s_to_u16(low, high)
             };
-            fn r8(bytes: &mut Iterator<Item = u8>) -> i8 {
+            fn r8(bytes: &mut dyn Iterator<Item = u8>) -> i8 {
                 d8(bytes) as i8
             };
 

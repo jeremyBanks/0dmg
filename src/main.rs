@@ -1,6 +1,3 @@
-#![feature(rust_2018_preview)]
-#![feature(rust_2018_idioms)]
-
 use std::any::Any;
 use std::clone::Clone;
 use std::sync::{Arc, Mutex};
@@ -13,7 +10,7 @@ use zerodmg_emulator as emulator;
 
 mod server;
 
-pub fn main() -> Result<(), Box<Any + Send>> {
+pub fn main() -> Result<(), Box<dyn Any + Send>> {
     let output_buffer = Arc::new(Mutex::new(emulator::Output::new()));
     let also_output_buffer = output_buffer.clone();
 

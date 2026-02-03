@@ -1,6 +1,3 @@
-#![feature(rust_2018_preview)]
-#![feature(rust_2018_idioms)]
-#![feature(try_from)]
 #![warn(missing_docs, missing_debug_implementations)]
 
 //! Experiments in decoding Game Boy machine code.
