@@ -15,7 +15,7 @@ pub fn oam_bug() -> AssembledRom {
 fn verify(assembled: &AssembledRom) {
     let known_vec = OAM_BUG.as_ref();
 
-    println!("=== Disassembled Halt Bug Test ROM ===");
+    println!("=== Disassembled OAM Bug Test ROM ===");
     let mut assembled = assembled.clone();
     assembled.trace_standard_game_instructions();
     let disassembled = assembled.disassemble();

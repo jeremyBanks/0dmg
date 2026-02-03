@@ -15,7 +15,7 @@ pub fn mem_timing_2() -> AssembledRom {
 fn verify(assembled: &AssembledRom) {
     let known_vec = MEM_TIMING_2.as_ref();
 
-    println!("=== Disassembled Memory Tming Test ROM ===");
+    println!("=== Disassembled Memory Timing Test ROM ===");
     let mut assembled = assembled.clone();
     assembled.trace_standard_game_instructions();
     let disassembled = assembled.disassemble();

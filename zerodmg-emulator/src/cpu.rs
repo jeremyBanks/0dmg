@@ -479,7 +479,7 @@ impl CPUController for GameBoy {
                 self.set_mem(address, a);
                 cycles = 2;
                 trace!(
-                    "C = 0x{:02X}, A = 0x{:02X}, (0xFFFF + C)₀ = 0x{:02X}",
+                    "C = 0x{:02X}, A = 0x{:02X}, (0xFF00 + C)₀ = 0x{:02X}",
                     c, a, old_value
                 );
             }
