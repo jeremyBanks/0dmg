@@ -136,11 +136,7 @@ impl Output {
 }
 
 impl GameBoy {
-    pub fn new(output_buffer: Arc<Mutex<Output>>) -> Self {
-        use zerodmg_codes::roms::*;
-
-        let game_rom = jeb_demo().assemble().to_bytes();
-
+    pub fn new(game_rom: Vec<u8>, output_buffer: Arc<Mutex<Output>>) -> Self {
         Self {
             cpu: CPUData::new(),
             mem: MemoryData::new(game_rom),
