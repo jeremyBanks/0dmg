@@ -1,5 +1,3 @@
-use std::convert::TryFrom;
-
 use crate::disassembled::prelude::*;
 use crate::instruction::prelude::*;
 
@@ -205,7 +203,8 @@ impl AssembledRom {
             RomByteRole::Unknown => {
                 let instruction = {
                     let mut byte_iter = self.bytes.iter().skip(uaddress).map(|b| b.byte);
-                    Instruction::from_byte_iter(&mut byte_iter).unwrap()
+                    Instruction::from_byte_iter(&mut byte_iter)
+                        .expect("failed to parse instruction from ROM bytes")
                 };
 
                 let next_address = address + instruction.byte_len();
@@ -231,7 +230,7 @@ impl AssembledRom {
                             let address = u16::try_from(
                                 (i32::from(next_address) + i32::from(offset) + 0x10000) % 0x10000,
                             )
-                            .unwrap();
+                            .expect("relative jump address calculation overflowed");
                             self.decode_known_instruction_if_in_fixed_rom(address);
                         }
                     }
@@ -272,7 +271,7 @@ impl AssembledRom {
         }
 
         for (address, byte) in self.bytes.iter().enumerate() {
-            let address = Some(u16::try_from(address).unwrap());
+            let address = Some(u16::try_from(address).expect("ROM address exceeded u16 bounds"));
 
             let block_change = match byte.role {
                 RomByteRole::InstructionStart {

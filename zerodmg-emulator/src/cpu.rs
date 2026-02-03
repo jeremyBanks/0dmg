@@ -642,7 +642,8 @@ impl CPUController for GameBoy {
 
     // Returns the instruction in memory at PC, and advances PC past it.
     fn instruction_from_pc(&mut self) -> Instruction {
-        Instruction::from_byte_iter(&mut self.iter_bytes_at_pc()).unwrap()
+        Instruction::from_byte_iter(&mut self.iter_bytes_at_pc())
+            .expect("failed to decode instruction at PC")
     }
 
     // Returns an Iterator that yields bytes from memory at PC++.

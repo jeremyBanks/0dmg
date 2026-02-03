@@ -19,10 +19,12 @@ pub async fn handle_request(
                 .header("content-type", "text/html")
                 .header("content-length", html.len())
                 .body(Full::new(Bytes::from_static(html)))
-                .unwrap())
+                .expect("failed to build HTTP response"))
         }
         (&Method::GET | &Method::HEAD, "/output.png") => {
-            let display = output_buffer.lock().unwrap().combined_image();
+            let display = output_buffer.lock()
+                .expect("output buffer mutex poisoned")
+                .combined_image();
             let mut encoded_image = Vec::new();
             display
                 .write_to(&mut encoded_image, image::ImageOutputFormat::Png)
@@ -33,11 +35,11 @@ pub async fn handle_request(
                 .header("content-length", encoded_image.len())
                 .header("cache-control", "no-store")
                 .body(Full::new(Bytes::from(encoded_image)))
-                .unwrap())
+                .expect("failed to build HTTP response"))
         }
         _ => Ok(Response::builder()
             .status(StatusCode::NOT_FOUND)
             .body(Full::default())
-            .unwrap()),
+            .expect("failed to build HTTP response")),
     }
 }

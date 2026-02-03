@@ -1067,7 +1067,7 @@ fn can_round_trip_any_leading_byte() {
         let mut instruction: Option<Instruction> = None;
 
         if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            instruction = Instruction::from_byte_iter(&mut bytes.clone().into_iter());
+            instruction = Instruction::from_byte_iter(&mut bytes.iter().copied());
         }))
         .is_err()
         {
@@ -1076,7 +1076,7 @@ fn can_round_trip_any_leading_byte() {
             continue;
         }
 
-        let round_tripped = instruction.unwrap().to_bytes();
+        let round_tripped = instruction.expect("instruction should be Some after successful decode").to_bytes();
         if round_tripped.len() == 0 {
             println!("0x{:02X}: failed to round-trip, got zero bytes", byte);
             failed = true;
@@ -1108,14 +1108,14 @@ fn can_round_trip_any_cb_instructions() {
         let mut instruction: Option<Instruction> = None;
 
         if let Err(_) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            instruction = Instruction::from_byte_iter(&mut bytes.clone().into_iter());
+            instruction = Instruction::from_byte_iter(&mut bytes.iter().copied());
         })) {
             println!("0xCB{:02X}: failed to decode instruction", byte);
             failed = true;
             continue;
         }
 
-        let round_tripped = instruction.unwrap().to_bytes();
+        let round_tripped = instruction.expect("instruction should be Some after successful decode").to_bytes();
         if bytes != round_tripped {
             println!(
                 "0xCB{:02X}: failed to round-trip, got {:?} {:?} from {:?}",

@@ -11,7 +11,6 @@ use self::audio::{AudioController, AudioData};
 use self::cpu::{CPUController, CPUData, InstructionExecution};
 use self::memory::MemoryData;
 use self::video::{VideoController, VideoData};
-use std::clone::Clone;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, SystemTime};
@@ -112,7 +111,7 @@ impl Output {
             &self.bg_1,
             &self.sprites,
         ];
-        for image in images.clone() {
+        for &image in &images {
             let (width, height) = image.dimensions();
             if width > max_width {
                 max_width = width;
@@ -121,7 +120,7 @@ impl Output {
         }
         let mut combined = ImageBuffer::new(max_width, total_height);
         let mut y = 0;
-        for image in images.clone() {
+        for &image in &images {
             let (_width, height) = image.dimensions();
             combined
                 .copy_from(image, 0, y)

@@ -83,7 +83,8 @@ impl VideoController for GameBoy {
     fn draw_output(&mut self) {
         // redraw display because vram was touched!
         let (mut display, mut bg_0, mut tiles, mut bgp) = {
-            let output_buffer = self.output_buffer.lock().unwrap();
+            let output_buffer = self.output_buffer.lock()
+                .expect("output buffer mutex poisoned");
             (
                 output_buffer.display.clone(),
                 output_buffer.bg_0.clone(),
@@ -294,7 +295,8 @@ impl VideoController for GameBoy {
         }
 
         {
-            let mut self_output_buffer = self.output_buffer.lock().unwrap();
+            let mut self_output_buffer = self.output_buffer.lock()
+                .expect("output buffer mutex poisoned");
             self_output_buffer.display = display;
             self_output_buffer.bg_0 = bg_0;
             self_output_buffer.tiles = tiles;

@@ -52,7 +52,7 @@ pub fn u16_to_u8s(x: u16) -> (u8, u8) {
 /// ```
 pub fn u8_get_bit(x: u8, offset: u8) -> bool {
     if offset > 7 {
-        panic!();
+        panic!("bit offset {offset} out of bounds (must be 0-7)");
     }
 
     (x >> offset) & 1 == 1
@@ -89,7 +89,7 @@ pub fn u8_get_bit(x: u8, offset: u8) -> bool {
 /// ```
 pub fn u8_set_bit(x: &mut u8, offset: u8, value: bool) {
     if offset > 7 {
-        panic!();
+        panic!("bit offset {offset} out of bounds (must be 0-7)");
     }
 
     let mask = 1 << offset;
