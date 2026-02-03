@@ -87,6 +87,10 @@ impl MemoryController for GameBoy {
                     0x00
                 }
             }
+            // Serial Data (SB)
+            0xFF01 => self.sb_register,
+            // Serial Control (SC) - always reads 0
+            0xFF02 => 0x00,
             // Interrupt Flag
             0xFF0F => self.ift(),
             // Interrupt Enable
@@ -135,6 +139,15 @@ impl MemoryController for GameBoy {
                     );
                 }
                 self.mem.boot_rom_mapped = false;
+            }
+            // Serial Data (SB)
+            0xFF01 => self.sb_register = value,
+            // Serial Control (SC) - writing 0x81 triggers transfer
+            0xFF02 => {
+                if value == 0x81 {
+                    // Transfer initiated - capture SB to output buffer
+                    self.serial_output.push(self.sb_register);
+                }
             }
             // Interrupt Flag
             0xFF0F => self.set_ift(value),
