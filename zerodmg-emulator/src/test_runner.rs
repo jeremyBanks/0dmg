@@ -3,6 +3,7 @@
 use std::sync::{Arc, Mutex};
 
 use crate::cpu::CPUController;
+use crate::video::VideoController;
 use crate::{GameBoy, Output};
 
 /// Result of running a Blargg test ROM.
@@ -50,6 +51,12 @@ impl BlarggTestRunner {
             while cycles < max_cycles {
                 let opex = gameboy.tick();
                 let tick_cycles = opex.t_1 - opex.t_0;
+
+                // Advance video timing (updates LY register)
+                for _ in 0..tick_cycles {
+                    gameboy.video_cycle();
+                }
+
                 cycles += tick_cycles;
 
                 // Check for new serial output
