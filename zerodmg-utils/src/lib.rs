@@ -1,6 +1,3 @@
-#![feature(rust_2018_preview)]
-#![feature(rust_2018_idioms)]
-#![feature(try_from)]
 #![warn(missing_docs, missing_debug_implementations)]
 
 //! Assorted utility modules for zerodmg.

@@ -24,5 +24,4 @@ to see what we've got.
 [![zerodmg-utils package on crates.io](https://img.shields.io/crates/v/zerodmg-utils.svg?style=flat-square&label=zerodmg-utils+library+crate)](https://crates.io/crates/zerodmg-utils) 
 [![docs](https://img.shields.io/badge/&-docs-880044.svg?style=flat-square)](https://docs.rs/zerodmg-utils)
 
-[![jeremyBanks/0dmg repository on GitHub](https://img.shields.io/github/commits-since/jeremyBanks/0dmg/latest.svg?style=flat-square)](https://github.com/jeremyBanks/0dmg)  
-[![jeremyBanks/0dmg on Travis CI](https://img.shields.io/travis/jeremyBanks/0dmg/master.svg?style=flat-square&label=master+build)](https://travis-ci.org/jeremyBanks/0dmg)
+[![jeremyBanks/0dmg repository on GitHub](https://img.shields.io/github/commits-since/jeremyBanks/0dmg/latest.svg?style=flat-square)](https://github.com/jeremyBanks/0dmg)

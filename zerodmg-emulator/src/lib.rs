@@ -1,6 +1,3 @@
-#![feature(rust_2018_preview)]
-#![feature(rust_2018_idioms)]
-#![feature(try_from)]
 // #![warn(missing_docs, missing_debug_implementations)]
 
 mod audio;
@@ -8,16 +5,15 @@ mod cpu;
 mod memory;
 mod video;
 
+use image::GenericImageView;
+
 use self::audio::{AudioController, AudioData};
 use self::cpu::{CPUController, CPUData, InstructionExecution};
 use self::memory::MemoryData;
 use self::video::{VideoController, VideoData};
-use std::clone::Clone;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, SystemTime};
-
-use zerodmg_codes;
 
 const EXECUTIONS_BUFFER_SIZE: usize = 1024;
 use image::{DynamicImage, GenericImage, ImageBuffer};
@@ -115,7 +111,7 @@ impl Output {
             &self.bg_1,
             &self.sprites,
         ];
-        for image in images.clone() {
+        for &image in &images {
             let (width, height) = image.dimensions();
             if width > max_width {
                 max_width = width;
@@ -124,9 +120,11 @@ impl Output {
         }
         let mut combined = ImageBuffer::new(max_width, total_height);
         let mut y = 0;
-        for image in images.clone() {
+        for &image in &images {
             let (_width, height) = image.dimensions();
-            combined.copy_from(image, 0, y);
+            combined
+                .copy_from(image, 0, y)
+                .expect("failed to copy image into combined display");
             y += height;
         }
         DynamicImage::ImageRgba8(combined)
@@ -176,13 +174,13 @@ impl GameBoy {
             .instruction
             .to_bytes()
             .into_iter()
-            .map(|c| format!("{:02X}", c))
+            .map(|c| format!("{c:02X}"))
             .collect::<Vec<String>>()
             .join("");
         print!(" ; 0x{:8}", code);
         if let Some(ref tracer) = opex.tracer {
             let trace = tracer();
-            print!(" ; {}", trace);
+            print!(" ; {trace}");
         }
         println!();
     }
@@ -224,7 +222,9 @@ impl GameBoy {
                 self.video_cycle();
                 self.audio_cycle();
 
-                if (self.t + log_interval - log_interval.min(log_size as u64)) % log_interval == 0 {
+                if (self.t + log_interval - log_interval.min(log_size as u64))
+                    .is_multiple_of(log_interval)
+                {
                     should_log = true;
                 }
 

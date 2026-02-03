@@ -1,12 +1,11 @@
-use zerodmg_utils::little_endian::{u16_to_u8s, u8_get_bit, u8s_to_u16};
+use zerodmg_utils::little_endian::{u8_get_bit, u8s_to_u16, u16_to_u8s};
 
 use zerodmg_codes::instruction::{
-    FlagCondition, Instruction, U16Register, U8Register, U8SecondaryRegister,
+    FlagCondition, Instruction, U8Register, U8SecondaryRegister, U16Register,
 };
 
-use super::memory::MemoryController;
 use super::GameBoy;
-use rand;
+use super::memory::MemoryController;
 
 #[derive(Debug, Clone, Copy)]
 pub struct CPUData {
@@ -36,8 +35,10 @@ pub struct CPUData {
     /// Interrupt Flag/trigger register 0xFF0F
     ift: u8,
     /// Disable interrupts after next instruction
+    #[expect(dead_code)]
     di_pending: bool,
     /// Enable interrupt after next instruction
+    #[expect(dead_code)]
     ei_pending: bool,
 }
 
@@ -46,7 +47,7 @@ pub struct InstructionExecution {
     pub t_1: u64,
     pub instruction: Instruction,
     /// Formats some additional debug information about the execution.
-    pub tracer: Option<Box<Fn() -> String>>,
+    pub tracer: Option<Box<dyn Fn() -> String>>,
     pub source: InstructionSource,
 }
 
@@ -59,18 +60,23 @@ pub trait CPUController:
     fn relative_jump(&mut self, n: i8);
     fn stack_push(&mut self, value: u16);
     fn stack_pop(&mut self) -> u16;
+    #[expect(dead_code)]
     fn af(&self) -> u16;
+    #[expect(dead_code)]
     fn set_af(&mut self, value: u16);
     fn c_flag(&self) -> bool;
+    #[expect(dead_code)]
     fn set_c_flag(&mut self, value: bool);
+    #[expect(dead_code)]
     fn h_flag(&self) -> bool;
     fn set_h_flag(&mut self, value: bool);
+    #[expect(dead_code)]
     fn n_flag(&self) -> bool;
     fn set_n_flag(&mut self, value: bool);
     fn z_flag(&self) -> bool;
     fn set_z_flag(&mut self, value: bool);
     fn set_znhc_flags(&mut self, z: bool, n: bool, h: bool, c: bool);
-    fn iter_bytes_at_pc(&'gb mut self) -> PCMemoryIterator;
+    fn iter_bytes_at_pc<'gb>(&'gb mut self) -> PCMemoryIterator<'gb>;
     fn instruction_from_pc(&mut self) -> Instruction;
     fn condition(&self, condition: FlagCondition) -> bool;
     fn pop_interrupt(&mut self) -> Option<InterruptType>;
@@ -108,7 +114,7 @@ pub struct PCMemoryIterator<'gb> {
     gb: &'gb mut GameBoy,
 }
 
-impl Iterator for PCMemoryIterator<'gb> {
+impl<'gb> Iterator for PCMemoryIterator<'gb> {
     type Item = u8;
 
     fn next(&mut self) -> Option<u8> {
@@ -213,7 +219,7 @@ impl CPUController for GameBoy {
 
         let t_0 = self.cpu.t;
         let cycles;
-        let tracer: Option<Box<Fn() -> String>>;
+        let tracer: Option<Box<dyn Fn() -> String>>;
         macro_rules! trace {
             ($($x:expr),*) => {
                 tracer = Some(Box::new(move || { format!($($x),*) }))
@@ -242,10 +248,7 @@ impl CPUController for GameBoy {
                 cycles = 1 + extra_read_cycles + extra_write_cycles;
                 trace!(
                     "{}₀ = 0x{:02X}, {}₁ = 0x{:02X}",
-                    target,
-                    old_value,
-                    target,
-                    new_value
+                    target, old_value, target, new_value
                 );
             }
             DEC(target) => {
@@ -258,10 +261,7 @@ impl CPUController for GameBoy {
                 cycles = 1 + extra_read_cycles + extra_write_cycles;
                 trace!(
                     "{}₀ = 0x{:02X}, {}₁ = 0x{:02X}",
-                    target,
-                    old_value,
-                    target,
-                    new_value
+                    target, old_value, target, new_value
                 );
             }
             ADD(source) => {
@@ -273,10 +273,7 @@ impl CPUController for GameBoy {
                 cycles = 1 + extra_read_cycles;
                 trace!(
                     "A₀ = 0x{:02X}, {} = 0x{:02X}, A₁ = 0x{:02X}",
-                    a_0,
-                    source,
-                    value,
-                    a_1
+                    a_0, source, value, a_1
                 );
             }
             ADC(_source) => unimplemented!("{}", instruction),
@@ -289,10 +286,7 @@ impl CPUController for GameBoy {
                 cycles = 1 + extra_read_cycles;
                 trace!(
                     "A₀ = 0x{:02X}, {} = 0x{:02X}, A₁ = 0x{:02X}",
-                    a_0,
-                    source,
-                    value,
-                    a_1
+                    a_0, source, value, a_1
                 );
             }
             SBC(_source) => unimplemented!("{}", instruction),
@@ -305,10 +299,7 @@ impl CPUController for GameBoy {
                 cycles = 1 + extra_read_cycles;
                 trace!(
                     "A₀ = 0x{:02X}, {} = 0x{:02X}, A₁ = 0x{:02X}",
-                    a_0,
-                    source,
-                    value,
-                    a_1
+                    a_0, source, value, a_1
                 );
             }
             XOR(source) => {
@@ -320,10 +311,7 @@ impl CPUController for GameBoy {
                 cycles = 1 + extra_read_cycles;
                 trace!(
                     "A₀ = 0x{:02X}, {} = 0x{:02X}, A₁ = 0x{:02X}",
-                    a_0,
-                    source,
-                    value,
-                    a_1
+                    a_0, source, value, a_1
                 );
             }
             OR(source) => {
@@ -335,10 +323,7 @@ impl CPUController for GameBoy {
                 cycles = 1 + extra_read_cycles;
                 trace!(
                     "A₀ = 0x{:02X}, {} = 0x{:02X}, A₁ = 0x{:02X}",
-                    a_0,
-                    source,
-                    value,
-                    a_1
+                    a_0, source, value, a_1
                 );
             }
             CP(source) => {
@@ -377,10 +362,7 @@ impl CPUController for GameBoy {
                 cycles = 2;
                 trace!(
                     "{:?}₀ = 0x{:02X}, {:?}₁ = 0x{:02X}",
-                    target,
-                    old_value,
-                    target,
-                    new_value
+                    target, old_value, target, new_value
                 );
             }
             DEC_16(target) => {
@@ -390,10 +372,7 @@ impl CPUController for GameBoy {
                 cycles = 2;
                 trace!(
                     "{:?}₀ = 0x{:02X}, {:?}₁ = 0x{:02X}",
-                    target,
-                    old_value,
-                    target,
-                    new_value
+                    target, old_value, target, new_value
                 );
             }
             ADD_TO_HL(_) => unimplemented!("{}", instruction),
@@ -409,12 +388,7 @@ impl CPUController for GameBoy {
                 cycles = 2;
                 trace!(
                     "Fc₀ = {}, {}₀ = 0x{:02X}, Fc₁ = {}, {}₁ = 0x{:02X}",
-                    f_c_0,
-                    register,
-                    value_0,
-                    f_c_1,
-                    register,
-                    value_1
+                    f_c_0, register, value_0, f_c_1, register, value_1
                 );
             }
             RLA => {
@@ -428,10 +402,7 @@ impl CPUController for GameBoy {
                 cycles = 2;
                 trace!(
                     "Fc₀ = {}, A₀ = 0x{:02X}, Fc₁ = {}, A₁ = 0x{:02X}",
-                    f_c_0,
-                    a_0,
-                    f_c_1,
-                    a_1
+                    f_c_0, a_0, f_c_1, a_1
                 );
             }
             RLC(_register) => unimplemented!("{}", instruction),
@@ -463,10 +434,7 @@ impl CPUController for GameBoy {
                 cycles = 1 + extra_read_cycles + extra_write_cycles;
                 trace!(
                     "{} = {}, {}₀ = {}",
-                    source,
-                    source_value,
-                    dest,
-                    dest_value_0
+                    source, source_value, dest, dest_value_0
                 );
             }
             LD_8_IMMEDIATE(dest, value) => {
@@ -511,10 +479,8 @@ impl CPUController for GameBoy {
                 self.set_mem(address, a);
                 cycles = 2;
                 trace!(
-                    "C = 0x{:02X}, A = 0x{:02X}, (0xFFFF + C)₀ = 0x{:02X}",
-                    c,
-                    a,
-                    old_value
+                    "C = 0x{:02X}, A = 0x{:02X}, (0xFF00 + C)₀ = 0x{:02X}",
+                    c, a, old_value
                 );
             }
             LD_8_FROM_FF_C => unimplemented!("{}", instruction),
@@ -659,7 +625,7 @@ impl CPUController for GameBoy {
     }
 
     fn ie(&self) -> u8 {
-        return self.cpu.ie;
+        self.cpu.ie
     }
 
     fn set_ie(&mut self, ie: u8) {
@@ -667,7 +633,7 @@ impl CPUController for GameBoy {
     }
 
     fn ift(&self) -> u8 {
-        return self.cpu.ift;
+        self.cpu.ift
     }
 
     fn set_ift(&mut self, ift: u8) {
@@ -676,7 +642,8 @@ impl CPUController for GameBoy {
 
     // Returns the instruction in memory at PC, and advances PC past it.
     fn instruction_from_pc(&mut self) -> Instruction {
-        Instruction::from_byte_iter(&mut self.iter_bytes_at_pc()).unwrap()
+        Instruction::from_byte_iter(&mut self.iter_bytes_at_pc())
+            .expect("failed to decode instruction at PC")
     }
 
     // Returns an Iterator that yields bytes from memory at PC++.
@@ -693,7 +660,7 @@ impl CPUController for GameBoy {
         let sp1 = sp0 - 2;
         let (value_low, value_high) = u16_to_u8s(value);
         self.set_mem(sp1 + 1, value_low);
-        self.set_mem(sp1 + 0, value_high);
+        self.set_mem(sp1, value_high);
         self.cpu.sp = sp1;
     }
 
@@ -701,7 +668,7 @@ impl CPUController for GameBoy {
         let sp0 = self.cpu.sp;
         let sp1 = sp0 + 2;
         let value_low = self.mem(sp0 + 1);
-        let value_high = self.mem(sp0 + 0);
+        let value_high = self.mem(sp0);
         let value = u8s_to_u16(value_low, value_high);
         self.cpu.sp = sp1;
         value
@@ -766,8 +733,7 @@ impl CPUController for GameBoy {
     }
 
     fn set_znhc_flags(&mut self, z: bool, n: bool, h: bool, c: bool) {
-        self.cpu.f = 0x00
-            | if z { 0x80 } else { 0x00 }
+        self.cpu.f = if z { 0x80 } else { 0x00 }
             | if n { 0x40 } else { 0x00 }
             | if h { 0x20 } else { 0x00 }
             | if c { 0x10 } else { 0x00 };

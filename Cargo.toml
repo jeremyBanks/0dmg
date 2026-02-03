@@ -1,19 +1,39 @@
-[package]
-edition = "2018"
-name = "zerodmg"
-version = "0.1.9"
+[workspace]
+members = [".", "zerodmg-codes", "zerodmg-emulator", "zerodmg-utils"]
+resolver = "2"
+
+[workspace.package]
+version = "0.2.26"
+edition = "2024"
 license = "MIT"
 authors = ["Jeremy Banks <_@jeremy.ca>"]
 repository = "https://github.com/jeremyBanks/0dmg"
+publish = false
+
+[workspace.dependencies]
+zerodmg-codes = { version = "0.2.26", path = "zerodmg-codes" }
+zerodmg-emulator = { version = "0.2.26", path = "zerodmg-emulator" }
+zerodmg-utils = { version = "0.2.26", path = "zerodmg-utils" }
+
+[package]
+name = "zerodmg"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+publish.workspace = true
 description = "pieces of a naive incomplete broken game boy emulator"
 readme = "README.md"
 
 [dependencies]
-zerodmg-emulator = { version = "0.1.9", path = "zerodmg-emulator" }
-zerodmg-utils = { version = "0.1.9", path = "zerodmg-utils" }
-zerodmg-codes = { version = "0.1.9", path = "zerodmg-codes" }
-futures = "0.1.*"
-hyper = "0.11.*"
-tokio = "0.1.7"
-rand = "0.5.2"
-image = "0.19.0"
+zerodmg-emulator.workspace = true
+zerodmg-utils.workspace = true
+zerodmg-codes.workspace = true
+tokio = { version = "1.0", features = ["full"] }
+hyper = { version = "1.0", features = ["server", "http1"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
+http-body-util = "0.1"
+bytes = "1.0"
+rand = "0.8"
+image = "0.23"

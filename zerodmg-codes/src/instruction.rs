@@ -1,4 +1,4 @@
-use zerodmg_utils::little_endian::{u16_to_u8s, u8s_to_u16};
+use zerodmg_utils::little_endian::{u8s_to_u16, u16_to_u8s};
 
 use std::fmt;
 use std::fmt::Display;
@@ -13,22 +13,22 @@ pub mod prelude {
     pub use super::Instruction::*;
     pub use super::InvalidOpcode;
     pub use super::InvalidOpcode::*;
+    pub use super::LD;
     pub use super::RSTTarget;
     pub use super::RSTTarget::*;
-    pub use super::U16Register;
-    pub use super::U16Register::*;
     pub use super::U8Register;
     pub use super::U8Register::*;
     pub use super::U8SecondaryRegister;
     pub use super::U8SecondaryRegister::*;
-    pub use super::LD;
+    pub use super::U16Register;
+    pub use super::U16Register::*;
 }
 
 use self::prelude::*;
 
 /// A single CPU instruction, including any immediate arguments.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[allow(non_camel_case_types)]
+#[expect(non_camel_case_types)]
 pub enum Instruction {
     // Control
     /// No instruction.
@@ -207,7 +207,7 @@ pub enum Instruction {
 
 /// Flag conditions that can be used by branching instructions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[allow(non_camel_case_types)]
+#[expect(non_camel_case_types)]
 pub enum FlagCondition {
     /// Zero flag bit is not set; last instruction had non-zero result.
     if_NZ,
@@ -221,7 +221,7 @@ pub enum FlagCondition {
 
 /// Primary 8-bit registers/accessors available for most 8-bit instructions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[allow(non_camel_case_types)]
+#[expect(non_camel_case_types)]
 pub enum U8Register {
     /// Primary accumulator register
     A,
@@ -243,7 +243,6 @@ pub enum U8Register {
 
 /// The 16-bit registers that are available for most 16-bit instructions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[allow(non_camel_case_types)]
 pub enum U16Register {
     /// Combines the accumulator register and the internal flag register.
     ///
@@ -259,7 +258,7 @@ pub enum U16Register {
 
 /// Secondary 8-bit registers/accessors available for some 8-bit instructions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[allow(non_camel_case_types)]
+#[expect(non_camel_case_types)]
 pub enum U8SecondaryRegister {
     /// Value in memory address represented indicated by [BC] register.
     AT_BC,
@@ -275,7 +274,7 @@ pub enum U8SecondaryRegister {
 
 /// Addresses that can be called by single-byte RST instructions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[allow(non_camel_case_types, missing_docs)]
+#[expect(non_camel_case_types, missing_docs)]
 pub enum RSTTarget {
     to00,
     to08,
@@ -290,7 +289,7 @@ pub enum RSTTarget {
 /// Invalid instruction opcodes.
 /// These should never be executed.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[allow(non_camel_case_types, missing_docs)]
+#[expect(non_camel_case_types, missing_docs)]
 pub enum InvalidOpcode {
     xxD3,
     xxDB,
@@ -308,7 +307,7 @@ pub enum InvalidOpcode {
 /// Indexes of bits within a byte.
 /// Used for bitwise operations.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[allow(non_camel_case_types, missing_docs)]
+#[expect(non_camel_case_types, missing_docs)]
 pub enum BitIndex {
     bit0,
     bit1,
@@ -361,7 +360,7 @@ impl Instruction {
             // 8-Bit Bitwise Operations
             RL(register) => vec![0xCB, 0x10 | register.index()],
             RLA => vec![0x17],
-            RLC(register) => vec![0xCB, 0x00 | register.index()],
+            RLC(register) => vec![0xCB, register.index()],
             RLCA => vec![0x07],
             RR(register) => vec![0xCB, 0x18 | register.index()],
             RRA => vec![0x1F],
@@ -375,7 +374,7 @@ impl Instruction {
             SET(bit, register) => vec![0xCB, 0xC0 | (bit.index() << 3) | register.index()],
             RES(bit, register) => vec![0xCB, 0x80 | (bit.index() << 3) | register.index()],
             // 8-Bit Loads
-            LD_8_INTERNAL(dest, source) => vec![0x40 | (dest.index() << 3) + source.index()],
+            LD_8_INTERNAL(dest, source) => vec![0x40 | ((dest.index() << 3) + source.index())],
             LD_8_IMMEDIATE(register, value) => vec![0x06 | (register.index() << 3), value],
             LD_8_TO_SECONDARY(register) => vec![0x02 | (register.index() << 4)],
             LD_8_FROM_SECONDARY(register) => vec![0x0A | (register.index() << 4)],
@@ -447,19 +446,19 @@ impl Instruction {
     /// Decodes machine code bytes from the iterator to an Instruction.
     ///
     /// Returns [None] if the iterator is exhausted.
-    pub fn from_byte_iter(bytes: &mut Iterator<Item = u8>) -> Option<Self> {
+    pub fn from_byte_iter(bytes: &mut dyn Iterator<Item = u8>) -> Option<Self> {
         if let Some(opcode) = bytes.next() {
-            fn d8(bytes: &mut Iterator<Item = u8>) -> u8 {
+            fn d8(bytes: &mut dyn Iterator<Item = u8>) -> u8 {
                 bytes.next().expect("unexpected end of ROM byte iterator")
-            };
-            fn d16(bytes: &mut Iterator<Item = u8>) -> u16 {
+            }
+            fn d16(bytes: &mut dyn Iterator<Item = u8>) -> u16 {
                 let low = d8(bytes);
                 let high = d8(bytes);
                 u8s_to_u16(low, high)
-            };
-            fn r8(bytes: &mut Iterator<Item = u8>) -> i8 {
+            }
+            fn r8(bytes: &mut dyn Iterator<Item = u8>) -> i8 {
                 d8(bytes) as i8
-            };
+            }
 
             Some(match opcode {
                 // Control
@@ -535,7 +534,6 @@ impl Instruction {
                             let register = U8Register::from_index(0b111 & opcode_2);
                             SET(index, register)
                         }
-                        _ => unreachable!(),
                     }
                 }
                 // 8-Bit Loads
@@ -598,7 +596,6 @@ impl Instruction {
                     RET_IF(condition)
                 }
                 0xD9 => RETI,
-                _ => unreachable!(),
             })
         } else {
             None
@@ -1006,7 +1003,7 @@ impl Display for U8SecondaryRegister {
 
 /// Generic sugar wrapping different types of LD instructions, overloaded by
 /// argument value.
-#[allow(non_snake_case)]
+#[expect(non_snake_case)]
 pub fn LD<A: Ld<B>, B>(a: A, b: B) -> Instruction {
     Ld::LD(a, b)
 }
@@ -1014,7 +1011,7 @@ pub fn LD<A: Ld<B>, B>(a: A, b: B) -> Instruction {
 /// Used to overload [self::LD] function.
 pub trait Ld<Source> {
     /// Returns an [Instruction] loading the value from source into dest.
-    #[allow(non_snake_case)]
+    #[expect(non_snake_case)]
     fn LD(destination: Self, source: Source) -> Instruction;
 }
 
@@ -1070,18 +1067,18 @@ fn can_round_trip_any_leading_byte() {
         let mut instruction: Option<Instruction> = None;
 
         if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            instruction = Instruction::from_byte_iter(&mut bytes.clone().into_iter());
+            instruction = Instruction::from_byte_iter(&mut bytes.iter().copied());
         }))
         .is_err()
         {
-            println!("0x{:02X}: failed to decode instruction", byte);
+            println!("0x{byte:02X}: failed to decode instruction");
             failed = true;
             continue;
         }
 
-        let round_tripped = instruction.unwrap().to_bytes();
+        let round_tripped = instruction.expect("instruction should be Some after successful decode").to_bytes();
         if round_tripped.len() == 0 {
-            println!("0x{:02X}: failed to round-trip, got zero bytes", byte);
+            println!("0x{byte:02X}: failed to round-trip, got zero bytes");
             failed = true;
             continue;
         }
@@ -1111,14 +1108,14 @@ fn can_round_trip_any_cb_instructions() {
         let mut instruction: Option<Instruction> = None;
 
         if let Err(_) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            instruction = Instruction::from_byte_iter(&mut bytes.clone().into_iter());
+            instruction = Instruction::from_byte_iter(&mut bytes.iter().copied());
         })) {
-            println!("0xCB{:02X}: failed to decode instruction", byte);
+            println!("0xCB{byte:02X}: failed to decode instruction");
             failed = true;
             continue;
         }
 
-        let round_tripped = instruction.unwrap().to_bytes();
+        let round_tripped = instruction.expect("instruction should be Some after successful decode").to_bytes();
         if bytes != round_tripped {
             println!(
                 "0xCB{:02X}: failed to round-trip, got {:?} {:?} from {:?}",

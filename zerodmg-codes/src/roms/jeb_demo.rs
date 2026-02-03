@@ -166,8 +166,8 @@ fn verify(rom: &DisassembledRom) {
     let mut assembled = AssembledRom::from_bytes(&assembled_bytes);
     assembled.trace_standard_game_instructions();
     let disassembled = assembled.disassemble();
-    println!("{:?}\n", disassembled);
-    println!("{}\n", disassembled);
+    println!("{disassembled:?}");
+    println!("{disassembled}");
 
     let reassembled_bytes = disassembled.assemble().to_bytes();
     assert_eq!(reassembled_bytes, assembled_bytes);

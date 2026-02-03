@@ -154,7 +154,7 @@ impl Display for DisassembledRom {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for block in self.blocks.iter() {
             Display::fmt(&block, f)?;
-            write!(f, "\n")?;
+            writeln!(f)?;
         }
         Ok(())
     }
@@ -180,9 +180,9 @@ impl Display for RomBlock {
     /// Encodes this block as a pseudo-assembly string.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if let Some(address) = self.address {
-            write!(f, "0x{:04X}:\n", address)?;
+            writeln!(f, "0x{:04X}:", address)?;
         } else {
-            write!(f, "0x____:\n")?;
+            writeln!(f, "0x____:")?;
         }
 
         match self.content {
@@ -198,16 +198,16 @@ impl Display for RomBlock {
                     n += 2;
 
                     if n >= 61 {
-                        write!(f, "\n")?;
+                        writeln!(f)?;
                         n = 0;
                     }
                 }
-                write!(f, "\n")?;
+                writeln!(f)?;
             }
             Code(ref instructions) => {
                 // TODO: exclude trailing padding NOPs
                 for instruction in instructions.iter() {
-                    write!(f, "    {}\n", instruction)?;
+                    writeln!(f, "    {}", instruction)?;
                 }
             }
         }
@@ -216,6 +216,7 @@ impl Display for RomBlock {
 }
 
 #[macro_export]
+#[expect(missing_docs)]
 macro_rules! code_blocks {
     (
         $(
@@ -231,7 +232,9 @@ macro_rules! code_blocks {
         )*
     ) => {
         {
-            #[allow(non_snake_case)]
+            #[expect(non_snake_case)]
+            #[expect(redundant_semicolons)]
+            #[expect(clippy::no_effect)]
             fn f() -> Vec<RomBlock> {
                 $(
                     $(let $id =)* $($address)*;
