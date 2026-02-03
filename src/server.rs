@@ -13,7 +13,7 @@ pub async fn handle_request(
     // println!("; {} {}", req.method(), req.uri().path());
 
     match (req.method(), req.uri().path()) {
-        (&Method::GET, "/") => {
+        (&Method::GET | &Method::HEAD, "/") => {
             let html = include_bytes!("io.html");
             Ok(Response::builder()
                 .header("content-type", "text/html")
@@ -21,7 +21,7 @@ pub async fn handle_request(
                 .body(Full::new(Bytes::from_static(html)))
                 .unwrap())
         }
-        (&Method::GET, "/output.png") => {
+        (&Method::GET | &Method::HEAD, "/output.png") => {
             let display = output_buffer.lock().unwrap().combined_image();
             let mut encoded_image = Vec::new();
             display
