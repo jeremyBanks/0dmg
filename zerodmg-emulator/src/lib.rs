@@ -125,7 +125,7 @@ impl Output {
         let mut y = 0;
         for image in images.clone() {
             let (_width, height) = image.dimensions();
-            combined.copy_from(image, 0, y);
+            let _ = combined.copy_from(image, 0, y);
             y += height;
         }
         DynamicImage::ImageRgba8(combined)
