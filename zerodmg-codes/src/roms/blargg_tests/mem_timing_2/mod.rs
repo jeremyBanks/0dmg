@@ -27,7 +27,7 @@ fn verify(assembled: &AssembledRom) {
 }
 
 #[test]
-#[ignore(known_failure)]
+#[ignore = "known_failure"]
 fn test_round_trip() {
     mem_timing_2();
 }
