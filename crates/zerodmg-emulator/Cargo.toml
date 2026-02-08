@@ -1,0 +1,16 @@
+[package]
+name = "zerodmg-emulator"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+publish.workspace = true
+description = "pieces of a naive incomplete broken game boy emulator"
+readme = "../zerodmg/README.md"
+
+[dependencies]
+zerodmg-utils.workspace = true
+zerodmg-codes.workspace = true
+image = "0.23"
+rand = "0.8"

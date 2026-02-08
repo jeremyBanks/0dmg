@@ -1,0 +1,33 @@
+use crate::assembled::AssembledRom;
+
+const CGB_SOUND: &[u8; 0x10000] = include_bytes!("./cgb_sound.gb");
+
+/// Blargg's CGB Sound Test ROM
+pub fn cgb_sound() -> AssembledRom {
+    let rom = AssembledRom::from_bytes(CGB_SOUND.as_ref());
+    if cfg!(debug_assertions) {
+        verify(&rom);
+    }
+    rom
+}
+
+/// A sanity-check/test of the result, only checked in debug mode and tests.
+fn verify(assembled: &AssembledRom) {
+    let known_vec = CGB_SOUND.as_ref();
+
+    println!("=== Disassembled CGB Sound Test ROM ===");
+    let mut assembled = assembled.clone();
+    assembled.trace_standard_game_instructions();
+    let disassembled = assembled.disassemble();
+    println!("{disassembled:?}");
+    println!("{disassembled}");
+
+    let reassembled_bytes = disassembled.assemble().to_bytes();
+    assert_eq!(known_vec, reassembled_bytes);
+}
+
+#[test]
+#[ignore = "known_failure"]
+fn test_round_trip() {
+    cgb_sound();
+}
