@@ -1,5 +1,5 @@
 [package]
-name = "zerodmg-emulator"
+name = "zerodmg"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -7,10 +7,16 @@ authors.workspace = true
 repository.workspace = true
 publish.workspace = true
 description = "pieces of a naive incomplete broken game boy emulator"
-readme = "../README.md"
+readme = "README.md"
 
 [dependencies]
+zerodmg-emulator.workspace = true
 zerodmg-utils.workspace = true
 zerodmg-codes.workspace = true
-image = "0.23"
+tokio = { version = "1.0", features = ["full"] }
+hyper = { version = "1.0", features = ["server", "http1"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
+http-body-util = "0.1"
+bytes = "1.0"
 rand = "0.8"
+image = "0.23"

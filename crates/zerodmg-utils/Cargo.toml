@@ -7,7 +7,7 @@ authors.workspace = true
 repository.workspace = true
 publish.workspace = true
 description = "pieces of a naive incomplete broken game boy emulator"
-readme = "../README.md"
+readme = "../zerodmg/README.md"
 
 [dependencies]
 image = "0.23"
